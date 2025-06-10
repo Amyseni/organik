@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 68fe850 (Initial commit - It works on my machine.)
 .cache/
 
 .secrets
@@ -23,6 +28,12 @@ _deps
 CMakeUserPresets.json
 out/
 
+<<<<<<< HEAD
+=======
+=======
+out/
+
+>>>>>>> 68fe850 (Initial commit - It works on my machine.)
 main.dir/
 Src.dir/
 
@@ -35,4 +46,8 @@ main.sln
 .vscode/
 
 # custom
+<<<<<<< HEAD
 clean-and-debug.sh
+=======
+clean-and-debug.sh
+>>>>>>> 68fe850 (Initial commit - It works on my machine.)
