@@ -1,0 +1,69 @@
+#pragma once
+#include "CodeEvents.h"
+#include <YYToolkit/YYTK_Shared.hpp>
+#include "CallbackManager/CallbackManagerInterface.h"
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#define VERSIONNUM "v1.0.0"
+#define MODNAME "Organik Mod Framework " VERSIONNUM
+
+#define SOME_ENUM(DO) \
+            DO(x)
+
+extern std::ofstream outFile;
+            
+extern RValue GMLVarIndexMapGMLHash[1001];
+
+extern CInstance* globalInstance;
+extern YYTKInterface* g_ModuleInterface;
+extern YYRunnerInterface g_RunnerInterface;
+
+extern int objOutgameIndex;         // outgame
+extern int objStartGameIndex;       // obj_start_game
+extern int objAllGameIndex;         // obj_allgame
+extern int objConstructorIndex;     // obj_constructor
+extern int objControlIndex;         // obj_control
+extern int objRoomCtrlIndex;        // obj_room_ctrl
+extern int objEnemyCtrlIndex;       // obj_enemy_ctrl       
+extern int objIngameCtrlIndex;      // obj_ingame_ctrl
+extern int objPlayerMainmenuIndex;  // obj_player_mainmenu
+extern int objLocalPlayerIndex;     // obj_localPlayer
+extern int objStatsIndex;           // obj_stats
+extern int objStatisticsIndex;      // obj_statistics
+extern int objClassUpgradeIndex;    // obj_class_upgrade
+extern int objLogmenuIndex;         // obj_logmenu
+extern int objHelpmenuIndex;        // obj_helpmenu
+extern int objCursorIndex;          // obj_cursor
+extern int objCursorMainmenuIndex;  // obj_cursor_mainmenu
+extern int objMainmenuIndex;        // obj_mainmenu
+extern int objMmTalentselectionMenuIndex; // obj_mm_talentselection_menu
+extern int objMmClassesMenuIndex;   // obj_mm_classes_menu
+extern int objMmWeaponmenuIndex;    // obj_mm_weaponmenu
+extern int objMmItemselectMenuIndex;// obj_mm_itemselect_menu
+extern int objMmDifficultymenuIndex;// obj_mm_difficultymenu
+extern int objMmReadylobbyIndex;    // obj_mm_readylobby
+extern int objMmCreditsdisplayIndex;// obj_mm_creditsdisplay
+extern int objMmUnlocksMenuIndex;   // obj_mm_unlocks_menu
+extern int objMmGroundIndex;        // obj_mm_ground
+extern int objMmWeaponlockerIndex;  // obj_mm_weaponlocker
+extern int objMmComputerIndex;      // obj_mm_computer
+extern int objMmKitselectIndex;     // obj_mm_kitselect
+extern int objMmProgressIndex;      // obj_mm_progress
+extern int objScrollingLogIndex;    // obj_scrolling_log
+extern int objTooltipIndex;         // obj_tooltip
+extern int objTooltipbigIndex;      // obj_tooltipbig
+extern int objAllItemsIndex;        // obj_all_items
+extern int objItemSlotIndex;        // obj_item_slot
+extern int objItemDropIndex;        // obj_item_drop
+extern int objItemstatsIndex;       // obj_itemstats
+extern int objLevelManagerIndex;    // obj_levelManager
+extern int objTeleporterIndex;      // obj_teleporter
+extern int objBindingsIndex;        // obj_bindings
+extern int objDamagezoneIndex;      // obj_damagezone
+extern int objBossSpiderIndex;      // obj_boss_spider
+extern int objArtefactMysterybonusIndex; // obj_artefact_mysterybonus
+extern int objAndroidconsoleIndex;  // obj_androidconsole
+extern int objNetGlobalChatIndex;   // obj_net_global_chat
+extern int objOverlaysAboveuiIndex; // obj_overlays_aboveui
+extern int objLUTStartIndex;        // obj_LUT_start
