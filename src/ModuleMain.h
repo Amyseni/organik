@@ -5,19 +5,22 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include "Logging.h"
 #define VERSIONNUM "v1.0.0"
 #define MODNAME "Organik Mod Framework " VERSIONNUM
 
 #define SOME_ENUM(DO) \
             DO(x)
 
-extern std::ofstream outFile;
-            
+
+using namespace Organik;
+        
 extern RValue GMLVarIndexMapGMLHash[1001];
 
 extern CInstance* globalInstance;
 extern YYTKInterface* g_ModuleInterface;
 extern YYRunnerInterface g_RunnerInterface;
+extern Logger *g_LoggerInstance;
 
 extern int objOutgameIndex;         // outgame
 extern int objStartGameIndex;       // obj_start_game

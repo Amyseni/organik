@@ -117,6 +117,7 @@ set(Header_Files
     "include/Aurie/shared.hpp"
     "include/FunctionWrapper/FunctionWrapper.hpp"
     "src/ModuleMain.h"
+    "src/Logging.h"
     "src/CodeEvents.h"
 )
 
@@ -125,6 +126,7 @@ source_group("Header Files" FILES ${Header_Files})
 set(Source_Files
     "include/YYToolkit/YYTK_Shared_Types.cpp"
     "src/ModuleMain.cpp"
+    "src/Logging.cpp"
     "src/CodeEvents.cpp"
 )
 
@@ -208,7 +210,9 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         "$<$<CONFIG:Release>:"
             "NDEBUG"
         ">"
+        "ORGANIK_LOG_EVENTS;"
         "_WIN32;"
+        "WIN32;"
         "_CONSOLE;"
         "UNICODE;"
         "_UNICODE"
@@ -221,7 +225,9 @@ elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
         "$<$<CONFIG:Release>:"
             "NDEBUG"
         ">"
+        "ORGANIK_LOG_EVENTS;"
         "_WIN32;"
+        "WIN32;"
         "_CONSOLE;"
         "UNICODE;"
         "_UNICODE"
