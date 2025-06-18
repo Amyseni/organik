@@ -2,91 +2,88 @@
 #include <Aurie/shared.hpp>
 #include <YYToolkit/YYTK_Shared.hpp>
 #include "CallbackManager/CallbackManagerInterface.h"
+#include "Logging.h"
+#include "ModuleMain.h"
 
-void OutgameCreateBefore(class std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void OutgameCreateAfter(class std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
+namespace Organik
+{
+    typedef std::tuple<CInstance *, CInstance*, CCode *, RValue**, int> CallbackParams;
+    void gml_Object_obj_research_button_Create_0_Before(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Create_0_After(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Mouse_11_Before(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Mouse_11_After(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Mouse_10_Before(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Mouse_10_After(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Mouse_7_Before(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Mouse_7_After(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Draw_0_Before(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_Draw_0_After(CallbackParams &Args) ;
+    void gml_Object_obj_research_button_PreCreate_0_Before(CallbackParams &Args);
+    void gml_Object_obj_research_button_PreCreate_0_After(CallbackParams &Args);
+    void gml_Object_obj_research_button_PARENT_Create_0_Before(CallbackParams &Args);
+    void gml_Object_obj_research_button_PARENT_Create_0_After(CallbackParams &Args);
+    void gml_Object_obj_research_button_PARENT_Alarm_0_Before(CallbackParams &Args);
+    void gml_Object_obj_research_button_PARENT_Alarm_0_After(CallbackParams &Args);
+    void gml_Object_obj_research_button_PARENT_PreCreate_0_Before(CallbackParams &Args);
+    void gml_Object_obj_research_button_PARENT_PreCreate_0_After(CallbackParams &Args);
+    void gml_Object_rb_dailybonus_PreCreate_0_Before(CallbackParams &Args);
+    void gml_Object_rb_dailybonus_PreCreate_0_After(CallbackParams &Args);
+    void gml_Object_rb_dailybonus_Create_0_Before(CallbackParams &Args);
+    void gml_Object_rb_dailybonus_Create_0_After(CallbackParams &Args);
+    void MSClientCreate_0_Before(CallbackParams &Args);
+    void MSClientCreate_0_After(CallbackParams &Args);
+    void MSClientDestroy_1_Before(CallbackParams &Args);
+    void MSClientDestroy_1_After(CallbackParams &Args);
+    // void MSClientStep_2_Before(CallbackParams &Args);
+    // void MSClientStep_2_After(CallbackParams &Args);
+    // void MSClientStep_0_Before(CallbackParams &Args);
+    // void MSClientStep_0_After(CallbackParams &Args);
+    void MSClientOther_68_Before(CallbackParams &Args);
+    void MSClientOther_68_After(CallbackParams &Args);
+    void MSClientOther_25_Before(CallbackParams &Args);
+    void MSClientOther_25_After(CallbackParams &Args);
+    void MSClientOther_15_Before(CallbackParams &Args);
+    void MSClientOther_15_After(CallbackParams &Args);
+    void MSClientOther_13_Before(CallbackParams &Args);
+    void MSClientOther_13_After(CallbackParams &Args);
+    void MSClientOther_12_Before(CallbackParams &Args);
+    void MSClientOther_12_After(CallbackParams &Args);
+    void MSClientOther_10_Before(CallbackParams &Args);
+    void MSClientOther_10_After(CallbackParams &Args);
+    void MSClientOther_4_Before(CallbackParams &Args);
+    void MSClientOther_4_After(CallbackParams &Args);
+    void MSClientDraw_0_Before(CallbackParams &Args);
+    void MSClientDraw_0_After(CallbackParams &Args);
+    void MSClientPreCreate_0_Before(CallbackParams &Args);
+    void MSClientPreCreate_0_After(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Create_0_Before(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Create_0_After(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Step_0_Before(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Step_0_After(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Mouse_54_Before(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Mouse_54_After(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Mouse_53_Before(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_Mouse_53_After(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_PreCreate_0_Before(CallbackParams &Args);
+    void gml_Object_obj_cursor_mainmenu_PreCreate_0_After(CallbackParams &Args);
+    void gml_Object_obj_mm_research_trigger_Step_0_Before(CallbackParams &Args);
+    // void gml_Object_obj_mm_research_trigger_Step_0_After(CallbackParams &Args);
+    void gml_Object_obj_mm_research_trigger_PreCreate_0_Before(CallbackParams &Args);
+    void gml_Object_obj_mm_research_trigger_PreCreate_0_After(CallbackParams &Args);
+    void gml_Object_obj_perk_hframe_Step_2_Before(CallbackParams &Args) ;
+    void gml_Object_obj_perk_hframe_Step_2_After(CallbackParams &Args) ;
 
-void EnmBaseParentCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void EnmBaseParentCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
+    void gml_Object_obj_player_Alarm_10_Before(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_10_After(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_5_Before(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_5_After(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_3_Before(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_3_After(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_1_Before(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_1_After(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_0_Before(CallbackParams &Args);
+    void gml_Object_obj_player_Alarm_0_After(CallbackParams &Args);
+    void gml_Object_outgame_Step_0_Before(CallbackParams &Args);
+    void gml_Object_outgame_Draw_0_After(CallbackParams &Args);
 
-void CursorCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void CursorCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void BuffTimedCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void BuffTimedCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void CursorCameraDrawBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void BuffStatboostsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void UpgradeMenuCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void LastKillCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void LastKillDrawBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void LastKillDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void MainUiS1PreCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void MainUiS1PreCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void MainUiWeaponPreCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void MainUiWeaponPreCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void RollClassItemCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void RollClassItemCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void SelectionMenuCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void SelectionMenuCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void SelectionMenuPerkCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void SelectionMenuPerkCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void AndroidConsoleCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void AndroidConsoleCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void SelectionMenuStatCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void SelectionMenuStatCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void EscapeSettingsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void DialogUiCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void PauseMenuCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void ReloadingPreCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void ReloadingCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void ReloadingCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void ReloadingStep2Before(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void ReloadingStep2After(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void ItemStatsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void ItemStatsCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void ItemStatsDrawBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void ItemStatsDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void StatisticsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void StatisticsCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void OverlaysAboveUiCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-void OverlaysAboveUiCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void MainUiS1DrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void MainUiWeaponDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void SelectionMenuDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void EscapeSettingsDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void AndroidConsoleDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void DialogUiDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void PauseMenuDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void ReloadingDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
-
-void OverlaysAboveUiDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>&);
+}

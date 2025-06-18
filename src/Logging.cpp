@@ -8,9 +8,9 @@
 #include "CallbackManager/CallbackManagerInterface.h"
 #include "CodeEvents.h"
 #include "ModuleMain.h"
+
 namespace Organik
 {
-
     /**
      * @brief Singleton instance of the Logger.
      */
@@ -21,7 +21,7 @@ namespace Organik
      * @return Pointer to the Logger instance, or nullptr if not initialized.
      */
     Logger* GetLogger() { return g_LoggerInstance; }
-    
+
     /**
      * @brief Initializes the logging system.
      * This function creates and initializes the singleton Logger instance.
@@ -142,12 +142,6 @@ namespace Organik
             return false;
         }
         outFile << message << std::endl;
-        // The explicit outFile.flush() here is redundant if std::endl is used.
-        // If flushLine was meant to control flushing independently of newline:
-        // outFile << message << '\n';
-        // if (flushLine) {
-        //     outFile.flush();
-        // }
         return true;
     }
 
@@ -173,8 +167,37 @@ namespace Organik
         va_start(va_args, fmt);
         std::string formatted_output = ParseFormatting(fmt, va_args);
         va_end(va_args);
-        return WriteToLog(formatted_output, true); // Ensure flushLine is explicitly passed if WriteToLog changes
+        return WriteToLog(formatted_output, true);
     }
+    int tryDereference(int ptr)
+    {
+        LPCVOID int_hack = (LPCVOID)ptr;
+        MEMORY_BASIC_INFORMATION mbi;
+        if (VirtualQuery((LPCVOID)ptr, &mbi, sizeof(mbi)) != 0 && mbi.State == MEM_COMMIT &&
+            (mbi.Protect == PAGE_READONLY || mbi.Protect == PAGE_READWRITE || mbi.Protect == PAGE_EXECUTE_READ || mbi.Protect == PAGE_EXECUTE_READWRITE))
+        {
+            return *(int*)int_hack;
+        }
+        return -1;
+    }
+
+    int tryDereferencePtrLoop(IN int ptr_trgt, OUT int& COUNT)
+    {
+        int i = 0;
+        COUNT = 0;
+        int last_val = ptr_trgt;
+        int ptr_test = ptr_trgt;
+        do 
+        {
+            i = i + 1;
+            last_val = ptr_test;
+            ptr_test = tryDereference(ptr_test);
+            COUNT = i;
+        } while (ptr_test != -1);
+        return last_val;
+    }
+
+    
 
     /**
      * @brief Logs details of a CodeEvent callback.
@@ -185,14 +208,15 @@ namespace Organik
      * @param logArgv If true, logs the arguments (argv) passed to the event.
      * @return True if logging was successful, false otherwise.
      */
-    bool Logger::LogEventCallback(const char* sourceFile, const int line, const char* callbackName, CodeEventArgs& args, bool logArgv)
+    bool Logger::LogEventCallback(const char* sourceFile, const int line, const char* callbackName, CodeEventArgs args, bool logArgv)
     {
         bool success = true;
         CInstance* self = std::get<0>(args);
         // CInstance* other = std::get<1>(args);
         CCode* code = std::get<2>(args);
-        int argc = std::get<3>(args);
-        RValue* r_argv = std::get<4>(args);
+        int argc = std::get<4>(args);
+        
+        auto r_argv = (RValue**) std::get<3>(args);
 
         // Get current time for timestamp
         auto now = std::chrono::system_clock::now();
@@ -204,73 +228,41 @@ namespace Organik
         std::string timestamp = timestamp_ss.str();
 
         std::ostringstream infoStream;
-
-        infoStream << g_LoggerInstance->ParseFormatting("[EVENT] [%s()] [%s] @ [%s:%d]", callbackName, timestamp.c_str(), sourceFile, line) << "\n";
-        infoStream << g_LoggerInstance->ParseFormatting("    Self instance: %p", (void*) self) << "\n";
-        /* if (other)
-        {
-            infoStream << g_LoggerInstance->ParseFormatting("    Other instance: %p", (void*) other) << "\n";
-        } */
-        infoStream << g_LoggerInstance->ParseFormatting("    Code object: %p", (void*) code) << "\n";
-        
-        int* ptr_argc = reinterpret_cast<int*>(static_cast<uintptr_t>(argc));
-        MEMORY_BASIC_INFORMATION mbi;
-        bool isValidAndReadable = false;
-
-        if (ptr_argc != nullptr && VirtualQuery(ptr_argc, &mbi, sizeof(mbi)) != 0)
-        {
-            if (mbi.State == MEM_COMMIT &&
-                (mbi.Protect == PAGE_READONLY || mbi.Protect == PAGE_READWRITE ||
-                mbi.Protect == PAGE_EXECUTE_READ || mbi.Protect == PAGE_EXECUTE_READWRITE))
-            {
-                isValidAndReadable = true;
-            }
-        }
-        infoStream << g_LoggerInstance->ParseFormatting("    Argument count: %d)", argc, isValidAndReadable ? *ptr_argc : -1) << "\n";
+        int& out_buf(argc);
+        infoStream << g_LoggerInstance->ParseFormatting("[EVENT] [0x%p->%s() call 0x%p] [%s] @ [%s:%d]", self, callbackName, code, timestamp.c_str(), sourceFile, line) << "\n";
+        argc = tryDereferencePtrLoop(argc, out_buf); // Use helper function
+        infoStream << g_LoggerInstance->ParseFormatting("    Argument count: %d (dereferenced %d times)", argc,  out_buf) << "\n";
 
         success = g_LoggerInstance->LogFormatted("%s", infoStream.str().c_str());
 
         if (logArgv)
         {
             int current_argc = argc; // Use a local copy for argument count
-            if (ptr_argc) 
-            {
-                // If ptr_argc was deemed valid and readable, use its value for iteration
-                MEMORY_BASIC_INFORMATION mbi; // Re-check for safety, or rely on previous check
-                if (VirtualQuery(ptr_argc, &mbi, sizeof(mbi)) != 0 && mbi.State == MEM_COMMIT &&
-                    (mbi.Protect == PAGE_READONLY || mbi.Protect == PAGE_READWRITE || mbi.Protect == PAGE_EXECUTE_READ || mbi.Protect == PAGE_EXECUTE_READWRITE))
-                {
-                    current_argc = *ptr_argc;
-                }
-            }
 
             std::ostringstream argStream;
-            argStream << "    Arguments: { ";
+            g_LoggerInstance->LogSimple("    Arguments: { ");
             if (current_argc > 0)
             {
-                bool use_multiline = current_argc > 3; // Heuristic for multiline
+                bool use_multiline = current_argc > 3;
                 for (int i = 0; i < current_argc; ++i)
                 {
-                    if (use_multiline)
-                    {
-                        argStream << "\n      " << i << ": " << r_argv[i].ToString();
-                    }
-                    else
-                    {
-                        if (i == 0) argStream << " "; // Space after {
-                        argStream << i << ": " << r_argv[i].ToString();
-                    }
+                    out_buf = 0;
+                    // cast Rvalue* to int* as a pointer
+                    int ptr_hak = tryDereferencePtrLoop((int)(r_argv[current_argc]), out_buf); 
+                    // RValue& r_value = (RValue&)ptr_hak;
+
+                    // RValue& r_value = *(RValue*)r_argv[i];
+                    g_LoggerInstance->LogFormatted("\n (%p) %d: %s,",(void*) ptr_hak, current_argc, out_buf);
+
                     if (i < current_argc - 1)
                     {
-                        argStream << ",";
-                        if (!use_multiline) argStream << " ";
+                        
                     }
                 }
-                if (use_multiline) argStream << "\n    ";
-                else argStream << " "; // Space before }
+                if (use_multiline) g_LoggerInstance->WriteToLog("   ");
             }
-            argStream << "}";
-            success = g_LoggerInstance->LogFormatted("%s", argStream.str().c_str()) && success;
+            //argStream << " }";
+            //success = g_LoggerInstance->LogFormatted("%s", argStream.str().c_str()) && success;
         }
         return success;
     }

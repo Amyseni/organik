@@ -2,23 +2,14 @@
 #include <Aurie/shared.hpp>
 #include "ModuleMain.h"
 #include "CodeEvents.h"
-#include <YYToolkit/YYTK_Shared.hpp>
-#include <FunctionWrapper/FunctionWrapper.hpp>
+#include "YYToolkit/YYTK_Shared.hpp"
+#include "FunctionWrapper/FunctionWrapper.hpp"
 #include "CallbackManager/CallbackManagerInterface.h"
 #include "Logging.h"
 
 using namespace Aurie;
 using namespace YYTK;
-
 using namespace Organik;
-Logger *g_LoggerInstance = nullptr;
-YYTKInterface* g_ModuleInterface = nullptr;
-CallbackManagerInterface* callbackManagerInterfacePtr = nullptr;
-YYRunnerInterface g_RunnerInterface;
-
-HWND hWnd;
-
-CInstance* globalInstance = nullptr;
 
 int objOutgameIndex = -1;
 int objStartGameIndex = -1;
@@ -68,18 +59,50 @@ int objAndroidconsoleIndex = -1;
 int objNetGlobalChatIndex = -1;
 int objOverlaysAboveuiIndex = -1;
 int objLUTStartIndex = -1;
+
+Organik::Logger* g_LoggerInstance;
+YYTKInterface* g_ModuleInterface = nullptr;
+CallbackManagerInterface* callbackManagerInterfacePtr = nullptr;
+YYRunnerInterface g_RunnerInterface;
+CInstance **g_globalInstance;
+HWND hWnd;
+CInstance* globalInstance = nullptr;
+int frameCounter = 0;
+bool debug = false;
+typedef void (*fnCallback)(CallbackParams&);
+
 void FrameCallback(FWFrame& FrameContext)
 {
 	UNREFERENCED_PARAMETER(FrameContext);
+	frameCounter++;
 
-	static uint32_t frame_counter = 0;
+	if (!(frameCounter % 30 == 0))
+		return;
 
-	if (frame_counter % 30 == 0)
-		// g_ModuleInterface->PrintWarning("[Example Plugin] - 30 frames have passed! Framecount: %u", frame_counter);
-
-	frame_counter++;
+	int scriptIndex;
+	RValue version = g_ModuleInterface->CallBuiltin("gamemaker_version", {});
+	Organik::GetLogger()->LogFormatted("GameMaker version: %s", version.GetKindName().c_str());
+	if (g_ModuleInterface->GetNamedRoutineIndex(
+		"gml_Script_debug",
+		&scriptIndex
+	) == AURIE_SUCCESS)
+	{
+		if (!debug) {
+			debug = true;
+			g_ModuleInterface->CallBuiltin("show_debug_overlay", {RValue(true)});
+			
+		}
+			
+	};
 }
-
+struct CallbackInfo {
+	char *functionName;
+	fnCallback *callbackBefore;
+	fnCallback *callbackAfter;
+	CallbackInfo(char *_fnName, fnCallback *_before, fnCallback *_after) : functionName(_fnName), callbackBefore(_before), callbackAfter(_after) 
+	{	
+	}
+};
 EXPORTED AurieStatus ModuleInitialize(
 	IN AurieModule* Module,
 	IN const fs::path& ModulePath
@@ -111,8 +134,7 @@ EXPORTED AurieStatus ModuleInitialize(
 	{
 		GetLogger()->LogSimple("YYTK_Main found!");
 	}
-
-
+	
 	last_status = ObGetInterface("callbackManager", (AurieInterfaceBase*&)callbackManagerInterfacePtr);
 	if (!AurieSuccess(last_status))
 	{
@@ -120,405 +142,90 @@ EXPORTED AurieStatus ModuleInitialize(
 		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
 	}
 	
-	last_status = g_ModuleInterface->GetGlobalInstance(&globalInstance);
-	
+	CInstance *g_globalInstance = nullptr;
+	last_status = g_ModuleInterface->GetGlobalInstance(&g_globalInstance);
 	if (!AurieSuccess(last_status))
 	{
-		GetLogger()->LogFormatted("Failed to get global instance: %s", AurieStatusToString(last_status));
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
+		GetLogger()->LogSimple("Failed to get global instance.");
+		return AURIE_OBJECT_NOT_FOUND;
 	}
 	else
 	{
-		std::map<std::string, RValue*> result;
-		GetLogger()->LogFormatted("Successfully retrieved global instance at %0p", (void*) globalInstance);
-	
-	}
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_outgame_Create_0", OutgameCreateBefore, OutgameCreateAfter))) // callback before and after gml_Object_outgame_Create_0
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_outgame_Create_0");
-	}	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_outgame_Create_0", OutgameCreateBefore, OutgameCreateAfter))) // callback before and after gml_Object_outgame_Create_0
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_outgame_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_outgame_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
+		GetLogger()->LogSimple("Global instance found!");
 	}
 
-	// callback before and after gml_Object_obj_enm_base_parent_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_enm_base_parent_Create_0", EnmBaseParentCreateBefore, EnmBaseParentCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_enm_base_parent_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_enm_base_parent_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
+	last_status = g_ModuleInterface->CreateCallback(
+		Module,
+		EVENT_FRAME,
+		FrameCallback,
+		0
+	);
 
-	// before and after gml_Object_obj_cursor_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_cursor_Create_0", CursorCreateBefore, CursorCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_cursor_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_cursor_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_buff_timed_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_buff_timed_Create_0", BuffTimedCreateBefore, BuffTimedCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_buff_timed_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_buff_timed_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-
-	// before gml_Object_obj_cursor_camera_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_cursor_camera_Draw_0", CursorCameraDrawBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_cursor_camera_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_cursor_camera_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before gml_Object_obj_buff_statboosts_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_buff_statboosts_Create_0", BuffStatboostsCreateBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_buff_statboosts_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_buff_statboosts_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before gml_Object_obj_upgrademenu_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_upgrademenu_Create_0", UpgradeMenuCreateBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_upgrademenu_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_upgrademenu_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before gml_Object_obj_lastkill_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_lastkill_Create_0", LastKillCreateBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_lastkill_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_lastkill_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_lastkill_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_lastkill_Draw_0", LastKillDrawBefore, LastKillDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_lastkill_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_lastkill_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_main_ui_S1_PreCreate_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_main_ui_S1_PreCreate_0", MainUiS1PreCreateBefore, MainUiS1PreCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_main_ui_S1_PreCreate_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_main_ui_S1_PreCreate_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_main_ui_weapon_PreCreate_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_main_ui_weapon_PreCreate_0", MainUiWeaponPreCreateBefore, MainUiWeaponPreCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_main_ui_weapon_PreCreate_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_main_ui_weapon_PreCreate_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_roll_classitem_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_roll_classitem_Create_0", RollClassItemCreateBefore, RollClassItemCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_roll_classitem_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_roll_classitem_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_selection_menu_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_selection_menu_Create_0", SelectionMenuCreateBefore, SelectionMenuCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_selection_menu_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_selection_menu_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_selection_menu_perk_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_selection_menu_perk_Create_0", SelectionMenuPerkCreateBefore, SelectionMenuPerkCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_selection_menu_perk_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_selection_menu_perk_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_androidconsole_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_androidconsole_Create_0", AndroidConsoleCreateBefore, AndroidConsoleCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_androidconsole_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_androidconsole_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_selection_menu_stat_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_selection_menu_stat_Create_0", SelectionMenuStatCreateBefore, SelectionMenuStatCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_selection_menu_stat_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_selection_menu_stat_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before gml_Object_obj_escapesettings_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_escapesettings_Create_0", EscapeSettingsCreateBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_escapesettings_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_escapesettings_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before gml_Object_obj_dialog_ui_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_dialog_ui_Create_0", DialogUiCreateBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_dialog_ui_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_dialog_ui_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before gml_Object_obj_pausemenu_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_pausemenu_Create_0", PauseMenuCreateBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_pausemenu_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_pausemenu_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before gml_Object_obj_reloading_PreCreate_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_reloading_PreCreate_0", ReloadingPreCreateBefore, nullptr)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_reloading_PreCreate_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_reloading_PreCreate_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_reloading_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_reloading_Create_0", ReloadingCreateBefore, ReloadingCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_reloading_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_reloading_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_reloading_Step_2
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_reloading_Step_2", ReloadingStep2Before, ReloadingStep2After)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_reloading_Step_2");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_reloading_Step_2");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_itemstats_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_itemstats_Create_0", ItemStatsCreateBefore, ItemStatsCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_itemstats_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_itemstats_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_itemstats_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_itemstats_Draw_0", ItemStatsDrawBefore, ItemStatsDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_itemstats_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_itemstats_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_statistics_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_statistics_Create_0", StatisticsCreateBefore, StatisticsCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_statistics_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_statistics_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// before and after gml_Object_obj_overlays_aboveui_Create_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_overlays_aboveui_Create_0", OverlaysAboveUiCreateBefore, OverlaysAboveUiCreateAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_overlays_aboveui_Create_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_overlays_aboveui_Create_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_main_ui_S1_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_main_ui_S1_Draw_0", nullptr, MainUiS1DrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_main_ui_S1_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_main_ui_S1_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_main_ui_weapon_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_main_ui_weapon_Draw_0", nullptr, MainUiWeaponDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_main_ui_weapon_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_main_ui_weapon_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_selection_menu_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_selection_menu_Draw_0", nullptr, SelectionMenuDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_selection_menu_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_selection_menu_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_escapesettings_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_escapesettings_Draw_0", nullptr, EscapeSettingsDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_escapesettings_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_escapesettings_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_androidconsole_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_androidconsole_Draw_0", nullptr, AndroidConsoleDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_androidconsole_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_androidconsole_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_dialog_ui_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_dialog_ui_Draw_0", nullptr, DialogUiDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_dialog_ui_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_dialog_ui_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_pausemenu_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_pausemenu_Draw_0", nullptr, PauseMenuDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_pausemenu_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_pausemenu_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_reloading_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_reloading_Draw_0", nullptr, ReloadingDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_reloading_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_reloading_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
-	}
-
-	// after gml_Object_obj_overlays_aboveui_Draw_0
-	if (AurieSuccess(callbackManagerInterfacePtr->RegisterCodeEventCallback(MODNAME, "gml_Object_obj_overlays_aboveui_Draw_0", nullptr, OverlaysAboveUiDrawAfter)))
-	{
-		GetLogger()->LogFormatted("Registered callback for %s", "gml_Object_obj_overlays_aboveui_Draw_0");
-	}
-	else
-	{
-		GetLogger()->LogFormatted("Failed to register callbacks for %s", "gml_Object_obj_overlays_aboveui_Draw_0");
-		return AURIE_MODULE_DEPENDENCY_NOT_RESOLVED;
+	std::map<const char *, std::vector<fnCallback>> callbacks
+	{
+		{ "gml_Object_obj_research_button_Create_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_Create_0_Before, &Organik::gml_Object_obj_research_button_Create_0_After}},
+		{ "gml_Object_obj_research_button_Mouse_11", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_Mouse_11_Before, &Organik::gml_Object_obj_research_button_Mouse_11_After}},
+		{ "gml_Object_obj_research_button_Mouse_10", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_Mouse_10_Before, &Organik::gml_Object_obj_research_button_Mouse_10_After}},
+		{ "gml_Object_obj_research_button_Mouse_7", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_Mouse_7_Before, &Organik::gml_Object_obj_research_button_Mouse_7_After}},
+		{ "gml_Object_obj_research_button_Draw_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_Draw_0_Before, &Organik::gml_Object_obj_research_button_Draw_0_After}},
+		{ "gml_Object_obj_research_button_PreCreate_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_PreCreate_0_Before, &Organik::gml_Object_obj_research_button_PreCreate_0_After}},
+		{ "gml_Object_obj_research_button_PARENT_Create_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_PARENT_Create_0_Before, &Organik::gml_Object_obj_research_button_PARENT_Create_0_After}},
+		{ "gml_Object_obj_research_button_PARENT_Alarm_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_PARENT_Alarm_0_Before, &Organik::gml_Object_obj_research_button_PARENT_Alarm_0_After}},
+		{ "gml_Object_rb_dailybonus_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_rb_dailybonus_PreCreate_0_Before, &Organik::gml_Object_rb_dailybonus_PreCreate_0_After}},
+		{ "gml_Object_rb_dailybonus_Create_0", std::vector<fnCallback> {&Organik::gml_Object_rb_dailybonus_Create_0_Before, &Organik::gml_Object_rb_dailybonus_Create_0_After}},
+		{ "gml_Object_obj_research_button_PARENT_PreCreate_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_PARENT_PreCreate_0_Before, &Organik::gml_Object_obj_research_button_PARENT_PreCreate_0_After}},
+		
+		{ "gml_Object_obj_net_MS_client_Create_0", std::vector<fnCallback> { &Organik::MSClientCreate_0_Before, &Organik::MSClientCreate_0_After}},
+		{ "gml_Object_obj_net_MS_client_Destroy_1", std::vector<fnCallback> { &Organik::MSClientDestroy_1_Before, &Organik::MSClientDestroy_1_After}},
+		/* { "gml_Object_obj_net_MS_client_Step_2", std::vector<fnCallback*> { &Organik::MSClientStep_2_Before, &Organik::MSClientStep_2_After}}, */
+		/* { "gml_Object_obj_net_MS_client_Step_0", std::vector<fnCallback*> { &Organik::MSClientStep_0_Before, &Organik::MSClientStep_0_After}}, */
+		// { "gml_Object_obj_net_MS_client_Other_68", std::vector<fnCallback> { &Organik::MSClientOther_68_Before, &Organik::MSClientOther_68_After}},
+		// { "gml_Object_obj_net_MS_client_Other_25", std::vector<fnCallback*> { &Organik::MSClientOther_25_Before, &Organik::MSClientOther_25_After}},
+		// { "gml_Object_obj_net_MS_client_Other_15", std::vector<fnCallback*> { &Organik::MSClientOther_15_Before, &Organik::MSClientOther_15_After}},
+		// { "gml_Object_obj_net_MS_client_Other_13", std::vector<fnCallback*> { &Organik::MSClientOther_13_Before, &Organik::MSClientOther_13_After}},
+		// { "gml_Object_obj_net_MS_client_Other_12", std::vector<fnCallback*> { &Organik::MSClientOther_12_Before, &Organik::MSClientOther_12_After}},
+		// { "gml_Object_obj_net_MS_client_Other_10", std::vector<fnCallback*> { &Organik::MSClientOther_10_Before, &Organik::MSClientOther_10_After}},
+		// { "gml_Object_obj_net_MS_client_Other_4", std::vector<fnCallback*> { &Organik::MSClientOther_4_Before, &Organik::MSClientOther_4_After}},
+		/*{ "gml_Object_obj_net_MS_client_Draw_0", std::vector<fnCallback*> { &Organik::MSClientDraw_0_Before, &Organik::MSClientDraw_0_After }},  */
+		{ "gml_Object_obj_player_Alarm_10", std::vector<fnCallback> {&Organik::gml_Object_obj_player_Alarm_10_Before, &Organik::gml_Object_obj_player_Alarm_10_After}},
+		{ "gml_Object_obj_player_Alarm_5", std::vector<fnCallback> {&Organik::gml_Object_obj_player_Alarm_5_Before, &Organik::gml_Object_obj_player_Alarm_5_After}},
+		{ "gml_Object_obj_player_Alarm_3", std::vector<fnCallback> {&Organik::gml_Object_obj_player_Alarm_3_Before, &Organik::gml_Object_obj_player_Alarm_3_After}},
+		{ "gml_Object_obj_player_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_player_Alarm_1_Before, &Organik::gml_Object_obj_player_Alarm_1_After}},
+		{ "gml_Object_obj_player_Alarm_0", std::vector<fnCallback> {&Organik::gml_Object_obj_player_Alarm_0_Before, &Organik::gml_Object_obj_player_Alarm_0_After}},
+		{ "gml_Object_obj_net_MS_client_PreCreate_0", std::vector<fnCallback> { &Organik::MSClientPreCreate_0_Before, &Organik::MSClientPreCreate_0_After}},
+		{ "gml_Object_obj_cursor_mainmenu_Create_0", std::vector<fnCallback> {&Organik::gml_Object_obj_cursor_mainmenu_Create_0_Before, &Organik::gml_Object_obj_cursor_mainmenu_Create_0_After}},
+		{ "gml_Object_obj_cursor_mainmenu_Step_0", std::vector<fnCallback> {&Organik::gml_Object_obj_cursor_mainmenu_Step_0_Before, &Organik::gml_Object_obj_cursor_mainmenu_Step_0_After }},
+		{ "gml_Object_obj_cursor_mainmenu_Mouse_54", std::vector<fnCallback> {&Organik::gml_Object_obj_cursor_mainmenu_Mouse_54_Before, &Organik::gml_Object_obj_cursor_mainmenu_Mouse_54_After}},
+		{ "gml_Object_obj_cursor_mainmenu_Mouse_53", std::vector<fnCallback> {&Organik::gml_Object_obj_cursor_mainmenu_Mouse_53_Before, &Organik::gml_Object_obj_cursor_mainmenu_Mouse_53_After}},
+		// { "gml_Object_obj_cursor_mainmenu_PreCreate_0", std::vector<fnCallback*> {&Organik::gml_Object_obj_cursor_mainmenu_PreCreate_0_Before, &Organik::gml_Object_obj_cursor_mainmenu_PreCreate_0_After}},
+		//{ "gml_Object_obj_mm_research_trigger_Step_0", std::vector<fnCallback*> {&Organik::gml_Object_obj_mm_research_trigger_Step_0_Before, &Organik::gml_Object_obj_mm_research_trigger_Step_0_After}},
+		{ "gml_Object_obj_mm_research_trigger_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_obj_mm_research_trigger_PreCreate_0_Before, &Organik::gml_Object_obj_mm_research_trigger_PreCreate_0_After}},
+		{ "gml_Object_outgame_Step_0", std::vector<fnCallback> {&Organik::gml_Object_outgame_Step_0_Before, nullptr}},
+		{ "gml_Object_outgame_Draw_0", std::vector<fnCallback> {nullptr, &Organik::gml_Object_outgame_Draw_0_After}}
+	};
+	if (!AurieSuccess(last_status))
+	{
+		g_ModuleInterface->Print(CM_RED, "Failed to register frame callback");
+	}
+	for (const auto& callbackPair : callbacks)
+	{
+		const char* eventName = callbackPair.first;
+		fnCallback beforeCallback = callbackPair.second[0];
+		fnCallback afterCallback = callbackPair.second[1];
+		
+		last_status = callbackManagerInterfacePtr->RegisterCodeEventCallback(
+			MODNAME,  // Module name
+			eventName,  // Code event name (e.g., "gml_Object_obj_net_MS_client_Create_0")
+			beforeCallback,
+			afterCallback
+		);
+		
+		if (!AurieSuccess(last_status))
+		{
+			GetLogger()->LogFormatted("Failed to register callback for event: %s", eventName);
+			return last_status;
+		}
+		GetLogger()->LogFormatted("Successfully registered callback for event: %s", eventName);
 	}
 	return AURIE_SUCCESS;
 }

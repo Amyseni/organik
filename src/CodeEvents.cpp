@@ -7,7 +7,55 @@
 #include <iomanip>
 #include <ctime>
 #include "Logging.h"
+#include "UI/UIManager.h"
+#include "UI/Button.h"
+#include "UI/TextArea.h"
+#include <ranges>
 
+
+void superRerollCallback(Organik::Button* self)
+{
+    if (GetLogger())
+    {
+        GetLogger()->LogFormatted("Super Reroll Button Clicked: %s", self->GetLabel());
+    }
+    // Example of modifying the game state
+    // g_ModuleInterface->CallBuiltin("some_function", {RValue(42)});
+}
+
+Button &btn1 =
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*new Organik::Button(
+                "hi im button",
+                20, 20, 250, 40,
+                    {{Organik::LEFT, &superRerollCallback}});
 using namespace Organik;
 // Each CodeEvent is a game engine call to ExecuteIt on a CInstance *self object (equivalent to someObject->someFunction)
 // ALL Code event callbacks should match the following function signature
@@ -28,452 +76,447 @@ using namespace Organik;
         // if necessary, detour the CCode function further (though this can have unwanted side effects)
     }
 */
+/* stepCount++;
+        if (stepCount % 100 == 0)
+        {
+            if (GetLogger())
+            {
+                GetLogger()->LogFormatted("MainMenu Cursor Step. Step Count: %d", stepCount);
+            }
+            stepCount = 0;
+        }
+        else 
+        {
+            return;
+        }
+        CInstance *global;
+        // LogHelper(Args, __FUNCTION__);
+        if (!GetInterface()->GetGlobalInstance(&global) == AurieStatus::AURIE_SUCCESS)
+        {
+            if (GetLogger())
+            {
+                GetLogger()->LogSimple("Failed to get global instance in gml_Object_obj_cursor_mainmenu_Step_0_Before");
+            }
+            return;
+        }
+        RValue count = g_ModuleInterface->CallBuiltin(
+            "variable_instance_names_count",
+            {global->ToRValue()}
+        );
+        int buf = count.ToInt32();
+        std::vector<RValue*> vec = (g_ModuleInterface->CallBuiltin(
+            "variable_instance_get_names",
+            {global->ToRValue()}
+        )).ToRefVector();
 
-/// @brief called before the internal outgame constructor is called.
-/// creates something referred to as gml_Object_outgame, which seems to be a global state machine of some kind
-/// @param Args is a tuple containing the following:
-/// - CInstance *self: The reference that will become gml_Object_outgame
-void OutgameCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
+        for (auto [i, name] : vec | std::views::enumerate)
+        {
+            std::string nameStr = name->ToString();
+            if (GetLogger())
+            {
+                GetLogger()->LogFormatted("MainMenu Cursor Step. Child Object %d: %s", i, nameStr.c_str());
+            }
+        } */
+
+
+namespace Organik
 {
-    CInstance* self = std::get<0>(Args);
-    if (GetLogger())
+    int stepCount = 0;
+    void LogHelper(CallbackParams &Args, const char* caller)
     {
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    }
-    else
+        if (GetLogger())
+        {
+            CInstance *self = std::get<0>(Args);
+            CInstance *other = std::get<1>(Args);
+            CCode *CCode = std::get<2>(Args);
+            RValue** argv = std::get<3>(Args);
+            int argc = std::get<4>(Args);
+            RValue name = "";
+            RValue buff = RValue(10);
+            
+            GetLogger()->LogFormatted("%s called", caller);
+            GetLogger()->LogFormatted("Self: %p, other: %p, CCode: %p, argv: %p, argc: %d", 
+                self,
+                other,
+                CCode,
+                (void*)argv,
+                argc
+            );
+            GetLogger()->LogFormatted("deref per pointer", caller);
+            GetLogger()->LogFormatted("Self: %p, other: %p, CCode: %p, argv: %p", 
+                *self,
+                *other,
+                *CCode,
+                *argv
+            );
+        }
+    }   
+    void MSClientCreate_0_Before(CallbackParams &Args)
     {
-        std::cerr << "[ERROR]" << "["<< __FILE__ << ":" << __LINE__ << "]" "Error: GetLogger() is null.";
+        LogHelper(Args, __FUNCTION__);
     }
-}
-
-/// @brief called after the internal outgame constructor is called, which is after the OutgameCreateBefore callback.
-/// @param Args is a tuple containing the following:
-/// - CInstance *self: Reference to the newly created CInstance to our object.
-void OutgameCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    CInstance* self = std::get<0>(Args);
-
-    objOutgameIndex = GetInterface()->CallBuiltin("asset_get_index", { "obj_outgame" }).ToInt32();
-    if (objOutgameIndex < 0)
+    void MSClientCreate_0_After(CallbackParams &Args)
     {
-        GetLogger()->LogSimple("Error: obj_outgame index is negative, indicating it was not found.");
-        return;
+        LogHelper(Args, __FUNCTION__);
     }
-    if (GetLogger())
+    void MSClientDestroy_1_Before(CallbackParams &Args)
     {
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
+        LogHelper(Args, __FUNCTION__);
     }
-    else
+    void MSClientDestroy_1_After(CallbackParams &Args)
     {
-        std::cerr << "[ERROR]" << "["<< __FILE__ << ":" << __LINE__ << "]" "Error: GetLogger() is null.";
+        LogHelper(Args, __FUNCTION__);
     }
-}
+    /* 
+    void MSClientStep_2_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    */
+    /* 
+    void MSClientStep_2_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    */
+    /* 
+    void MSClientStep_0_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    */
+    /* 
+    void MSClientStep_0_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    */
+    void MSClientOther_68_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_68_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_25_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_25_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_15_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_13_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_12_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_12_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_10_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_10_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_4_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientOther_4_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientDraw_0_After(CallbackParams &Args)
+    {
+        // LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientDraw_0_Before(CallbackParams &Args)
+    {
+        // LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientPreCreate_0_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void MSClientPreCreate_0_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_outgame_Step_0_Before(CallbackParams &Args)
+    {
+        Organik::GetLogger()->LogSimple("gml_Object_outgame_Step_0_Before called");
+        Organik::UIManager::GetInstance()->StepEvent();
+    }
+    void gml_Object_outgame_Draw_0_After(CallbackParams &Args)
+    {
+        Organik::GetLogger()->LogSimple("gml_Object_outgame_Draw_0_After called");
+        Organik::UIManager::GetInstance()->DrawEvent();
+    }
+
+    void gml_Object_obj_research_button_Create_0_Before(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Create_0_After(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Mouse_11_Before(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Mouse_11_After(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Mouse_10_Before(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Mouse_10_After(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Mouse_7_Before(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Mouse_7_After(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Draw_0_Before(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_Draw_0_After(CallbackParams &Args) 
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PreCreate_0_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PreCreate_0_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PARENT_Create_0_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PARENT_Create_0_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PARENT_Alarm_0_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PARENT_Alarm_0_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PARENT_PreCreate_0_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_research_button_PARENT_PreCreate_0_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_rb_dailybonus_PreCreate_0_Before(CallbackParams &Args)
+    {
+        if (GetLogger())
+            {
+                CInstance *self = std::get<0>(Args);
+                RValue *name = new RValue();
+                g_ModuleInterface->GetInstanceMember(
+                    self,
+                    "name",
+                    name
+                );
+                GetLogger()->LogSimple("gml_Object_obj_research_button_Create_0_After called");
+                GetLogger()->LogFormatted("Self: %p, name: %s", 
+                    self,
+                    name
+                );
+    
+                delete name; 
+            }
+    }
+    void gml_Object_rb_dailybonus_PreCreate_0_After(CallbackParams &Args)
+    {
+        if (GetLogger())
+            {
+                CInstance *self = std::get<0>(Args);
+                RValue *name = new RValue();
+                g_ModuleInterface->GetInstanceMember(
+                    self,
+                    "name",
+                    name
+                );
+                GetLogger()->LogSimple("gml_Object_obj_research_button_Create_0_After called");
+                GetLogger()->LogFormatted("Self: %p, name: %s", 
+                    self,
+                    name
+                );
+    
+                delete name; 
+            }
+    }
+    void gml_Object_rb_dailybonus_Create_0_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+
+    void gml_Object_rb_dailybonus_Create_0_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_cursor_mainmenu_Create_0_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_cursor_mainmenu_Create_0_After(CallbackParams &Args)
+    { 
+        auto uim = Organik::UIManager::GetInstance();
+        if (uim == nullptr)
+        {
+            if (GetLogger())
+            {
+                GetLogger()->LogSimple("UIManager instance is null in gml_Object_obj_cursor_mainmenu_Create_0_After");
+            }
+            return;
+        }
+        
+        uim->Add(
+            &btn1
+        );
+    }
+    void gml_Object_obj_cursor_mainmenu_Step_0_Before(CallbackParams &Args)
+    { 
+        Organik::UIManager::GetInstance()->StepEvent();
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_perk_hframe_Step_2_Before(CallbackParams &Args)
+    {
+        if (objLocalPlayerIndex == -1)
+        {
+            CInstance *global;
+            // LogHelper(Args, __FUNCTION__);
+            if (!GetInterface()->GetGlobalInstance(&global) == AurieStatus::AURIE_SUCCESS)
+            {
+                if (GetLogger())
+                {
+                    GetLogger()->LogSimple("Failed to get global instance in gml_Object_obj_cursor_mainmenu_Step_0_Before");
+                }
+                return;
+            }
+            RValue count = YYTK::GetInterface()->CallBuiltin(
+                "variable_instance_names_count",
+                {global->ToRValue()}
+            );
+            int buf = count.ToInt32();
+            std::vector<RValue*> vec = (g_ModuleInterface->CallBuiltin(
+                "variable_instance_get_names",
+                {global->ToRValue()}
+            )).ToRefVector();
+
+            for (auto [i, name] : vec | std::views::enumerate)
+            {
+                std::string nameStr = name->ToString();
+                if (GetLogger())
+                {
+                    GetLogger()->LogFormatted("perk_hframe Step_2. Instance variable #%d: %s", i, nameStr.c_str());
+                }
+            }
+        }
+    }
+
+    void gml_Object_obj_cursor_mainmenu_Step_0_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+
+    void gml_Object_obj_cursor_mainmenu_Mouse_54_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_cursor_mainmenu_Mouse_54_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
 
 
-void EnmBaseParentCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
+    void gml_Object_obj_cursor_mainmenu_Mouse_53_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_cursor_mainmenu_Mouse_53_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_cursor_mainmenu_PreCreate_0_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_cursor_mainmenu_PreCreate_0_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    
+    void gml_Object_obj_player_Alarm_10_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_10_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_5_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_5_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_3_Before(CallbackParams &Args)
+    { 
+        Organik::UIManager::GetInstance()->Remove(
+            [](const Organik::UIElement &elem) {
+                return typeid(elem) == typeid(Organik::Button&);
+            }
+        );
+    }
+    void gml_Object_obj_player_Alarm_3_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_1_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_1_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_0_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_player_Alarm_0_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_allgame_Step_2_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);   
+    }
+    void gml_Object_obj_allgame_Step_2_After(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+        Organik::UIManager::GetInstance()->StepEvent();
+    }
+    void gml_Object_obj_mm_research_trigger_Step_0_Before(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+        Organik::UIManager::GetInstance()->StepEvent();
+    }
 
-void EnmBaseParentCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
+    void gml_Object_obj_mm_research_trigger_Step_0_After(CallbackParams &Args)
+    { /* LogHelper(Args, __FUNCTION__); */}
 
-void CursorCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
+    void OutgameCreateBefore(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
 
-void CursorCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void BuffTimedCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void BuffTimedCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void CursorCameraDrawBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void BuffStatboostsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void UpgradeMenuCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void LastKillCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void LastKillDrawBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void LastKillDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void MainUiS1PreCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void MainUiS1PreCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void MainUiWeaponPreCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void MainUiWeaponPreCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void RollClassItemCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void RollClassItemCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void SelectionMenuCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void SelectionMenuCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void SelectionMenuPerkCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void SelectionMenuPerkCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void AndroidConsoleCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void AndroidConsoleCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void SelectionMenuStatCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void SelectionMenuStatCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void EscapeSettingsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void DialogUiCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void PauseMenuCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ReloadingPreCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ReloadingCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ReloadingCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ReloadingStep2Before(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ReloadingStep2After(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ItemStatsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ItemStatsCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ItemStatsDrawBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ItemStatsDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void StatisticsCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void StatisticsCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void OverlaysAboveUiCreateBefore(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void OverlaysAboveUiCreateAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void MainUiS1DrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void MainUiWeaponDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void SelectionMenuDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void EscapeSettingsDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void AndroidConsoleDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void DialogUiDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void PauseMenuDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void ReloadingDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
-}
-
-void OverlaysAboveUiDrawAfter(std::tuple<CInstance*, CInstance*, CCode*, int, RValue*>& Args)
-{
-    if (GetLogger())
-        GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args, false);
-    else
-        std::cerr << "[ERROR][" << __FILE__ << ":" << __LINE__ << "] Error: GetLogger() is null.";
+    /// @brief called after the internal outgame constructor is called, which is after the OutgameCreateBefore callback.
+    /// @param Args is a tuple containing the following:
+    /// - CInstance *self: Reference to the newly created CInstance to our object.
+    void OutgameCreateAfter(CallbackParams &Args)
+    {
+        LogHelper(Args, __FUNCTION__);
+    }
+    void gml_Object_obj_mm_research_trigger_PreCreate_0_Before(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
+    void gml_Object_obj_mm_research_trigger_PreCreate_0_After(CallbackParams &Args)
+    { LogHelper(Args, __FUNCTION__);}
 }

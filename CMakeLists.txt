@@ -119,6 +119,9 @@ set(Header_Files
     "src/ModuleMain.h"
     "src/Logging.h"
     "src/CodeEvents.h"
+    "src/UI/Button.cpp"
+    "src/UI/TextArea.cpp"
+    "src/UI/UIManager.cpp"
 )
 
 source_group("Header Files" FILES ${Header_Files})
@@ -128,6 +131,9 @@ set(Source_Files
     "src/ModuleMain.cpp"
     "src/Logging.cpp"
     "src/CodeEvents.cpp"
+    "src/UI/Button.cpp"
+    "src/UI/TextArea.cpp"
+    "src/UI/UIManager.cpp"
 )
 
 source_group("Source Files" FILES ${Source_Files})
@@ -192,10 +198,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY ${MSVC_RUN
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     target_include_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/UI"
     )
 elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
     target_include_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/UI"
     )
 endif()
 
@@ -211,6 +219,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
             "NDEBUG"
         ">"
         "ORGANIK_LOG_EVENTS;"
+        "YYTK_INCLUDE_PRIVATE;"
         "_WIN32;"
         "WIN32;"
         "_CONSOLE;"
@@ -225,6 +234,7 @@ elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
         "$<$<CONFIG:Release>:"
             "NDEBUG"
         ">"
+        "YYTK_DEFINE_INTERNAL;"
         "ORGANIK_LOG_EVENTS;"
         "_WIN32;"
         "WIN32;"

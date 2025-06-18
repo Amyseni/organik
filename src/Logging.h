@@ -17,7 +17,7 @@ namespace Organik {
         // Add more helpers as needed
         bool LogSimple(const char* text);
         bool LogFormatted(const char* fmt, ...);
-        bool LogEventCallback(const char *sourceFile, const int line, const char* callbackName, CodeEventArgs &args, bool logArgv=false);
+        bool LogEventCallback(const char *sourceFile, const int line, const char* callbackName, CodeEventArgs args, bool logArgv=true);
         static bool InitLogging();
     private:
         Logger(std::filesystem::path path=std::filesystem::current_path(), const char* filename="organik.log");
@@ -27,6 +27,5 @@ namespace Organik {
         std::string ParseFormatting(const char* fmt, ...);
         bool WriteToLog(const std::string& message, bool flushLine=true);
     };
-    
     Logger* GetLogger(void) ;
 }

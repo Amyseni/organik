@@ -12,9 +12,55 @@
 #define SOME_ENUM(DO) \
             DO(x)
 
-
-using namespace Organik;
         
+using namespace Organik;
+
+namespace Organik 
+{
+    struct vector2 {
+        int x;
+        int y;
+        vector2(int x, int y) : x(x), y(y) {}
+        vector2() : x(0), y(0) {}
+        vector2 operator+(const vector2& other) const {
+            return vector2(x + other.x, y + other.y);
+        }
+        vector2 operator-(const vector2& other) const {
+            return vector2(x - other.x, y - other.y);
+        }
+        vector2 operator*(int scalar) const {
+            return vector2(x * scalar, y * scalar);
+        }
+        vector2 operator/(int scalar) const {
+            return vector2(x / scalar, y / scalar);
+        }
+        bool operator==(const vector2& other) const {
+            return x == other.x && y == other.y;
+        }
+    };
+    
+    struct vector4 {
+        int x;
+        int y;
+        int z;
+        int w;
+        vector4(int x, int y, int z, int w) : x(x), y(y), z(z), w(w) {}
+        vector4() : x(0), y(0), z(0), w(0) {}
+        vector4 operator+(const vector4& other) const {
+            return vector4(x + other.x, y + other.y, z + other.z, w + other.w);
+        }
+        vector4 operator-(const vector4& other) const {
+            return vector4(x - other.x, y - other.y, z - other.z, w - other.w);
+        }
+    };
+    
+    typedef vector4 bbox;
+    typedef vector2 point;
+    typedef vector2 pos2d;
+
+}
+
+
 extern RValue GMLVarIndexMapGMLHash[1001];
 
 extern CInstance* globalInstance;

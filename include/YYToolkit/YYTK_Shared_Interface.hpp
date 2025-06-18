@@ -10,7 +10,7 @@
 namespace YYTK
 {
 	// ExecuteIt
-	using FWCodeEvent = FunctionWrapper<bool(CInstance*, CInstance*, CCode*, int, RValue*)>;
+	using FWCodeEvent = FunctionWrapper<bool(CInstance*, CInstance*, CCode*, RValue**, int)>;
 	// IDXGISwapChain::Present
 	using FWFrame = FunctionWrapper<HRESULT(IDXGISwapChain*, UINT, UINT)>;
 	// IDXGISwapChain::ResizeBuffers
@@ -418,5 +418,4 @@ namespace YYTK
 		return module_interface;
 	}
 }
-
 
