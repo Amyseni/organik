@@ -208,15 +208,15 @@ namespace Organik
      * @param logArgv If true, logs the arguments (argv) passed to the event.
      * @return True if logging was successful, false otherwise.
      */
-    bool Logger::LogEventCallback(const char* sourceFile, const int line, const char* callbackName, CodeEventArgs args, bool logArgv)
+    bool Logger::LogEventCallback(const char* sourceFile, const int line, const char* callbackName, const CodeEventArgs &args)
     {
         bool success = true;
         CInstance* self = std::get<0>(args);
         // CInstance* other = std::get<1>(args);
         CCode* code = std::get<2>(args);
-        int argc = std::get<4>(args);
+        int argc = (int) std::get<3>(args);
         
-        auto r_argv = (RValue**) std::get<3>(args);
+        RValue** r_argv = std::get<3>(args);
 
         // Get current time for timestamp
         auto now = std::chrono::system_clock::now();
@@ -228,42 +228,13 @@ namespace Organik
         std::string timestamp = timestamp_ss.str();
 
         std::ostringstream infoStream;
-        int& out_buf(argc);
+        int out_buf(0);
         infoStream << g_LoggerInstance->ParseFormatting("[EVENT] [0x%p->%s() call 0x%p] [%s] @ [%s:%d]", self, callbackName, code, timestamp.c_str(), sourceFile, line) << "\n";
         argc = tryDereferencePtrLoop(argc, out_buf); // Use helper function
         infoStream << g_LoggerInstance->ParseFormatting("    Argument count: %d (dereferenced %d times)", argc,  out_buf) << "\n";
 
         success = g_LoggerInstance->LogFormatted("%s", infoStream.str().c_str());
 
-        if (logArgv)
-        {
-            int current_argc = argc; // Use a local copy for argument count
-
-            std::ostringstream argStream;
-            g_LoggerInstance->LogSimple("    Arguments: { ");
-            if (current_argc > 0)
-            {
-                bool use_multiline = current_argc > 3;
-                for (int i = 0; i < current_argc; ++i)
-                {
-                    out_buf = 0;
-                    // cast Rvalue* to int* as a pointer
-                    int ptr_hak = tryDereferencePtrLoop((int)(r_argv[current_argc]), out_buf); 
-                    // RValue& r_value = (RValue&)ptr_hak;
-
-                    // RValue& r_value = *(RValue*)r_argv[i];
-                    g_LoggerInstance->LogFormatted("\n (%p) %d: %s,",(void*) ptr_hak, current_argc, out_buf);
-
-                    if (i < current_argc - 1)
-                    {
-                        
-                    }
-                }
-                if (use_multiline) g_LoggerInstance->WriteToLog("   ");
-            }
-            //argStream << " }";
-            //success = g_LoggerInstance->LogFormatted("%s", argStream.str().c_str()) && success;
-        }
         return success;
     }
 }

@@ -119,9 +119,13 @@ set(Header_Files
     "src/ModuleMain.h"
     "src/Logging.h"
     "src/CodeEvents.h"
-    "src/UI/Button.cpp"
-    "src/UI/TextArea.cpp"
-    "src/UI/UIManager.cpp"
+    "src/Utils.h"
+    "src/UI/Button.h"
+    "src/UI/TextArea.h"
+    "src/UI/UIManager.h"
+    "src/UI/DevConsole.h"
+    "src/UI/Command.h"
+    "src/UI/BuiltinCommands.h"
 )
 
 source_group("Header Files" FILES ${Header_Files})
@@ -131,9 +135,13 @@ set(Source_Files
     "src/ModuleMain.cpp"
     "src/Logging.cpp"
     "src/CodeEvents.cpp"
+    "src/Utils.cpp"
     "src/UI/Button.cpp"
     "src/UI/TextArea.cpp"
     "src/UI/UIManager.cpp"
+    "src/UI/DevConsole.cpp"
+    "src/UI/BuiltinCommands.cpp"
+    "src/UI/Command.cpp"
 )
 
 source_group("Source Files" FILES ${Source_Files})

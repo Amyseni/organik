@@ -10,6 +10,7 @@ using namespace Aurie;
 
 namespace Organik
 {
+    
     struct UIElement
     {
         virtual void Step() = 0;
@@ -17,10 +18,12 @@ namespace Organik
         virtual bool IsCollidingWithMouse() = 0;
         virtual ~UIElement() = default;
         
+        inline const std::string& GetName() const { return _name; }
         inline bool IsVisible() const { return _visible; }
         inline void SetVisible(bool visible) { _visible = visible; }
         
     protected:
+        std::string _name = "UIElement";
         std::vector<UIElement*> _children = {};
         vector2 _position = {0, 0};
         bbox _bbox = {0, 0, 0, 0};
@@ -32,6 +35,9 @@ namespace Organik
     {
     public:
         static UIManager* GetInstance();
+        static UIElement* GetDevConsole();
+        static RValue* GetFont();
+        static bool HasDevConsole();
         
         void DrawEvent();
         void StepEvent();
@@ -52,4 +58,6 @@ namespace Organik
     };
 
     extern UIManager* g_UIManager;
+    extern UIElement* g_devConsole;
+    extern RValue* g_monoFonto;
 }

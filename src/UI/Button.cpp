@@ -11,6 +11,15 @@ namespace Organik
     Button::Button(const char* label, int x, int y, int width, int height) 
         : _label(label), _x(x), _y(y), _width(width), _height(height)
     {
+        char _nameBuf[32];
+        unsigned int _nameIndex = x;
+        _nameIndex = (_nameIndex ^ y) << 2;
+        _nameIndex = (_nameIndex ^ width) << 2;
+        _nameIndex = (_nameIndex ^ height);
+        _itoa_s(_nameIndex, _nameBuf, 10);
+        _name = std::string("Button_");
+        _name.append(_nameBuf);
+        Organik::GetLogger()->LogFormatted("Initializing TextArea with name: %s", _name.c_str());
         _bbox = {x, y, 
                 width, height};
     }
@@ -107,7 +116,7 @@ namespace Organik
         if (!g_ModuleInterface) return;
 
         // Save current drawing state
-        RValue alpha_old = g_ModuleInterface->CallBuiltin("draw_get_alpha", {});  
+        RValue alpha_old = g_ModuleInterface->CallBuiltin("draw_get_alpha", {});
         RValue color_old = g_ModuleInterface->CallBuiltin("draw_get_colour", {});
         
         // Set drawing properties
