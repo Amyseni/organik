@@ -5,8 +5,13 @@
 #include "YYToolkit/YYTK_Shared.hpp"
 #include "FunctionWrapper/FunctionWrapper.hpp"
 #include "CallbackManager/CallbackManagerInterface.h"
+#include "UI/UIManager.h"
+#include "UI/BuiltinCommands.h"
 #include "Logging.h"
-
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx11.h"
+#include "Utils.h"
 
 using namespace Aurie;
 using namespace YYTK;
@@ -68,34 +73,87 @@ CallbackManagerInterface* callbackManagerInterfacePtr = nullptr;
 YYRunnerInterface g_RunnerInterface;
 CInstance **g_globalInstance;
 HWND hWnd;
+ID3D11Device* d3d11Device = nullptr;
+ID3D11DeviceContext* d3d11Context = nullptr;
 CInstance* globalInstance = nullptr;
 int frameCounter = 0;
 bool debug = false;
-typedef void (*fnCallback)(CallbackParams&);
+typedef void (*fnCallback)(CodeEventArgs&);
+RValue& emptyRVal() {
+	static std::string emptyStr("");
+	static RValue emptyRValInstance;
+	emptyRValInstance = RValue(std::string(""));
+	return emptyRValInstance;
+}
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+void WndProcCallback(FWWndProc& WndProcContext)
+{
+    auto args = WndProcContext.Arguments();
+    HWND hWnd = std::get<0>(args);
+    UINT msg = std::get<1>(args);
+    WPARAM wParam = std::get<2>(args);
+    LPARAM lParam = std::get<3>(args);
+    
+    // Let ImGui handle the input first
+    LRESULT imgui_result = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+    
+    // Check if ImGui wants to capture this input
+    ImGuiIO& io = ImGui::GetIO();
+    bool imgui_wants_input = false;
+    
+    switch (msg) {
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        case WM_CHAR:
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP:
+            imgui_wants_input = io.WantCaptureKeyboard;
+            break;
+        case WM_LBUTTONDOWN:
+			
+        case WM_LBUTTONUP:
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONUP:
+        case WM_MOUSEWHEEL:
+        case WM_MOUSEMOVE:
+            imgui_wants_input = io.WantCaptureMouse;
+            break;
+    }
+    
+    if (imgui_wants_input || imgui_result) {
+        // ImGui handled it, don't pass to game
+        WndProcContext.Override(true);
+        return;
+    }
+    
+    // Let the game handle it
+    WndProcContext.Call();
+}
+Utils::fn_Activate ActivateHook() {
+
+}
 void FrameCallback(FWFrame& FrameContext)
 {
-	UNREFERENCED_PARAMETER(FrameContext);
-	frameCounter++;
+    frameCounter++;
+    // Organik::GetLogger()->LogFormatted("%s - %s:%d", __FUNCTION__, __FILE__, __LINE__);
+    
+    // Add ImGui frame management here BEFORE calling the original frame
+    // ImGui_ImplDX11_NewFrame();
+    // ImGui_ImplWin32_NewFrame();
+    // ImGui::NewFrame();
+    
 
-	if (!(frameCounter % 30 == 0))
-		return;
-
-	int scriptIndex;
-	// RValue version = g_ModuleInterface->CallBuiltin("gamemaker_version", {});
-	// Organik::GetLogger()->LogFormatted("GameMaker version: %s", version.GetKindName().c_str());
-	if (g_ModuleInterface->GetNamedRoutineIndex(
-		"gml_Script_debug",
-		&scriptIndex
-	) == AURIE_SUCCESS)
-	{
-		if (!debug) {
-			debug = true;
-			g_ModuleInterface->CallBuiltin("show_debug_overlay", {RValue(true)});
-			
-		}
-			
-	};
+	// // Your UI rendering code here
+	// Organik::UIManager::GetConsole()->Draw("Organik Console", &Organik::UIManager::GetInstance()->showConsole);
+    
+    // // Render ImGui
+    // ImGui::Render();
+    // ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    FrameContext.Call();
+    
 }
 struct CallbackInfo {
 	char *functionName;
@@ -105,6 +163,11 @@ struct CallbackInfo {
 	{	
 	}
 };
+template <typename T>
+T GetHookTrampoline(const char* Name)
+{
+	return reinterpret_cast<T>(MmGetHookTrampoline(g_ArSelfModule, Name));
+}
 EXPORTED AurieStatus ModuleInitialize(
 	IN AurieModule* Module,
 	IN const fs::path& ModulePath
@@ -112,10 +175,18 @@ EXPORTED AurieStatus ModuleInitialize(
 {
 	UNREFERENCED_PARAMETER(ModulePath);
 	
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
 	AurieStatus last_status = AURIE_SUCCESS;
 	bool loging_initialized = Logger::InitLogging();
 	if (!loging_initialized)
 	{
+		GetLogger()->LogFormatted("%s %d", __FUNCTION__, __LINE__);
 		std::cerr << "Failed to initialize logging. Please check your logging configuration." << std::endl;
 		return AURIE_MODULE_INITIALIZATION_FAILED;
 	}
@@ -156,13 +227,44 @@ EXPORTED AurieStatus ModuleInitialize(
 		GetLogger()->LogSimple("Global instance found!");
 	}
 
+	RValue os_info_dsmap = g_ModuleInterface->CallBuiltin("os_get_info", {});
+	int os_info_id = os_info_dsmap.ToInt32();
+	GetLogger()->LogFormatted("os_get_info returned a ds_map with ID %s", std::to_string(os_info_id).c_str());
+	RValue d3d_device = g_ModuleInterface->CallBuiltin("ds_map_find_value", {RValue(os_info_id), RValue("video_d3d11_device")});
+	GetLogger()->LogSimple(d3d_device.GetKindName().c_str());
+	GetLogger()->LogFormatted("ds_map_find_value returned a value with ID %p", d3d_device.ToPointer());
+	RValue d3d_context = g_ModuleInterface->CallBuiltin("ds_map_find_value", {RValue(os_info_id), RValue("video_d3d11_context")});
+	GetLogger()->LogFormatted("ds_map_find_value returned a value with ID %p", d3d_context.ToPointer());
+	HWND window_handle = FindWindowA(nullptr, "Synthetik");
+	GetLogger()->LogFormatted("windows_handle returned a value with ID %p", window_handle);	
+	hWnd =	window_handle;
+	d3d11Device = (ID3D11Device*) d3d_device.ToPointer();
+	d3d11Context = (ID3D11DeviceContext*) d3d_context.ToPointer();
+
+	ImGui_ImplWin32_Init(hWnd);
+	ImGui_ImplDX11_Init(d3d11Device, d3d11Context);
+
 	last_status = g_ModuleInterface->CreateCallback(
 		Module,
 		EVENT_FRAME,
 		FrameCallback,
 		0
 	);
-
+	if (!AurieSuccess(last_status))
+	{
+		g_ModuleInterface->Print(CM_RED, "Failed to register frame callback");
+	}
+	last_status = g_ModuleInterface->CreateCallback(
+		Module,
+		EVENT_WNDPROC,
+		WndProcCallback,
+		0
+	);
+	if (!AurieSuccess(last_status))
+	{
+		g_ModuleInterface->Print(CM_RED, "Failed to register wndproc callback");
+	}
+	
 	std::map<const char *, std::vector<fnCallback>> callbacks
 	{
 		{ "gml_Object_obj_research_button_Create_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_Create_0_Before, &Organik::gml_Object_obj_research_button_Create_0_After}},
@@ -686,15 +788,7 @@ EXPORTED AurieStatus ModuleInitialize(
 		{ "gml_Object_obj_perk_dogtags_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_dogtags_Alarm_1_Before, &Organik::gml_Object_obj_perk_dogtags_Alarm_1_After } },
 		{ "gml_Object_obj_perk_dogtags_Step_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_dogtags_Step_0_Before, &Organik::gml_Object_obj_perk_dogtags_Step_0_After } },
 		{ "gml_Object_obj_perk_dogtags_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_dogtags_PreCreate_0_Before, &Organik::gml_Object_obj_perk_dogtags_PreCreate_0_After } },
-		{ "gml_Object_obj_perk_explosiveammo_Create_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_explosiveammo_Create_0_Before, &Organik::gml_Object_obj_perk_explosiveammo_Create_0_After } },
-		{ "gml_Object_obj_perk_explosiveammo_Destroy_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_explosiveammo_Destroy_0_Before, &Organik::gml_Object_obj_perk_explosiveammo_Destroy_0_After } },
-		{ "gml_Object_obj_perk_explosiveammo_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_explosiveammo_Alarm_1_Before, &Organik::gml_Object_obj_perk_explosiveammo_Alarm_1_After } },
-		{ "gml_Object_obj_perk_explosiveammo_Step_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_explosiveammo_Step_0_Before, &Organik::gml_Object_obj_perk_explosiveammo_Step_0_After } },
-		{ "gml_Object_obj_perk_explosiveammo_Draw_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_explosiveammo_Draw_0_Before, &Organik::gml_Object_obj_perk_explosiveammo_Draw_0_After } },
-		{ "gml_Object_obj_perk_explosiveammo_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_explosiveammo_PreCreate_0_Before, &Organik::gml_Object_obj_perk_explosiveammo_PreCreate_0_After } },
-		{ "gml_Object_obj_perk_elemental_Create_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Create_0_Before, &Organik::gml_Object_obj_perk_elemental_Create_0_After } },
-		{ "gml_Object_obj_perk_elemental_Destroy_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Destroy_0_Before, &Organik::gml_Object_obj_perk_elemental_Destroy_0_After } },
-		{ "gml_Object_obj_perk_elemental_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Alarm_1_Before, &Organik::gml_Object_obj_perk_elemental_Alarm_1_After } },
+		{ "if (!ImGui::IsMouseHoveringRect(ImGui::))ml_Object_obj_perk_elemental_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Alarm_1_Before, &Organik::gml_Object_obj_perk_elemental_Alarm_1_After } },
 		{ "gml_Object_obj_perk_elemental_Step_2", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Step_2_Before, &Organik::gml_Object_obj_perk_elemental_Step_2_After } },
 		{ "gml_Object_obj_perk_elemental_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_PreCreate_0_Before, &Organik::gml_Object_obj_perk_elemental_PreCreate_0_After } },
 		{ "gml_Object_obj_perk_demolisher_Create_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_demolisher_Create_0_Before, &Organik::gml_Object_obj_perk_demolisher_Create_0_After } },
@@ -1118,6 +1212,7 @@ EXPORTED AurieStatus ModuleInitialize(
 		{ "gml_Object_obj_allgame_Step_2", std::vector<fnCallback> {&Organik::gml_Object_obj_allgame_Step_2_Before, &Organik::gml_Object_obj_allgame_Step_2_After } },
 		{ "gml_Object_obj_allgame_Draw_0", std::vector<fnCallback> {nullptr, &Organik::gml_Object_obj_allgame_Draw_0_After } },
 		{ "gml_Object_obj_buff_firsttime_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_obj_buff_firsttime_PreCreate_0_Before, &Organik::gml_Object_obj_buff_firsttime_PreCreate_0_After } },
+		{ "gml_Object_obj_allgame_Step_0", std::vector<fnCallback> {&Organik::gml_Object_obj_allgame_Step_0_Before, nullptr } },
 		{ "gml_Object_obj_LUT_end_Draw_75", std::vector<fnCallback> {nullptr, &Organik::gml_Object_obj_LUT_end_Draw_75_After } },
 		// { "gml_Object_obj_net_global_chat_Step_2", std::vector<fnCallback> {&Organik::gml_Object_obj_net_global_chat_Step_2_Before, &Organik::gml_Object_obj_net_global_chat_Step_2_After} },
 		// { "gml_Object_obj_net_global_chat_Step_1", std::vector<fnCallback> {&Organik::gml_Object_obj_net_global_chat_Step_1_Before, &Organik::gml_Object_obj_net_global_chat_Step_1_After} },
@@ -1128,10 +1223,6 @@ EXPORTED AurieStatus ModuleInitialize(
 		// { "gml_Object_obj_chat_parent_Other_10", std::vector<fnCallback> {&Organik::gml_Object_obj_chat_parent_Other_10_Before, &Organik::gml_Object_obj_chat_parent_Other_10_After} },
 		// { "gml_Object_obj_chat_parent_Other_11", std::vector<fnCallback> {&Organik::gml_Object_obj_chat_parent_Other_11_Before, &Organik::gml_Object_obj_chat_parent_Other_11_After} },
 	};
-	if (!AurieSuccess(last_status))
-	{
-		g_ModuleInterface->Print(CM_RED, "Failed to register frame callback");
-	}
 	for (const auto& callbackPair : callbacks)
 	{
 		const char* eventName = callbackPair.first;
@@ -1160,9 +1251,12 @@ EXPORTED AurieStatus ModuleUnload(
 	IN const fs::path& ModulePath
 )
 {
-
 	UNREFERENCED_PARAMETER(Module);
 	UNREFERENCED_PARAMETER(ModulePath);
+
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 
 	return AURIE_SUCCESS;
 }

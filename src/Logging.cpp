@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include "CallbackManager/CallbackManagerInterface.h"
-#include "CodeEvents.h"
 #include "ModuleMain.h"
 
 namespace Organik
@@ -208,8 +207,7 @@ namespace Organik
      * @param logArgv If true, logs the arguments (argv) passed to the event.
      * @return True if logging was successful, false otherwise.
      */
-    bool Logger::LogEventCallback(const char* sourceFile, const int line, const char* callbackName, const CodeEventArgs &args)
-    {
+    bool Logger::LogEventCallback(const char *sourceFile, const int line, const char* callbackName, CodeEventArgs args) {
         bool success = true;
         CInstance* self = std::get<0>(args);
         // CInstance* other = std::get<1>(args);

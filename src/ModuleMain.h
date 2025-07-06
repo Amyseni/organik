@@ -12,6 +12,10 @@
 #define SOME_ENUM(DO) \
             DO(x)
 
+//I'm not sorry
+#define Run_Room ((CRoom*)0x40418a8)
+#define g_RoomItems (*(int*)0x04042d30)
+#define g_Rooms ((CRoom**)0x04042d34)
 /* KEY CODE CONSTANTS */
 #define vk_enter                RValue(13)
 #define vk_escape               RValue(27)
@@ -25,8 +29,16 @@
 #define vk_shift                RValue(16)
 #define vk_control              RValue(17)
 #define vk_alt                  RValue(18)
-#define vk_delete               RValue(46)
+#define vk_i                    RValue(0x49)
+#define vk_k                    RValue(0x4B)
+#define vk_6                    RValue(0x36)
 #define vk_f1                   RValue(112)
+#define vk_f2                   RValue(113)
+#define vk_f3                   RValue(114)
+#define vk_f4                   RValue(115)
+#define vk_f5                   RValue(116)
+#define vk_f6                   RValue(117)
+#define vk_f7                   RValue(118)
 #define vk_f12                  RValue(123)
 
 /* MOUSE CONSTANTS*/

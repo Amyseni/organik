@@ -2335,39 +2335,39 @@ namespace YYTK
 		bool m_EnableViews;
 		bool m_ClearScreen;
 		bool m_ClearDisplayBuffer;
-		CViewGM* m_Views[8];
-		const char* m_LegacyCode;
-		CCode* m_CodeObject;
-		bool m_HasPhysicsWorld;
-		int32_t m_PhysicsGravityX;
-		int32_t m_PhysicsGravityY;
-		float m_PhysicsPixelToMeters;
-		OLinkedList<CInstance> m_ActiveInstances;
-		LinkedList<CInstance> m_InactiveInstances;
-		CInstance* m_MarkedFirst;
-		CInstance* m_MarkedLast;
-		int32_t* m_CreationOrderList;
-		int32_t m_CreationOrderListSize;
-		YYRoom* m_WadRoom;
-		PVOID m_WadBaseAddress;
-		CPhysicsWorld* m_PhysicsWorld;
-		int32_t m_TileCount;
-		CArrayStructure<RTile> m_Tiles;
-		YYRoomTiles* m_WadTiles;
-		YYRoomInstances* m_WadInstances;
-		const char* m_Name;
+		CViewGM *m_View[8];
+		char *m_Code;
+		CCode *m_CCode;
+		bool m_PhysicsWorld;
+		int m_PhysicsGravityX;
+		int m_PhysicsGravityY;
+		float m_PhysicsPixToMeters;
+		OLinkedList<CInstance> m_Active;
+		LinkedList<CInstance> m_Deactive;
+		CInstance *_ptr_MarkedFirst;
+		CInstance *_ptr_MarkedLast;
+		int *_ptr_CreationOrderList;
+		int m_CreationOrderListSize;
+		YYRoom *_ptr_Room;
+		unsigned char *_ptr_Base;
+		CPhysicsWorld *_ptr_PhysicsWorld;
+		int m_RoomNr;
+		CArrayStructure<RTile> m_Tile;
+		YYRoomTiles *_ptr_Tiles;
+		YYRoomInstances *_ptr_Instances;
+		char *_ptr_Name;
 		bool m_IsDuplicate;
 		LinkedList<CLayer> m_Layers;
-		CHashMap<int32_t, CLayer*, 7> m_LayerLookup;
-		CHashMap<int32_t, CLayerElementBase*, 7> m_LayerElementLookup;
-		CLayerElementBase* m_LastElementLookedUp;
-		CHashMap<int32_t, CLayerInstanceElement*, 7> m_InstanceElementLookup;
-		int32_t* m_SequenceInstanceIDs;
-		int32_t m_SequenceInstanceIdCount;
-		int32_t m_SequenceInstanceIdMax;
-		int32_t* m_EffectLayerIDs;
-		int32_t m_EffectLayerIdCount;
-		int32_t m_EffectLayerIdMax;
+		CHashMap<int, CLayer*, 7> m_LayerLookup;
+		CHashMap<int, CLayerElementBase*, 7> m_LayerElementLookup;
+		CLayerElementBase *m_LastLayerElementLookedUp;
+		CHashMap<int, CLayerInstanceElement*, 7> m_LayerInstanceElementLookup;
+		int *m_SeqInstances;
+		int m_NumSeqInstances;
+		int m_MaxSeqInstances;
+		int *m_EffectLayerIDs;
+		int m_NumEffectLayerIDs;
+		int m_MaxEffectLayerIDs;
 	};
 
 	struct YYRoom
@@ -2411,6 +2411,7 @@ namespace YYTK
 	// Seems to be mostly stable, some elements at the end are however omitted
 	struct CRoom
 	{
+		
 		int32_t m_LastTile;
 		CRoom* m_InstanceHandle;
 		const char* m_Caption;

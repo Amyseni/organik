@@ -1,3 +1,4 @@
+#pragma once
 // File: YYTK_Shared_Interface.hpp
 // 
 // Defines the interface, and a GetInterface() function, which returns the YYTKInterface instance.

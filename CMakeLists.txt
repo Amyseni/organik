@@ -116,14 +116,22 @@ set(Header_Files
     "include/CallbackManager/CallbackManagerInterface.h"
     "include/Aurie/shared.hpp"
     "include/FunctionWrapper/FunctionWrapper.hpp"
+    "include/imgui/imconfig.h"
+    "include/imgui/imgui_internal.h"
+    "include/imgui/imgui.h"
+    "include/imgui/imstb_rectpack.h"
+    "include/imgui/imstb_textedit.h"
+    "include/imgui/imstb_truetype.h"
+    "include/imgui/imgui_impl_dx11.h"
+    "include/imgui/imgui_stdlib.h"
+    "include/imgui/imgui_impl_win32.h"
     "src/ModuleMain.h"
     "src/Logging.h"
     "src/CodeEvents.h"
     "src/Utils.h"
-    "src/UI/Button.h"
-    "src/UI/TextArea.h"
     "src/UI/UIManager.h"
-    "src/UI/DevConsole.h"
+    "src/UI/VariableViewer.h"
+    "src/CodeEvents.h"
     "src/UI/Command.h"
     "src/UI/BuiltinCommands.h"
 )
@@ -132,14 +140,20 @@ source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
     "include/YYToolkit/YYTK_Shared_Types.cpp"
+    "include/imgui/imgui_demo.cpp"
+    "include/imgui/imgui_draw.cpp"
+    "include/imgui/imgui_tables.cpp"
+    "include/imgui/imgui_widgets.cpp"
+    "include/imgui/imgui_impl_dx11.cpp"
+    "include/imgui/imgui_stdlib.cpp"
+    "include/imgui/imgui_impl_win32.cpp"
+    "include/imgui/imgui.cpp"
     "src/ModuleMain.cpp"
     "src/Logging.cpp"
     "src/CodeEvents.cpp"
     "src/Utils.cpp"
-    "src/UI/Button.cpp"
-    "src/UI/TextArea.cpp"
     "src/UI/UIManager.cpp"
-    "src/UI/DevConsole.cpp"
+    "src/UI/VariableViewer.cpp"
     "src/UI/BuiltinCommands.cpp"
     "src/UI/Command.cpp"
 )
@@ -150,15 +164,26 @@ set(ALL_FILES
     ${Header_Files}
     ${Source_Files}
 )
-
+find_path(DIRECTX_INCLUDE_DIR d3d11.h
+    PATHS "/nvme2/organik/MSVC_Hackaround/msvc-downl/kits/10/Lib/10.0.26100.0/um" # Example path, adjust SDK version
+    NO_DEFAULT_PATH
+)
+find_library(DIRECTX_LIB d3d11.lib
+    PATHS "/nvme2/organik/MSVC_Hackaround/msvc-downl/kits/10/Lib/10.0.26100.0/um/x86" # Example path, adjust SDK version and architecture
+    NO_DEFAULT_PATH
+)
+if(DIRECTX_INCLUDE_DIR)
+    include_directories(${DIRECTX_INCLUDE_DIR})
+endif()
 ################################################################################
 # Target
 ################################################################################
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
-
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 set(ROOT_NAMESPACE Src)
-
+if(DIRECTX_LIB)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${DIRECTX_LIB} dxgi.lib d3dcompiler.lib dxguid.lib)
+endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
     VS_GLOBAL_KEYWORD "Win32Proj"
 )

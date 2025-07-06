@@ -1,7 +1,5 @@
 #pragma once
 #include "Aurie/shared.hpp"
-#include "YYToolkit/YYTK_Shared.hpp"
-#include "CallbackManager/CallbackManagerInterface.h"
 #define all_events { "gml_Object_obj_weapon_MOD_102_Create_0", "gml_Object_obj_weapon_MOD_102_Step_0", \
 "gml_Object_obj_weapon_MOD_102_CleanUp_0", "gml_Object_obj_weapon_MOD_102_PreCreate_0", \
 "gml_Object_obj_weapon_MOD_103_Create_0", "gml_Object_obj_weapon_MOD_103_Step_0", \

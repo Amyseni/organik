@@ -8,7 +8,7 @@
 namespace Organik
 {
     // Forward declarations to avoid circular dependency
-    class DevConsole;
+    class OrganikConsole;
     class UIManager;
     
     class Command
@@ -19,8 +19,8 @@ namespace Organik
         
         const std::string& Name() const { return _name; }
         
-        virtual void Execute(DevConsole* console, const std::vector<std::string>& args) = 0;
-        virtual void Help(DevConsole* console, const std::vector<std::string>& args) = 0;
+        virtual void Execute(OrganikConsole* console, const std::vector<std::string>& args) = 0;
+        virtual void Help(OrganikConsole* console, const std::vector<std::string>& args) = 0;
         
     private:
         const std::string _name;

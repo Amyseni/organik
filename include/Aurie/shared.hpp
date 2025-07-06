@@ -403,7 +403,7 @@ namespace Aurie
 					error_string.append(", but PpGetFrameworkRoutine returns nullptr!\n\n");
 					error_string.append("Is your Aurie installation up-to-date?");
 
-					MessageBoxA(0, error_string.c_str(), "Aurie API Dispatcher", MB_OK | MB_ICONERROR);
+					//MessageBoxA(0, error_string.c_str(), "Aurie API Dispatcher", MB_OK | MB_ICONERROR);
 					exit(0);
 				}
 
@@ -420,7 +420,7 @@ namespace Aurie
 					error_string.append(", but PpGetFrameworkRoutine returns nullptr!\n\n");
 					error_string.append("Is your Aurie installation up-to-date?");
 
-					MessageBoxA(0, error_string.c_str(), "Aurie API Dispatcher", MB_OK | MB_ICONERROR);
+					//MessageBoxA(0, error_string.c_str(), "Aurie API Dispatcher", MB_OK | MB_ICONERROR);
 					exit(0);
 				}
 

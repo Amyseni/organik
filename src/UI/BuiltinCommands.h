@@ -5,7 +5,6 @@
 #include <functional>
 #include "Command.h"
 #include "UIManager.h"
-#include "DevConsole.h"
 #include "YYToolkit/YYTK_Shared.hpp"
 #include "Aurie/shared.hpp"
 
@@ -14,18 +13,19 @@
     class name : public ::Organik::Command { \
     public: \
         name() : ::Organik::Command(#name) { } \
-        void Execute(::Organik::DevConsole* console, const std::vector<std::string>& args) override; \
-        void Help(::Organik::DevConsole* console, const std::vector<std::string>& args) override; \
+        void Execute(::Organik::OrganikConsole* console, const std::vector<std::string>& args) override; \
+        void Help(::Organik::OrganikConsole* console, const std::vector<std::string>& args) override; \
     }; \
-    void name::Help(::Organik::DevConsole* console, const std::vector<std::string>& args) { \
-        console->WriteLine(helpDesc); \
+    void name::Help(::Organik::OrganikConsole* console, const std::vector<std::string>& args) { \
+        console->AddLog(helpDesc); \
     } \
-    void name::Execute(::Organik::DevConsole* console, const std::vector<std::string>& args)
+    void name::Execute(::Organik::OrganikConsole* console, const std::vector<std::string>& args)
 
 namespace Organik 
 {
     namespace BuiltinCommands 
     {
-        void InstallCommands();
+        void AddCommandHandler(Command* cmd);
+        std::map<std::string, Command*> GetCommands();
     }
 }
