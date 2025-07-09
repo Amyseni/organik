@@ -264,7 +264,8 @@ EXPORTED AurieStatus ModuleInitialize(
 	{
 		g_ModuleInterface->Print(CM_RED, "Failed to register wndproc callback");
 	}
-	
+	GetLogger()->LogFormatted("outgameIndex: %d, obj_statsIndex: %d, obj_playerIndex: %d",
+					Organik::Utils::getOutgameIndex(), Organik::Utils::getObj_StatsIndex(), Organik::Utils::getObj_PlayerIndex());
 	std::map<const char *, std::vector<fnCallback>> callbacks
 	{
 		{ "gml_Object_obj_research_button_Create_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_Create_0_Before, &Organik::gml_Object_obj_research_button_Create_0_After}},
@@ -788,7 +789,7 @@ EXPORTED AurieStatus ModuleInitialize(
 		{ "gml_Object_obj_perk_dogtags_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_dogtags_Alarm_1_Before, &Organik::gml_Object_obj_perk_dogtags_Alarm_1_After } },
 		{ "gml_Object_obj_perk_dogtags_Step_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_dogtags_Step_0_Before, &Organik::gml_Object_obj_perk_dogtags_Step_0_After } },
 		{ "gml_Object_obj_perk_dogtags_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_dogtags_PreCreate_0_Before, &Organik::gml_Object_obj_perk_dogtags_PreCreate_0_After } },
-		{ "if (!ImGui::IsMouseHoveringRect(ImGui::))ml_Object_obj_perk_elemental_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Alarm_1_Before, &Organik::gml_Object_obj_perk_elemental_Alarm_1_After } },
+		{ "gml_Object_obj_perk_elemental_Alarm_1", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Alarm_1_Before, &Organik::gml_Object_obj_perk_elemental_Alarm_1_After } },
 		{ "gml_Object_obj_perk_elemental_Step_2", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_Step_2_Before, &Organik::gml_Object_obj_perk_elemental_Step_2_After } },
 		{ "gml_Object_obj_perk_elemental_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_elemental_PreCreate_0_Before, &Organik::gml_Object_obj_perk_elemental_PreCreate_0_After } },
 		{ "gml_Object_obj_perk_demolisher_Create_0", std::vector<fnCallback> {&Organik::gml_Object_obj_perk_demolisher_Create_0_Before, &Organik::gml_Object_obj_perk_demolisher_Create_0_After } },

@@ -64,60 +64,161 @@ std::string Organik::Utils::joinRValStrings(const std::vector<YYTK::RValue>& wor
     }
     return result;
 }
-std::vector<YYTK::RValue> Organik::Utils::findInstances(int objectIndex)
+CInstance *Organik::Utils::builtinInstanceFind(int assetIndex, int number)
 {
-    RValue objIndex = RValue(objectIndex);
-    RValue instance_count = g_ModuleInterface->CallBuiltin("instance_number", {objIndex});
-    std::vector<RValue> instances;
-    if (instance_count.ToInt32() <= 0)
+    auto args = std::vector<RValue>(
+        {
+            RValue(assetIndex), 
+            RValue(number)
+        }
+    );
+    if (!Organik::Utils::getInstanceFind())
     {
-        GetLogger()->LogFormatted("No instances of object #%d found.", objIndex.ToInt32());
+        GetLogger()->LogFormatted("Couldn't resolve builtin: %s", __FUNCTION__);
+        return nullptr;
+    }
+    RValue result;
+    Organik::Utils::getInstanceFind()(result, Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), static_cast<int>(args.size()), args.data());
+    if (result.ToInt32() > 0)
+    {
+        return Organik::Utils::GetInstanceFromID(result.ToInt32());
+    }
+}
+int Organik::Utils::builtinInstanceNumber(int assetIndex)
+{
+    auto args = std::vector<RValue>(
+        {
+            RValue(assetIndex)
+        }
+    );
+    if (!Organik::Utils::getInstanceNumber())
+    {
+        GetLogger()->LogSimple("Couldn't resolve builtin");
+        return -1;
+    }
+    RValue result;
+    Organik::Utils::getInstanceNumber()(result, Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), static_cast<int>(args.size()), args.data());
+    return result.ToInt32();
+}
+int Organik::Utils::builtinAssetGetIndex(const std::string &assetName)
+{
+    auto args = std::vector<RValue>(
+        {
+            RValue(assetName.c_str())
+        }
+    );
+    if (!Organik::Utils::getAssetGetIndex())
+    {
+        GetLogger()->LogSimple("Couldn't resolve builtin");
+        return ref_noone.ToInt32();
+    }
+    RValue result;
+    Organik::Utils::getAssetGetIndex()(result, Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), static_cast<int>(args.size()), args.data());
+    return result.ToInt32();
+}
+
+std::vector<YYTK::CInstance*> Organik::Utils::findInstances(const std::string& objectName)
+{
+    int objectIndex = builtinAssetGetIndex(objectName);
+    return Organik::Utils::findInstances(objectIndex);
+}
+
+std::vector<YYTK::CInstance*> Organik::Utils::findInstances(int objectIndex)
+{
+    std::vector<CInstance*> instances;
+    int instance_count = builtinInstanceNumber(objectIndex);
+    if (instance_count <= 0)
+    {
+        GetLogger()->LogFormatted("No instances of object #%d found.", objectIndex);
         return instances;
     }
-    GetLogger()->LogFormatted("Found %d instances of object #%d", instance_count.ToInt32(), objIndex.ToInt32());
-    instances.reserve(instance_count.ToInt32());
-    for (int i=0; i< instance_count.ToInt32(); ++i) 
+    GetLogger()->LogFormatted("Found %d instances of object #%d", instance_count, objectIndex);
+    instances.reserve(instance_count);
+    for (int i=0; i< instance_count; ++i) 
     {
-        RValue instanceID = g_ModuleInterface->CallBuiltin("instance_find", {objIndex, RValue(i)});
-        if (instanceID.ToInt32() == ref_noone.ToInt32()) 
+        CInstance* instance = builtinInstanceFind(objectIndex, i);
+        if (instance == nullptr) 
         { // shouldn't be possible, according to GM docs. Maybe race condition?
           // TOCTOU, most likely. If the instance was deactivated after the call to instance_number.
-            GetLogger()->LogFormatted("Error: Instance #%d of object #%d not found", i, objIndex.ToInt32());;
+            GetLogger()->LogFormatted("Error: Instance #%d of object #%d not found", i, objectIndex);
             continue;
         }
-        instances.push_back(instanceID);
+        instances.push_back(instance);
     }
     return instances;
 }
-
-int Organik::Utils::assetGetIndex(const std::string &assetName)
+CInstance *Organik::Utils::spawnObjectHere(const std::string &objectName, int x, int y)
 {
-    RValue assetNameR = RValue(assetName);
-    if (assetNameR.m_Kind != RValueType::VALUE_STRING)
+    RValue mouseX = RValue(0);
+    RValue mouseY = RValue(0);
+    g_ModuleInterface->GetBuiltin("mouse_x", g_GlobalInstance, NULL_INDEX, mouseX);
+    g_ModuleInterface->GetBuiltin("mouse_y", g_GlobalInstance, NULL_INDEX, mouseY);
+    int layerID = g_ModuleInterface->CallBuiltin("layer_get_id", {RValue("Instances")}).ToInt32();
+    int objectIndex = Organik::Utils::builtinAssetGetIndex(objectName);
+    Organik::GetLogger()->LogFormatted("Spawning object #%d at (%d, %d) on layer %d", objectIndex, mouseX.ToInt32(), mouseY.ToInt32(), layerID);
+    RValue newInstance = g_ModuleInterface->CallBuiltin("instance_create_layer", 
     {
-        GetLogger()->LogFormatted("Error: asset_get_index called with non-string argument: %s", assetNameR.GetKindName().c_str());
-        return -1; // or some other error code
+        RValue(mouseX.ToInt32()), 
+        RValue(mouseY.ToInt32()), 
+        RValue(layerID),
+        RValue(objectIndex),
+        {}
+    });
+    if (newInstance.ToInt32() > 0)
+    {
+        Organik::Utils::knownInstanceIDs(newInstance.ToInt32());
+        Organik::GetLogger()->LogFormatted("Spawned new instance with ID: %d", newInstance.ToInt32());
+        return Organik::Utils::GetInstanceFromID(newInstance.ToInt32());
     }
-    return g_ModuleInterface->CallBuiltin("asset_get_index", {assetNameR}).ToInt32();
+    return nullptr;
 }
 
-void Organik::Utils::roomGoto(const std::string &roomName)
+std::vector<int> Organik::Utils::knownInstanceIDs(int newInstance)
 {
-    RValue roomNameR = RValue(roomName);
-    RValue roomIndex = g_ModuleInterface->CallBuiltin("asset_get_index", {roomNameR});
-    if (roomIndex.ToInt32() == -1) {
-        GetLogger()->LogFormatted("Error: Room '%s' not found", roomName);
-        return;
+    static std::vector<int> knownIDs;
+    if (newInstance != -1) 
+    {
+        Organik::GetLogger()->LogFormatted("Adding new instance ID: %d", newInstance);
+        if (std::find(knownIDs.begin(), knownIDs.end(), newInstance) == knownIDs.end()) 
+        {
+            knownIDs.push_back(newInstance);
+        }
     }
-    RValue newRoomID = roomIndex;
-    GetLogger()->LogFormatted("Found room #: %d", roomIndex.ToInt32());
-    if (!g_ModuleInterface->CallBuiltin("room_exists", {roomIndex}).ToBoolean()) {
-        GetLogger()->LogFormatted("Error: Room with index %s does not exist.", roomName.c_str());
-        return;
-    }
-    GetLogger()->LogFormatted("Going to room with index: %d", newRoomID.ToInt32());
-    g_ModuleInterface->CallBuiltin("room_goto", {newRoomID});
+    return knownIDs;
 }
+void Organik::Utils::builtinRoomGoto(const std::string &roomName)
+{
+    int roomIndex = Organik::Utils::builtinAssetGetIndex(roomName);
+    auto args = std::vector<RValue>(
+        {
+            RValue(roomIndex)
+        }
+    );
+    if (!Organik::Utils::getRoomGoto())
+    {
+        GetLogger()->LogFormatted("Couldn't resolve builtin: %s", __FUNCTION__);
+        return;
+    }
+    RValue result;
+    Organik::Utils::getRoomGoto()(result, Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), static_cast<int>(args.size()), args.data());
+}
+// void Organik::Utils::roomGoto(const std::string &roomName)
+// {
+//     RValue roomNameR = RValue(roomName);
+//     RValue roomIndex = g_ModuleInterface->CallBuiltin("asset_get_index", {roomNameR});
+//     if (roomIndex.ToInt32() == -1) {
+//         GetLogger()->LogFormatted("Error: Room '%s' not found", roomName);
+//         return;
+//     }
+//     RValue newRoomID = roomIndex;
+//     GetLogger()->LogFormatted("Found room #: %d", roomIndex.ToInt32());
+//     if (!g_ModuleInterface->CallBuiltin("room_exists", {roomIndex}).ToBoolean()) {
+//         GetLogger()->LogFormatted("Error: Room with index %s does not exist.", roomName.c_str());
+//         return;
+//     }
+//     GetLogger()->LogFormatted("Going to room with index: %d", newRoomID.ToInt32());
+//     g_ModuleInterface->CallBuiltin("room_goto", {newRoomID});
+// }
 
 std::vector<YYTK::CInstance*> Organik::Utils::getRoomInstances()
 {
@@ -152,7 +253,7 @@ std::vector<std::string> Organik::Utils::getInstanceVariableNames(YYTK::CInstanc
 }
 YYTK::CInstance* Organik::Utils::GetInstanceFromID(int32_t id)
 {
-    GetLogger()->LogFormatted("Getting instance from ID: %d", id);
+    // GetLogger()->LogFormatted("Getting instance from ID: %d", id);
     if (!YYGML_FindInstance) 
     {
         GetLogger()->LogSimple("Resolving YYGML_FindInstance");
@@ -170,6 +271,7 @@ YYTK::CInstance* Organik::Utils::GetInstanceFromID(int32_t id)
         );
         GetLogger()->LogFormatted("FindInstance = 0x%p", YYGML_FindInstance);
     }
+    Organik::Utils::knownInstanceIDs(id);
     return YYGML_FindInstance(id);
 }
 CRoom* Organik::Utils::Room_Data(int RoomID)
@@ -184,6 +286,7 @@ CRoom* Organik::Utils::Room_Data(int RoomID)
     }
     return (g_Rooms)[RoomID];
 }
+
 PVOID Organik::Utils::GetActivateFunction()
 {
     if (!Organik::Utils::CInstance_Activate) 

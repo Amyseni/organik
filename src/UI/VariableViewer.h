@@ -11,7 +11,7 @@ using namespace YYTK;
 
 struct InstanceVariableViewer
 {
-    CInstance* VisibleInstance = nullptr; // Currently visible instance
+    int VisibleInstance = 0; // Currently visible instance
     
     void Draw(std::vector<CInstance*> instances);
 

@@ -9,7 +9,7 @@ namespace Organik
         COMMAND(room_goto, "Usage: room_goto [room_name] - Attempt to go to [room_name]. Probably pretty high chance this crashes something.")
         {
             console->AddLog("Attempting to go to room: %s" + args[0]);
-            Utils::roomGoto(args[0]);
+            Utils::builtinRoomGoto(args[0]);
         }
         COMMAND(asset_get_tags, "Usage: asset_get_tags [asset_name] - Get tags for the specified asset.")
         {
@@ -29,7 +29,7 @@ namespace Organik
                 console->AddLog("Error: No asset name provided");
                 return;
             }
-            int assetIndex = Utils::assetGetIndex(args[0]);
+            int assetIndex = Utils::builtinAssetGetIndex(args[0]);
             console->AddLog("Asset '%s' has index: %d", args[0].c_str(), assetIndex);
         }
         COMMAND(layer_get_all, "Usage: layer_get_all - Get all layers in the current room.")

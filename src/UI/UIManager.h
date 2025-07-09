@@ -20,7 +20,8 @@ namespace Organik
     class OrganikConsole
     {
     public:
-        std::string                 InputBuf; // Changed from std::string*
+        std::string                 InputBuf; 
+        std::string                 ObjInputBuf;
         ImVector<std::string*>       Items;
         ImVector<std::string*>       History;
         int                   HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.

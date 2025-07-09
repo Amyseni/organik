@@ -26,21 +26,33 @@ void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
                 
                 // Get the object name using object_get_name()
                 std::string objectName = std::string(g_ModuleInterface->CallBuiltin("object_get_name", {RValue(objectID)}).ToString());
-            
+                if (objectName.contains("chunk"))
+                {
+                    // Skip chunks
+                    continue;
+                }
                 // Create unique tree node ID using instance pointer
                 ImGui::PushID(instance);
-                if (ImGui::TreeNode((objectName + " (ID: " + std::to_string(ID) + ")").c_str()))
+                if (ImGui::Selectable(
+                    ("##instance_" + std::to_string((int)instance)).c_str(),
+                    (VisibleInstance && VisibleInstance == instance->GetMembers().m_ID), 
+                    ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
+                ))
                 {
-                    if (ImGui::IsItemClicked())
-                    {
-                        VisibleInstance = instance;
-                    }
-                    // Display basic instance info
-                    ImGui::Text("Object ID: %d", objectID);
-                    ImGui::Text("Instance ID: %d", ID);
-                    ImGui::Text("Member Count: %d", instance->GetMemberCount());
-                    ImGui::TreePop();
+                    VisibleInstance = instance->GetMembers().m_ID;
                 }
+                ImGui::SameLine(0,0);
+                ImGui::Text("#%d (%d vars) - %s", 
+                    ID, 
+                    instance->GetMemberCount(),
+                    (objectName.substr(0, 
+                        min(
+                            objectName.length(), 
+                            20
+                        )
+                    ) + (objectName.length() > 20 ? "..." : "")).c_str()
+                );
+                ImGui::Separator();
                 ImGui::PopID();
             }
         }
@@ -49,8 +61,11 @@ void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
 
     // Below area: draw variable viewer for selected instance
     ImGui::SameLine();
-    if (CInstance* instance = VisibleInstance)
+    if (VisibleInstance)
     {
+        CInstance* instance = Organik::Utils::GetInstanceFromID(VisibleInstance);
+        if (!instance)
+            return;
         if (ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders))
         {
             // Get object name for header
@@ -68,7 +83,19 @@ void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
             std::map<std::string, RValue*> memberMap;
             for (const std::string& name : memberNames)
             {
+                if (!instance->ToRValue().ContainsValue(name))
+                {
+                    // Skip if the instance does not contain this member
+                    continue;
+                }
                 RValue* member = instance->GetRefMember(name);
+                if (!member || (member->m_Kind == VALUE_NULL || 
+                    member->m_Kind == VALUE_UNDEFINED || 
+                    member->m_Kind == VALUE_UNSET))
+                {
+                    // If member is null, skip it
+                    continue;
+                }                
                 memberMap.insert({name, member});
             }
             

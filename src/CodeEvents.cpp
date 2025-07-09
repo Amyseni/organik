@@ -367,7 +367,6 @@ namespace Organik
     { /* UIManager::GetInstance()->StepEvent(); */ }
     void gml_Object_obj_allgame_Step_0_Before(CodeEventArgs &Args)
     { 
-        UIManager::GetInstance()->StepEvent(); 
     }
     void gml_Object_obj_allgame_Step_2_After(CodeEventArgs &Args)
     { 
@@ -420,6 +419,33 @@ namespace Organik
                     }
                 }
             }
+            std::vector<CInstance*> extraInstances;
+            auto playerInstances = Organik::Utils::findInstances(Organik::Utils::getObj_PlayerIndex());
+            if (!playerInstances.empty())
+                extraInstances.append_range(playerInstances);
+            auto chatInstances = Organik::Utils::findInstances(Organik::Utils::getObj_PlayerIndex());
+            if (!chatInstances.empty())
+                extraInstances.append_range(chatInstances);
+            auto statsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Chat_ParentIndex());
+            if (!statsInstances.empty())
+                activeInstances.append_range(statsInstances);
+            auto perksInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Perk_ParentIndex());
+            if (!perksInstances.empty())
+                activeInstances.append_range(perksInstances);
+            auto itemsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Item_ParentIndex());
+            if (!itemsInstances.empty())
+                extraInstances.append_range(itemsInstances);
+            auto weaponsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Weapon_ParentIndex());
+            if (!weaponsInstances.empty())
+                extraInstances.append_range(weaponsInstances);
+            auto pickupsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Pickup_ParentIndex());
+            if (!pickupsInstances.empty())
+                extraInstances.append_range(pickupsInstances);
+            auto itemSlotsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Item_SlotIndex());
+            if (!itemSlotsInstances.empty())
+                extraInstances.append_range(itemSlotsInstances);
+            if (!extraInstances.empty())
+                activeInstances.append_range(extraInstances);
             ShowVariableViewer(&UIManager::GetInstance()->showVariableViewer, activeInstances);
         }
 
@@ -427,6 +453,9 @@ namespace Organik
         // Render ImGui
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+        GetLogger()->LogSimple("Step Event");
+        UIManager::GetInstance()->StepEvent(); 
+
         // GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args);
         //GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args);
         

@@ -8,7 +8,9 @@
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
+#include "../Utils.h"
 #include "../obj_list.h"
+
 
 #define MENU_CLOSED 0
 #define MENU_OPENING 1
@@ -20,6 +22,7 @@ using namespace Organik;
 namespace Organik 
 {
     static int frameCounter = 0;
+    
     OrganikConsole::OrganikConsole()
     {
         ClearLog();
@@ -122,16 +125,10 @@ namespace Organik
         // As a specific feature guaranteed by the library, after calling Begin() the last Item represent the title bar.
         // So e.g. IsItemHovered() will return true when hovering the title bar.
         // Here we create a context menu only available from the title bar.
-        if (ImGui::BeginPopupContextItem())
-        {
-            if (ImGui::MenuItem("Close Console"))
-                *p_open = false;
-            ImGui::EndPopup();
-        }
+        
 
         ImGui::TextWrapped(
-            "This example implements a console with basic coloring, completion (TAB key) and history (Up/Down keys). A more elaborate "
-            "implementation may want to store entries along with extra data such as timestamp, emitter, etc.");
+            "For Hacking");
         ImGui::TextWrapped("Enter 'HELP' for help.");
 
         // TODO: display items starting from the bottom
@@ -140,11 +137,30 @@ namespace Organik
                UIManager::GetInstance()->showVariableViewer = !(UIManager::GetInstance()->showVariableViewer);
         }
         ImGui::SameLine();
-        if (ImGui::SmallButton("Add Debug Error")) { AddLog("[error] something went wrong"); }
-        ImGui::SameLine();
         if (ImGui::SmallButton("Clear"))           { ClearLog(); }
         ImGui::SameLine();
         bool copy_to_clipboard = ImGui::SmallButton("Copy");
+        ImGui::Separator();
+        ImGui::Checkbox("26.1 Multiplayer Patch", &Organik::Utils::g_EnableMultiplayerCompat);
+        ImGui::SameLine();
+        ImGui::Checkbox("Dev Mode (see README)", &Organik::Utils::g_EnableDevcom);
+        ImGui::SameLine();
+        ImGui::Checkbox("Invincibility", &Organik::Utils::g_EnableInvincibility);
+        ImGui::Separator();
+        ImGuiInputTextFlags obj_index_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_CallbackCompletion;
+        if (ImGui::InputText("ObjIndexInput", &ObjInputBuf, obj_index_flags, &TextEditCallbackStub, (void*)this))
+        {
+            Strtrim(&ObjInputBuf);
+            if (!ObjInputBuf.empty() && Organik::Utils::builtinAssetGetIndex(ObjInputBuf.c_str()) > 0)
+            {
+                Organik::Utils::spawnObjectHere(ObjInputBuf);
+                ObjInputBuf.clear();
+            }
+            else
+            {
+                AddLog("[error] Invalid object name.");
+            }
+        }
         //static float t = 0.0f; if (ImGui::GetTime() - t > 0.02f) { t = ImGui::GetTime(); AddLog("Spam %f", t); }
 
         ImGui::Separator();
@@ -382,10 +398,21 @@ namespace Organik
                 if (cmd.first.starts_with(word_start))
                     candidates.push_back(cmd.first.c_str());
             }
-            for (const auto& cmd : _commands)
+            if (word_start[0] > '0' && word_start[0] < '9')
             {
-                if (cmd.first.starts_with(word_start))
-                    candidates.push_back(cmd.first.c_str());
+                for(const auto& id : Organik::Utils::knownInstanceIDs())
+                {
+                    if (std::to_string(id).starts_with(word_start))
+                        candidates.push_back(std::to_string(id).c_str());
+                }
+            }
+            else if (!std::string(word_start).starts_with("obj_") || strlen(word_start) >= 4)
+            {
+                for (const auto& str : objAndVarListFull)
+                {
+                    if (str.starts_with(word_start))
+                        candidates.push_back(str.c_str());
+                }
             }
 
             if (candidates.Size == 0)
@@ -649,36 +676,72 @@ namespace Organik
         // {
         //     ToggleConsole(); // Toggle console visibility
         // }
-        if (frameCounter > -1)
-            frameCounter++;
-        if (frameCounter == 15)
+        if ((Organik::Utils::getOutgameIndex() > 0) && Organik::Utils::g_EnableDevcom)
         {
-            GetLogger()->LogFormatted("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
-            g_Console->AddLog("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
-            g_ModuleInterface->CallBuiltin("keyboard_clear", {vk_f4});
-            g_ModuleInterface->CallBuiltin("keyboard_clear", {vk_i});
-            g_ModuleInterface->CallBuiltin("keyboard_clear", {vk_k});
+            std::vector<CInstance*> instanceVect = Organik::Utils::findInstances(Organik::Utils::getOutgameIndex());
+            // GetLogger()->LogFormatted("EnableDevcom? %s", Organik::Utils::g_EnableDevcom ? "yes" : "no");
+            if (!instanceVect.empty())
+            {
+                CInstance* outgameInstance = instanceVect[0];
+                if (outgameInstance->ToRValue().ContainsValue("devcom"))
+                {
+                    RValue* g_devcom = outgameInstance->GetRefMember("devcom");
+                    if (!(g_devcom->ToBoolean() == Organik::Utils::g_EnableDevcom))
+                    {
+                        *g_devcom = RValue(Organik::Utils::g_EnableDevcom);
+                    }
+                }
+            }
+            else 
+            {
+                GetLogger()->LogFormatted("Instance list empty (%d)", __LINE__);
+            }
         }
-        if ((UIManager::GetMenuState() == MENU_OPENING || UIManager::GetMenuState() == MENU_CLOSING) && frameCounter == 30)
+        if (Organik::Utils::getOutgameIndex() > 0)
         {
-            GetLogger()->LogFormatted("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
-
-            g_ModuleInterface->CallBuiltin("keyboard_set", {vk_shift});
-            g_ModuleInterface->CallBuiltin("keyboard_set", {vk_6});
-            GetLogger()->LogFormatted("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
-            g_DevMenuState = (UIManager::GetMenuState() == MENU_OPENING) ? MENU_OPEN : MENU_CLOSED;
-            g_Console->AddLog("Dev menu state changed to: %d", UIManager::GetMenuState());
+            std::vector<CInstance*> instanceVect = Organik::Utils::findInstances(Organik::Utils::getOutgameIndex());
+            if (!instanceVect.empty())
+            {
+                CInstance* outgameInstance = instanceVect[0];
+                if (outgameInstance->ToRValue().ContainsValue("ClientVersion"))
+                {
+                    char lastChar = '2' - ((byte)Organik::Utils::g_EnableMultiplayerCompat);
+                    RValue* clientVersion = outgameInstance->GetRefMember("ClientVersion");
+                    if (clientVersion->ToString().back() != lastChar)
+                    {
+                        GetLogger()->LogSimple("Setting ClientVersion");
+                        *clientVersion = RValue(std::string("26.") + lastChar);
+                    }
+                }
+            }
+            else 
+            {
+                GetLogger()->LogFormatted("Instance list empty (%d)", __LINE__);
+            }
         }
-        if ((UIManager::GetMenuState() == MENU_OPEN || UIManager::GetMenuState() == MENU_CLOSED) && frameCounter >= 45)
+        if ((Organik::Utils::getObj_PlayerIndex() > 0) && Organik::Utils::g_EnableInvincibility)
         {
-            GetLogger()->LogFormatted("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
-            g_ModuleInterface->CallBuiltin("keyboard_clear", {vk_shift});
-            GetLogger()->LogFormatted("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
-            g_ModuleInterface->CallBuiltin("keyboard_clear", {vk_6});
-            GetLogger()->LogFormatted("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
-            frameCounter = -1;
-            g_Console->AddLog("Menu is %s", UIManager::GetMenuState() == MENU_OPEN ? "open" : "closed");
-            GetLogger()->LogFormatted("UIManager::StepEvent - Menu state is changing: %d", UIManager::GetMenuState());
+            std::vector<CInstance*> instanceVect = Organik::Utils::findInstances(Organik::Utils::getObj_PlayerIndex());
+            if (!instanceVect.empty())
+            {
+                GetLogger()->LogSimple("Enabling invincibility for player");
+                CInstance* instance = instanceVect[0];
+                if (instance->ToRValue().ContainsValue("invincible") && instance->ToRValue().ContainsValue("invincibletimer"))
+                {
+                    RValue* isInvincible = instance->GetRefMember("invincible");
+                    RValue* invincibilityTimer = instance->GetRefMember("invincibletimer");
+                    *isInvincible = RValue(true);
+                    *invincibilityTimer = RValue(5.00);
+                }
+                else 
+                {
+                    GetLogger()->LogFormatted("Instance %d does not have invincibility member (%d)", instance->GetMembers().m_ID, __LINE__);
+                }
+            }
+            else 
+            {
+                GetLogger()->LogFormatted("Instance list empty (%d)", __LINE__);
+            }
         }
     }
 }
