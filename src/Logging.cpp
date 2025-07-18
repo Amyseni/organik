@@ -5,6 +5,8 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include "UI/OrganikConsole.h"
+#include "UI/UIManager.h"
 #include "CallbackManager/CallbackManagerInterface.h"
 #include "ModuleMain.h"
 
@@ -168,6 +170,24 @@ namespace Organik
         va_end(va_args);
         return WriteToLog(formatted_output, true);
     }
+
+    bool Logger::TryLogConsole(const char* fmt, ...)
+    {
+        va_list args;
+        va_start(args, fmt);
+        std::string formatted_output = ParseFormatting(fmt, args);
+        va_end(args);
+
+        auto* console = Organik::UIManager::GetInstance()->GetElement<OrganikConsole>(false);
+        if (console)
+        {
+            console->AddLog(formatted_output.c_str());
+            return true;
+        }
+        LogSimple(formatted_output.c_str());
+        return false;
+    }
+
     int tryDereference(int ptr)
     {
         LPCVOID int_hack = (LPCVOID)ptr;
@@ -210,12 +230,22 @@ namespace Organik
     bool Logger::LogEventCallback(const char *sourceFile, const int line, const char* callbackName, CodeEventArgs args) {
         bool success = true;
         CInstance* self = std::get<0>(args);
-        // CInstance* other = std::get<1>(args);
+        CInstance* other = std::get<1>(args);
         CCode* code = std::get<2>(args);
-        int argc = (int) std::get<3>(args);
+        int argc = std::get<3>(args);
+        RValue* r_argv = std::get<4>(args);
         
-        RValue** r_argv = std::get<3>(args);
-
+        // for (auto arg : r_argv->ToRefVector()) {
+        //     if (arg == nullptr) {
+        //         continue; // Skip null arguments
+        //     }
+        //     std::string argStr = arg->ToString();
+        //     if (!argStr.empty()) {
+        //         g_LoggerInstance->LogFormatted("Arg: %s", argStr.c_str());
+        //     } else {
+        //         g_LoggerInstance->LogFormatted("Arg: <null or empty>");
+        //     }
+        // }
         // Get current time for timestamp
         auto now = std::chrono::system_clock::now();
         std::time_t now_time = std::chrono::system_clock::to_time_t(now);
@@ -228,8 +258,9 @@ namespace Organik
         std::ostringstream infoStream;
         int out_buf(0);
         infoStream << g_LoggerInstance->ParseFormatting("[EVENT] [0x%p->%s() call 0x%p] [%s] @ [%s:%d]", self, callbackName, code, timestamp.c_str(), sourceFile, line) << "\n";
-        argc = tryDereferencePtrLoop(argc, out_buf); // Use helper function
-        infoStream << g_LoggerInstance->ParseFormatting("    Argument count: %d (dereferenced %d times)", argc,  out_buf) << "\n";
+        
+        infoStream << g_LoggerInstance->ParseFormatting("    Code? : %s", (code->m_Code && tryDereference((int)code->m_Code) != -1) ? code->m_Code : "Code not found or points to invalid memory") << "\n";
+        infoStream << g_LoggerInstance->ParseFormatting("    Argument count: %d", code->m_LocalsCount) << "\n";
 
         success = g_LoggerInstance->LogFormatted("%s", infoStream.str().c_str());
 

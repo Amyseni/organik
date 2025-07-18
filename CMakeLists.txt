@@ -126,11 +126,24 @@ set(Header_Files
     "include/imgui/imgui_stdlib.h"
     "include/imgui/imgui_impl_win32.h"
     "src/ModuleMain.h"
+    "src/InstanceHelper.h"
+    "src/VariableHelper.h"
     "src/Logging.h"
     "src/CodeEvents.h"
     "src/Utils.h"
+    "src/Base/Entity.h"
+    "src/GML/GMLManager.h"
     "src/UI/UIManager.h"
     "src/UI/VariableViewer.h"
+    "src/script_list.h"
+    "src/ScriptHelper.h"
+    "src/UI/RoomViewer.h"
+    "src/UI/MainMenu.h"
+    "src/UI/OrganikConsole.h"
+    "src/UI/UIElement.h"
+    "src/UI/BugReportWindow.h"
+    "src/UI/KeybindConfigWindow.h"
+    "src/ScriptEvents.h"
     "src/CodeEvents.h"
     "src/UI/Command.h"
     "src/UI/BuiltinCommands.h"
@@ -149,11 +162,19 @@ set(Source_Files
     "include/imgui/imgui_impl_win32.cpp"
     "include/imgui/imgui.cpp"
     "src/ModuleMain.cpp"
+    "src/InstanceHelper.cpp"
     "src/Logging.cpp"
     "src/CodeEvents.cpp"
     "src/Utils.cpp"
     "src/UI/UIManager.cpp"
+    "src/GML/GMLManager.cpp"
     "src/UI/VariableViewer.cpp"
+    "src/UI/OrganikConsole.cpp"
+    "src/UI/KeybindConfigWindow.cpp"
+    "src/ScriptEvents.cpp"
+    "src/UI/MainMenu.cpp"
+    "src/UI/RoomViewer.cpp"
+    "src/UI/BugReportWindow.cpp"
     "src/UI/BuiltinCommands.cpp"
     "src/UI/Command.cpp"
 )
@@ -175,6 +196,7 @@ find_library(DIRECTX_LIB d3d11.lib
 if(DIRECTX_INCLUDE_DIR)
     include_directories(${DIRECTX_INCLUDE_DIR})
 endif()
+include_directories("/usr/local/include/luajit-2.1")
 ################################################################################
 # Target
 ################################################################################

@@ -7,6 +7,23 @@
 #include "YYTK_Shared_Base.hpp"
 #include <map>
 
+namespace YYTK 
+{
+	struct RValue;
+	struct CScript;
+	struct CInstance;
+}
+using namespace Aurie;
+using namespace YYTK;
+namespace Organik
+{
+	namespace Utils
+	{
+		int32_t GetVarHash(const std::string& name);
+		const std::string& VarHashToName(int32_t hash);
+	}
+}
+
 namespace YYTK
 {
 #pragma region Definitions
@@ -26,7 +43,7 @@ namespace YYTK
 
 	// Represents a hashmap structure.
 	// Requires ISA enabled.
-	template <typename TKey, typename TValue, int TInitialSize>
+	template <typename TKey, typename TValue, size_t SzInitial = 7>
 	struct CHashMap;
 
 	// Represents a GameMaker instance.
@@ -67,7 +84,7 @@ namespace YYTK
 	struct CPhysicsWorld;
 
 	// Represents a room at runtime.
-	struct CRoom;
+	class CRoom;
 
 	// Internal type used by YYTK.
 	struct CRoomInternal;
@@ -196,6 +213,8 @@ namespace YYTK
 		VALUE_BOOL = 13,			// Bool value
 		VALUE_ITERATOR = 14,		// JS For-in Iterator
 		VALUE_REF = 15,				// Reference value
+		VALUE_VEC2 = 0x0000AAA0,	// can you hear the screams of the damned?
+		VALUE_VEC2_ARR = 0x0000AAA1,// Vec2 Array value
 		VALUE_UNSET = 0x0ffffff		// Unset value (never initialized)
 	};
 
@@ -1589,29 +1608,65 @@ namespace YYTK
 		std::is_base_of_v<CInstance, std::remove_pointer_t<T>>;
 	};
 
-#pragma pack(push, 4)
-
-	// Note: 
-	// The inline initialization (setting kind to undefined, etc.) is needed
-	// because *this = RValue() calls the copy constructor which would try to free
-	// an RValue which has not yet been initialized!
-
+	struct RefString 
+	{
+		const char* str;
+		int m_Count;
+		int m_Length;
+	};
+	struct vec4 {
+		float x, y, z, w;
+	};
+	struct matrix44 {
+		vec4 m[4];
+	};
+	struct RValue;
+	struct RefRValueArray;
+	struct Vec2 { 
+		float x, y;
+		operator RValue() const;
+		const Vec2& operator=(const Vec2& other);
+		template <typename T>
+		requires std::is_assignable_v<std::pair<float, float>, T>
+		const Vec2& operator=(const T& other);
+		const bool operator==(const Vec2& other) const;
+		const bool operator==(const std::pair<float, float>& other) const;
+		const Vec2& operator=(double other) const;
+		const bool operator==(double other) const;
+		const Vec2& operator=(const RValue& other) const;
+		operator std::pair<float, float>() const;
+		operator double() const;
+		template <typename T>
+		requires std::is_assignable<float, T>::value
+		const Vec2& operator=(const T other[2]) const;
+		Vec2();
+		Vec2(float x, float y);
+		Vec2(const Vec2& other);
+	};
+	// The following struct is adapted from the YYC Headers for GameMaker Runtime 2.3.6.464
+	// Copyright (C) 2020 Opera Norway AS. All rights reserved.
+	#pragma pack(push, 4) 
 	struct RValue
 	{
-		union
-		{
+		union {
 			int32_t m_i32;
 			int64_t m_i64;
 			double m_Real;
-
-			YYObjectBase* m_Object;
-			CInstance* m_Instance;
-
+			union 
+			{
+				YYObjectBase* m_Object;
+				CInstance* m_Instance;
+				struct Vec2 m_Vec2;
+			};
 			PVOID m_Pointer = nullptr;
 		};
 
 		uint32_t m_Flags = 0;
 		RValueType m_Kind = VALUE_UNDEFINED;
+
+		// ########################################################################
+		// End of replicated header code
+		// ########################################################################
 
 		/* Explicit conversions */
 
@@ -1767,6 +1822,17 @@ namespace YYTK
 			this->m_Kind = VALUE_REAL;
 		}
 
+		template <typename TFloatCompatible>
+			requires std::floating_point<TFloatCompatible>&& std::is_convertible_v<TFloatCompatible, float>
+		RValue(
+			IN const TFloatCompatible& vX,
+			IN const TFloatCompatible& vY
+		)
+		{
+			*this = RValue();
+			this->m_Vec2 = { static_cast<float>(vX), static_cast<float>(vY) };
+			this->m_Kind = VALUE_VEC2;
+		}
 		// Creates an OBJECT-type RValue.
 		// A generic overload for any pointer, where the pointed-to
 		// class inherits from CInstanceBase.
@@ -1826,7 +1892,6 @@ namespace YYTK
 		);
 
 		/* Overloaded operators */
-
 		RValue& operator[](
 			IN size_t Index
 			);
@@ -1866,62 +1931,31 @@ namespace YYTK
 	};
 #pragma pack(pop)
 
-	struct RToken
+	struct RFunction
 	{
-		int m_Kind;
-		unsigned int m_Type;
-		int m_Ind;
-		int m_Ind2;
-		RValue m_Value;
-		int m_ItemNumber;
-		RToken* m_Items;
-		int m_Position;
-	};
-
-	struct CCode
-	{
-		int (**_vptr$CCode)(void);
-		CCode* m_Next;
-		int m_Kind;
-		int m_Compiled;
-		const char* m_Str;
-		RToken m_Token;
-		RValue m_Value;
-		PVOID m_VmInstance;
-		PVOID m_VmDebugInfo;
-		char* m_Code;
-		const char* m_Name;
-		int m_CodeIndex;
-		YYGMLFuncs* m_Functions;
-		bool m_Watch;
-		int m_Offset;
-		int m_LocalsCount;
-		int m_ArgsCount;
-		int m_Flags;
-		YYObjectBase* m_Prototype;
-
-		const char* GetName() const { return this->m_Name; }
+		char m_Name[64];
+		TRoutine m_Func;
+		int	m_ArgCount;
+		uint32_t m_UsageCount;
 	};
 
 	struct CScript
 	{
-		int (**_vptr$CScript)(void);
+		PVOID m_Text;
 		CCode* m_Code;
 		YYGMLFuncs* m_Functions;
-		CInstance* m_StaticObject;
-
-		union
-		{
+		CInstance*	m_StaticObject;
+		union {
 			const char* m_Script;
 			int m_CompiledIndex;
 		};
-
 		const char* m_Name;
 		int m_Offset;
-
+		virtual ~CScript();
+		
 		const char* GetName() const { return this->m_Name; }
 	};
-
+	
 	struct YYGMLFuncs
 	{
 		const char* m_Name;
@@ -1983,15 +2017,7 @@ namespace YYTK
 #if YYTK_DEFINE_INTERNAL
 	using CHashMapHash = uint32_t;
 
-	template <typename TKey, typename TValue>
-	struct CHashMapElement
-	{
-		TValue m_Value;
-		TKey m_Key;
-		CHashMapHash m_Hash;
-	};
-
-	template <typename TKey, typename TValue, int TInitialMask>
+	template <typename TKey, typename TValue, size_t SzInitial>
 	struct CHashMap
 	{
 	private:
@@ -2083,24 +2109,33 @@ namespace YYTK
 		}
 
 	public:
+		struct CHashMapElement
+		{
+			TValue value;
+			TKey key;
+			CHashMapHash hash;
+
+			CHashMapElement(TKey &_key, TValue &_value) :  key(_key), value(_value) {}
+		};
 		int32_t m_CurrentSize;
 		int32_t m_UsedCount;
 		int32_t m_CurrentMask;
 		int32_t m_GrowThreshold;
-		CHashMapElement<TKey, TValue>* m_Elements;
+		CHashMapElement *m_Elements;
 		void(*m_DeleteValue)(TKey* Key, TValue* Value);
 
 		bool GetContainer(
 			IN TKey Key,
-			OUT CHashMapElement<TKey, TValue>*& Value
+			OUT CHashMapElement*& Value
 		)
 		{
+			
 			CHashMapHash value_hash = CHashMapCalculateHash(Key);
 			int32_t ideal_position = static_cast<int>(value_hash & m_CurrentMask);
 
 			for (
 				// Start at the ideal element (the value is probably not here though)
-				CHashMapElement<TKey, TValue>& current_element = this->m_Elements[ideal_position];
+				CHashMapElement& current_element = this->m_Elements[ideal_position];
 				// Continue looping while the hash isn't 0 (meaning we reached the end of the map)
 				current_element.m_Hash != 0;
 				// Go to the next position
@@ -2117,13 +2152,14 @@ namespace YYTK
 			return false;
 		}
 
+		
 		bool GetValue(
 			IN TKey Key,
 			OUT TValue& Value
 		)
 		{
 			// Try to get the container
-			CHashMapElement<TKey, TValue>* object_container = nullptr;
+			CHashMapElement* object_container = nullptr;
 			if (!this->GetContainer(
 				Key,
 				object_container
@@ -2180,6 +2216,13 @@ namespace YYTK
 		T* m_Last;
 		int32_t m_Count;
 	};
+
+	struct YYLink
+	{
+		YYLink *p_next;
+		YYLink *m_Last;
+		PVOID *list;
+	};
 #ifdef _WIN64
 	static_assert(sizeof(OLinkedList<CInstance>) == 0x18);
 	static_assert(sizeof(OLinkedList<CInstance>) == sizeof(LinkedList<CInstance>));
@@ -2233,62 +2276,6 @@ namespace YYTK
 		virtual uint8_t* Compress(int _offset, int _size, uint32_t& resultSize) = 0;
 		virtual uint8_t* Decompress(uint32_t& resultSize) = 0;
 	};
-#ifdef _WIN64
-	static_assert(sizeof(IBuffer) == 0x8);
-#endif // _WIN64
-
-	struct CLayerElementBase
-	{
-		int32_t m_Type;
-		int32_t m_ID;
-		bool m_RuntimeDataInitialized;
-		const char* m_Name;
-		CLayer* m_Layer;
-		union
-		{
-			CLayerInstanceElement* m_InstanceFlink;
-			CLayerSpriteElement* m_SpriteFlink;
-			CLayerElementBase* m_Flink;
-		};
-		union
-		{
-			CLayerInstanceElement* m_InstanceBlink;
-			CLayerSpriteElement* m_SpriteBlink;
-			CLayerElementBase* m_Blink;
-		};
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CLayerElementBase) == 0x30);
-#endif // _WIN64
-
-	struct CLayerInstanceElement : CLayerElementBase
-	{
-		int32_t m_InstanceID;
-		CInstance* m_Instance;
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CLayerInstanceElement) == 0x40);
-#endif // _WIN64
-
-	struct CLayerSpriteElement : CLayerElementBase
-	{
-		int32_t m_SpriteIndex;
-		float m_SequencePosition;
-		float m_SequenceDirection;
-		float m_ImageIndex;
-		float m_ImageSpeed;
-		int32_t m_SpeedType;
-		float m_ImageScaleX;
-		float m_ImageScaleY;
-		float m_ImageAngle;
-		uint32_t m_ImageBlend;
-		float m_ImageAlpha;
-		float m_X;
-		float m_Y;
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CLayerSpriteElement) == 0x68);
-#endif // _WIN64
 
 	struct CLayer
 	{
@@ -2407,78 +2394,7 @@ namespace YYTK
 #ifdef _WIN64
 	static_assert(sizeof(YYRoom) == 0x58);
 #endif // _WIN64
-
-	// Seems to be mostly stable, some elements at the end are however omitted
-	struct CRoom
-	{
-		
-		int32_t m_LastTile;
-		CRoom* m_InstanceHandle;
-		const char* m_Caption;
-		int32_t m_Speed;
-		int32_t m_Width;
-		int32_t m_Height;
-		bool m_Persistent;
-		uint32_t m_Color;
-		bool m_ShowColor;
-	private:
-
-		// Last confirmed use in 2023.8, might be later even
-		struct
-		{
-			CBackGM* Backgrounds[8];
-			CRoomInternal Internals;
-		} WithBackgrounds;
-
-		// 2024.6 (first confirmed use) has Backgrounds removed.
-		// CRoomInternal cannot be properly aligned (due to bool having 1-byte alignment),
-		// so GetMembers() crafts the pointer manually instead of having a defined struct here.
-
-	public:
-		CRoomInternal& GetMembers();
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CRoom) == 0x218);
-#endif // _WIN64
-
-	struct CInstanceBase
-	{
-		virtual ~CInstanceBase() = 0;
-
-		RValue* m_YYVars;
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CInstanceBase) == 0x10);
-#endif // _WIN64
-
-	enum EJSRetValBool : int32_t
-	{
-		EJSRVB_FALSE,
-		EJSRVB_TRUE,
-		EJSRVB_TYPE_ERROR
-	};
-
-	using FNGetOwnProperty = void(*)(
-		IN YYObjectBase* Object,
-		OUT RValue& Result,
-		IN const char* Name
-		);
-
-	using FNDeleteProperty = void(*)(
-		IN YYObjectBase* Object,
-		OUT RValue& Result,
-		IN const char* Name,
-		IN bool ThrowOnError
-		);
-
-	using FNDefineOwnProperty = EJSRetValBool(*)(
-		IN YYObjectBase* Object,
-		IN const char* Name,
-		OUT RValue& Result,
-		IN bool ThrowOnError
-		);
-
-	enum YYObjectKind : int32_t
+enum YYObjectKind : int32_t
 	{
 		OBJECT_KIND_YYOBJECTBASE = 0,
 		OBJECT_KIND_CINSTANCE,
@@ -2508,10 +2424,175 @@ namespace YYTK
 		OBJECT_KIND_AUDIOEFFECT,
 		OBJECT_KIND_MAX
 	};
+	// Seems to be mostly stable, some elements at the end are however omitted
+// 	struct CRoom
+// 	{
+		
+// 		int32_t m_LastTile;
+// 		CRoom* m_InstanceHandle;
+// 		const char* m_Caption;
+// 		int32_t m_Speed;
+// 		int32_t m_Width;
+// 		int32_t m_Height;
+// 		bool m_Persistent;
+// 		uint32_t m_Color;
+// 		bool m_ShowColor;
+// 	private:
 
-	struct YYObjectBase : CInstanceBase
+// 		// Last confirmed use in 2023.8, might be later even
+// 		struct
+// 		{
+// 			CBackGM* Backgrounds[8];
+// 			CRoomInternal Internals;
+// 		} WithBackgrounds;
+
+// 		// 2024.6 (first confirmed use) has Backgrounds removed.
+// 		// CRoomInternal cannot be properly aligned (due to bool having 1-byte alignment),
+// 		// so GetMembers() crafts the pointer manually instead of having a defined struct here.
+
+// 	public:
+// 		CRoomInternal& GetMembers();
+// 	};
+// #ifdef _WIN64
+// 	static_assert(sizeof(CRoom) == 0x218);
+// #endif // _WIN64
+
+	struct CInstanceBase
 	{
-		virtual RValue& InternalGetYYVarRef(
+		RValue* m_YYVars;
+		virtual ~CInstanceBase() {};
+	};
+
+// #ifdef _WIN64
+// 	static_assert(sizeof(CInstanceBase) == 0x10);
+// #endif // _WIN64
+
+	enum EJSRetValBool : int32_t
+	{
+		EJSRVB_FALSE,
+		EJSRVB_TRUE,
+		EJSRVB_TYPE_ERROR
+	};
+
+	using FNGetOwnProperty = void(*)(
+		IN YYObjectBase* Object,
+		OUT RValue& Result,
+		IN const char* Name
+		);
+
+	using FNDeleteProperty = void(*)(
+		IN YYObjectBase* Object,
+		OUT RValue& Result,
+		IN const char* Name,
+		IN bool ThrowOnError
+		);
+
+	using FNDefineOwnProperty = EJSRetValBool(*)(
+		IN YYObjectBase* Object,
+		IN const char* Name,
+		OUT RValue& Result,
+		IN bool ThrowOnError
+		);
+
+	struct CPhysicsDataGM {
+		float *m_PhysicsVertices;
+		bool m_IsPhysicsObject;
+		bool m_IsPhysicsSensor;
+		bool m_IsPhysicsAwake;
+		bool m_IsPhysicsKinematic;
+		int m_PhysicsShape;
+		int m_PhysicsGroup;
+		float m_PhysicsDensity;
+		float m_PhysicsRestitution;
+		float m_PhysicsLinearDamping;
+		float m_PhysicsAngularDamping;
+		float m_PhysicsFriction;
+		int m_PhysicsVertexCount;
+	};
+
+	struct CObjectGM {
+		char *m_Name;
+		struct CObjectGM *m_ParentObject;
+		CHashMap<int, CObjectGM*, 2>* m_ChildrenMap;
+		CHashMap<int, CEvent*, 3>* m_EventsMap;
+		struct CPhysicsDataGM m_PhysicsData;
+		struct LinkedList<PVOID> *m_Instances;
+		struct LinkedList<PVOID> *m_InstancesRecursive;
+		uint32_t m_Flags;
+		int32_t m_SpriteIndex;
+		int32_t m_Depth;
+		int32_t m_Parent;
+		int32_t m_Mask;
+		int32_t m_ID;
+	};
+
+	struct RToken {
+		int kind;
+		enum eGML_TYPE type;
+		int ind;
+		int ind2;
+		struct RValue value;
+		int itemnumb;
+		struct RToken *items;
+		int position;
+	};
+
+	struct CCode {
+		virtual ~CCode();
+		CCode* m_Next;
+		int m_Kind;
+		bool m_Compiled;
+		char* m_Str;
+		RToken m_Token;
+		RValue m_Value;
+		IBuffer* m_VmInstance;
+		IBuffer* m_VmDebugInfo;
+		char* m_Code;
+		const char* m_Name;
+		int m_CodeIndex;
+		YYGMLFuncs* m_Functions;
+		bool m_Watch;
+		int m_Offset;
+		int m_LocalsCount;
+		int m_ArgsCount;
+		int m_Flags;
+		YYObjectBase* m_Prototype;
+
+		const char* GetName() const { return this->m_Name; }
+	};
+	struct YYRECT {
+		float m_Left;
+		float m_Top;
+		float m_Right;
+		float m_Bottom;
+	};
+	
+	struct YYObjectBase : CInstanceBase {
+		YYObjectBase *m_pNextObject;
+		YYObjectBase *m_pPrevObject;
+		char *m_pStackTrace;
+		char *m_pVMStackTrace;
+		YYObjectBase *m_Prototype;
+		char *m_Class;
+		FNGetOwnProperty m_GetProperty;
+		FNDeleteProperty m_DeleteOwnProperty;
+		FNDefineOwnProperty m_DefineOwnProperty;
+		CHashMap<int,RValue*,3> *m_yyvarsMap;
+		CWeakRef **m_WeakRef;
+		uint32_t m_WeakRefCount;
+		uint32_t m_VariableCount;
+		uint32_t m_Flags;
+		uint32_t m_Capacity;
+		uint32_t m_Visited;
+		uint32_t m_VisitedGC;
+		int32_t m_GCGeneration;
+		int32_t m_GCCreationFrame;
+		int32_t m_Slot;
+		YYObjectKind m_ObjectKind;
+		int32_t m_RValueInitType;
+		int32_t m_CurrentSlot;
+
+ 		virtual RValue& InternalGetYYVarRef(
 			IN int Index
 		) = 0;
 
@@ -2558,118 +2639,68 @@ namespace YYTK
 		RValue* FindOrAllocValue(
 			IN const char* Name
 		);
-
-		YYObjectBase* m_Flink;
-		YYObjectBase* m_Blink;
-		YYObjectBase* m_Prototype;
-		const char* m_Class;
-		FNGetOwnProperty m_GetOwnProperty;
-		FNDeleteProperty m_DeleteProperty;
-		FNDefineOwnProperty m_DefineOwnProperty;
-		// Use GetInstanceMember instead
-		CHashMap<int32_t, RValue*, 3>* m_YYVarsMap;
-		CWeakRef** m_WeakRef;
-		uint32_t m_WeakRefCount;
-		uint32_t m_VariableCount;
-		uint32_t m_Flags;
-		uint32_t m_Capacity;
-		uint32_t m_Visited;
-		uint32_t m_VisitedGC;
-		int32_t m_GCGeneration;
-		int32_t m_GCCreationFrame;
-		int32_t m_Slot;
-		YYObjectKind m_ObjectKind;
-		int32_t m_RValueInitType;
-		int32_t m_CurrentSlot;
 	};
-#ifdef _WIN64
-	static_assert(sizeof(YYObjectBase) == 0x88);
-#endif // _WIN64
-
-	struct CScriptRef : YYObjectBase
+	struct RefRValueArray : YYObjectBase
 	{
-		CScript* m_CallScript;
-		TRoutine m_CppCall;
-		PFUNC_YYGMLScript m_CallYYC;
-		RValue m_Scope;
-		RValue m_BoundThis;
-		YYObjectBase* m_Static;
-		PVOID m_HasInstance;
-		PVOID m_Construct;
-		const char* m_Tag;
+		int	m_Count;
+		int m_Flags;
+		RValue* m_Array;
+		int64_t m_Padding; // not sure
+		int m_MorePadding; // ??
+		int m_Length;
 	};
-#ifdef _WIN64
-	static_assert(sizeof(CScriptRef) == 0xE0);
-#endif // _WIN64
-
-	struct CPhysicsDataGM
-	{
-		float* m_PhysicsVertices;
-		bool m_IsPhysicsObject;
-		bool m_IsPhysicsSensor;
-		bool m_IsPhysicsAwake;
-		bool m_IsPhysicsKinematic;
-		int m_PhysicsShape;
-		int m_PhysicsGroup;
-		float m_PhysicsDensity;
-		float m_PhysicsRestitution;
-		float m_PhysicsLinearDamping;
-		float m_PhysicsAngularDamping;
-		float m_PhysicsFriction;
-		int m_PhysicsVertexCount;
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CPhysicsDataGM) == 0x30);
-#endif // _WIN64
-
-	struct CEvent
-	{
-		CCode* m_Code;
-		int32_t m_OwnerObjectID;
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CEvent) == 0x10);
-#endif // _WIN64
-
-	struct CObjectGM
-	{
-		const char* m_Name;
-		CObjectGM* m_ParentObject;
-		CHashMap<int, CObjectGM*, 2>* m_ChildrenMap;
-		CHashMap<int, CEvent*, 3>* m_EventsMap;
-		CPhysicsDataGM m_PhysicsData;
-		LinkedList<CInstance> m_Instances;
-		LinkedList<CInstance> m_InstancesRecursive;
-		uint32_t m_Flags;
-		int32_t m_SpriteIndex;
-		int32_t m_Depth;
-		int32_t m_Parent;
-		int32_t m_Mask;
+	struct CLayerElementBase {
+		int32_t m_Type;
 		int32_t m_ID;
+		bool m_RuntimeDataInitialized;
+		char *m_Name;
+		struct CLayer *m_Layer;
+		union
+		{
+			CLayerInstanceElement* m_InstanceFlink;
+			CLayerSpriteElement* m_SpriteFlink;
+			CLayerElementBase* m_Flink;
+		};
+		union
+		{
+			CLayerInstanceElement* m_InstanceBlink;
+			CLayerSpriteElement* m_SpriteBlink;
+			CLayerElementBase* m_Blink;
+		};
 	};
-#ifdef _WIN64
-	static_assert(sizeof(CObjectGM) == 0x98);
-#endif // _WIN64
-
-	struct GCObjectContainer : YYObjectBase
+	struct CLayerInstanceElement : CLayerElementBase
 	{
-		CHashMap<YYObjectBase*, YYObjectBase*, 3>* m_YYObjectMap;
+		int32_t m_InstanceID;
+		CInstance* m_Instance;
 	};
-#ifdef _WIN64
-	static_assert(sizeof(GCObjectContainer) == 0x90);
-#endif // _WIN64
-
-	struct YYRECT
-	{
-		float m_Left;
-		float m_Top;
-		float m_Right;
-		float m_Bottom;
+	struct CLayerSpriteElement : CLayerElementBase {
+		int32_t m_SpriteIndex;
+		float m_SequencePosition;
+		float m_SequenceDirection;
+		float m_ImageIndex;
+		float m_ImageSpeed;
+		int32_t m_SpeedType;
+		float m_ImageScaleX;
+		float m_ImageScaleY;
+		float m_ImageAngle;
+		uint32_t m_ImageBlend;
+		float m_ImageAlpha;
+		float m_X;
+		float m_Y;
+	};
+	
+	struct SLink {
+		PVOID m_First;
+		PVOID m_Last;
+		PVOID m_list;
 	};
 
-	// Not a runner type per-se, used to prevent code duplication in CInstance unions
-	struct CInstanceInternal
-	{
+	struct CInstance : YYObjectBase {
+		int64_t m_CreateCounter;
+		CObjectGM *m_Object;
+		CPhysicsObject *m_PhysicsObject;
+		CSkeletonInstance *m_SkeletonAnimation;
+		PVOID m_SequenceInstance;
 		uint32_t m_InstanceFlags;
 		int32_t m_ID;
 		int32_t m_ObjectIndex;
@@ -2697,9 +2728,8 @@ namespace YYTK
 		float m_Gravity;
 		float m_HorizontalSpeed;
 		float m_VerticalSpeed;
-		YYRECT m_BoundingBox;
+		struct YYRECT m_BoundingBox;
 		int m_Timers[12];
-		int64_t m_RollbackFrameKilled;
 		PVOID m_TimelinePath;
 		CCode* m_InitCode;
 		CCode* m_PrecreateCode;
@@ -2707,64 +2737,15 @@ namespace YYTK
 		int32_t m_LayerID;
 		int32_t m_MaskIndex;
 		int16_t m_MouseOverCount;
-		CInstance* m_Flink;
-		CInstance* m_Blink;
-	};
-#ifdef _WIN64
-	static_assert(sizeof(CInstanceInternal) == 0xF8);
-#endif // _WIN64
-
-	struct CInstance : YYObjectBase
-	{
-		int64_t m_CreateCounter;
-		CObjectGM* m_Object;
-		CPhysicsObject* m_PhysicsObject;
-		CSkeletonInstance* m_SkeletonAnimation;
-
-	private:
-		// Structs misalign between 2022.1 and 2023.8
-		// Easy way to check which to use is to check m_ID and compare
-		// it to the result of GetBuiltin("id") on the same instance.
-		// Use GetMembers() to get a CInstanceVariables reference.
-		union
-		{
-			// Islets 1.0.0.3 Steam (x86), GM 2022.6
-			struct
-			{
-			public:
-				CInstanceInternal Members;
-			} MembersOnly;
-#ifdef _WIN64
-			static_assert(sizeof(MembersOnly) == 0xF8);
-#endif // _WIN64
-
-			// 2023.x => 2023.8 (and presumably 2023.11)
-			struct
-			{
-			private:
-				PVOID m_SequenceInstance;
-			public:
-				CInstanceInternal Members;
-			} SequenceInstanceOnly;
-#ifdef _WIN64
-			static_assert(sizeof(SequenceInstanceOnly) == 0x100);
-#endif // _WIN64
-
-			// 2022.1 => 2023.1 (may be used later, haven't checked)
-			struct
-			{
-			private:
-				PVOID m_SkeletonMask;
-				PVOID m_SequenceInstance;
-			public:
-				CInstanceInternal Members;
-			} WithSkeletonMask;
-#ifdef _WIN64
-			static_assert(sizeof(WithSkeletonMask) == 0x108);
-#endif // _WIN64
-		};
-	public:
-		CInstanceInternal& GetMembers();
+		CInstance* m_Next;
+		CInstance* m_Prev;
+		struct SLink m_collisionLink;
+		struct SLink m_dirtyLink;
+		struct SLink m_withLink;
+		float m_Depth;
+		float m_CurrentDepth;
+		float m_LastImageNumber;
+		UINT32 m_collisionTestNumber;
 
 		RValue ToRValue() const;
 
@@ -2797,15 +2778,470 @@ namespace YYTK
 		static CInstance* FromInstanceID(
 			IN int32_t InstanceID
 		);
+
+		static std::vector<CInstance*> Where(std::function<bool(CInstance*)> func);
+        static void ForEach(std::function<void(CInstance*)> func);
+        static CInstance* FirstOrDefault(std::function<bool(CInstance*)> func);
+
+		typedef bool (*PFN_PREDICATE)(
+			std::string key,
+			CHashMapHash hash,
+			RValue* value,
+			RValueType kind
+		);
+
+		int32_t VarHashToIndex(
+			IN int32_t hash
+		)
+		{
+			auto someMagicNr = 0x80000000;
+			std::unordered_map<uint32_t, std::pair<std::string, RValue *>> ret;
+			int32_t elCur = 0;
+			int32_t count = this->m_yyvarsMap->m_UsedCount;
+			while (true)
+			{
+				int i = elCur;
+				if (i >= count)
+					break;
+				elCur++;
+				CHashMap<int, RValue*, 3U>::CHashMapElement &el = this->m_yyvarsMap->m_Elements[i];
+				
+				if ((el.hash & someMagicNr) == someMagicNr)
+					continue;
+				
+				if (el.hash != hash)
+					continue;
+				
+				return elCur;
+			}
+			return -4;
+		}
+
+		/* C++? More like Cee me outside */
+		std::unordered_map<uint32_t, std::pair<std::string, RValue*>> VarsWhereMap(
+			PFN_PREDICATE pred
+		)
+		{
+			auto someMagicNr = 0x80000000;
+			std::unordered_map<uint32_t, std::pair<std::string, RValue *>> ret;
+			int32_t elCur = 0;
+			int32_t count = this->m_yyvarsMap->m_UsedCount;
+			while (true)
+			{
+				CHashMap<int, RValue*, 3U>::CHashMapElement &el = this->m_yyvarsMap->m_Elements[elCur++];
+				if (elCur >= count)
+					break;
+				
+				if ((el.hash & someMagicNr) == someMagicNr)
+					continue;
+				
+				std::string name = Organik::Utils::VarHashToName(el.hash);
+				
+				if (pred(name, el.hash, el.value, el.value->m_Kind))
+				{
+					ret.insert(
+						std::make_pair(el.hash, std::make_pair(name, el.value))
+					);
+				}
+			}
+			return ret;
+		}
+
+		RValue& operator[](int32_t hash)
+		{
+			int32_t ind = this->VarHashToIndex(hash);
+			if (ind < 0 || ind > m_yyvarsMap->m_UsedCount)
+			{
+				static RValue errorVal = RValue(-4);
+				return errorVal;
+			}
+
+			return this->InternalGetYYVarRef(hash);
+		}
+
+		// Non-template version for const char* name
+		RValue& operator[](const char* name)
+		{
+			int32_t hash = -1;
+			hash = Organik::Utils::GetVarHash(name);
+			
+			return this->operator[](hash);
+		}
+
+		template <typename T>
+		requires (!std::is_same_v<T, int32_t>) && 
+				(!std::is_same_v<T, const char*>) &&
+				std::is_convertible_v<T, RValue>
+		T operator[](int32_t hash)
+		{
+			int32_t ind = this->VarHashToIndex(hash);
+			if (ind < 0 || ind > m_yyvarsMap->m_UsedCount)
+				return RValue(-4);
+
+			return this->InternalGetYYVarRef(hash);
+		}
 	};
-	// sizeof(0x1A8) is for PreMasked instances
-	// sizeof(0x1B0) is for Masked instances
-#ifdef _WIN64
-	static_assert(sizeof(CInstance) == 0x1A8 || sizeof(CInstance) == 0x1B0);
-#endif // _WIN64
+	
+	struct CPhysicsWorld {
+	};
+
+	struct CLayerEffectInfo {
+	};
+
+	class CRoom {
+	public:
+		int32_t m_LastTile;
+		CRoom *m_InstanceHandle;
+		char *m_Caption;
+		int32_t m_Speed;
+		int32_t m_Width;
+		int32_t m_Height;
+		bool m_Persistent;
+		uint32_t m_Color;
+		bool m_ShowColor;
+		CBackGM *Backgrounds[8];
+		bool m_EnableViews;
+		bool m_ClearScreen;
+		bool m_ClearDisplayBuffer;
+		CViewGM *m_Views[8];
+		char *m_LegacyCode;
+		CCode *m_CCode;
+		bool m_HasPhysicsWorld;
+		int32_t m_PhysicsGravityX;
+		int32_t m_PhysicsGravityY;
+		float m_PhysicsPixelToMeters;
+		OLinkedList<CInstance> m_ActiveInstances;
+		LinkedList<CInstance> m_InactiveInstances;
+		CInstance *m_MarkedFirst;
+		CInstance *m_MarkedLast;
+		int32_t *m_CreationOrderList;
+		int32_t m_CreationOrderListSize;
+		YYRoom *m_WadRoom;
+		unsigned char* m_WadBaseAddress;
+		CPhysicsWorld *m_PhysicsWorld;
+		int32_t m_TileCount;
+		CArrayStructure<RTile> m_Tiles;
+		YYRoomTiles *m_WadTiles;
+		YYRoomInstances *m_WadInstances;
+		char *m_Name;
+		bool m_IsDuplicate;
+		LinkedList<CLayer> m_Layers;
+		CHashMap<int, CLayer*, 7> m_LayerLookup;
+		CHashMap<int, CLayerElementBase*, 7> m_LayerElementLookup;
+		CLayerElementBase *m_LastLayerElementLookedUp;
+		CHashMap<int, CLayerInstanceElement*, 7> m_InstanceElementLookup;
+		int32_t *m_SeqInstances;
+		int32_t m_SeqInstancesCount;
+		int32_t m_SeqInstancesMax;
+		int32_t *m_EffectLayerIDs;
+		int32_t m_EffectLayerIdCount;
+		int32_t m_EffectLayerIdMax;
+		CRoom();
+		~CRoom();
+		
+		void  Destroy()	{
+			delete this;
+		}
+	};
+	// struct YYObjectBase : CInstanceBase
+	// {
+		// virtual RValue& InternalGetYYVarRef(
+		// 	IN int Index
+		// ) = 0;
+
+		// virtual RValue& InternalGetYYVarRefL(
+		// 	IN int Index
+		// ) = 0;
+
+		// virtual bool Mark4GC(
+		// 	uint32_t*,
+		// 	int
+		// ) = 0;
+
+		// virtual bool MarkThisOnly4GC(
+		// 	uint32_t*,
+		// 	int
+		// ) = 0;
+
+		// virtual bool MarkOnlyChildren4GC(
+		// 	uint32_t*,
+		// 	int
+		// ) = 0;
+
+		// virtual void Free(
+		// 	bool preserve_map
+		// ) = 0;
+
+		// virtual void ThreadFree(
+		// 	bool preserve_map,
+		// 	PVOID GCContext
+		// ) = 0;
+
+		// virtual void PreFree() = 0;
+
+		// virtual RValue* GetDispose() = 0;
+
+		// bool Add(
+		// 	IN const char* Name,
+		// 	IN const RValue& Value,
+		// 	IN int Flags
+		// );
+
+		// bool IsExtensible();
+
+		// RValue* FindOrAllocValue(
+		// 	IN const char* Name
+		// );
+
+	// 	YYObjectBase* m_Flink;
+	// 	YYObjectBase* m_Blink;
+	// 	YYObjectBase* m_Prototype;
+	// 	const char* m_Class;
+	// 	FNGetOwnProperty m_GetOwnProperty;
+	// 	FNDeleteProperty m_DeleteProperty;
+	// 	FNDefineOwnProperty m_DefineOwnProperty;
+	// 	// Use GetInstanceMember instead
+	// 	CHashMap<int32_t, RValue*, 3>* m_YYVarsMap;
+	// 	CWeakRef** m_WeakRef;
+	// 	uint32_t m_WeakRefCount;
+	// 	uint32_t m_VariableCount;
+	// 	uint32_t m_Flags;
+	// 	uint32_t m_Capacity;
+	// 	uint32_t m_Visited;
+	// 	uint32_t m_VisitedGC;
+	// 	int32_t m_GCGeneration;
+	// 	int32_t m_GCCreationFrame;
+	// 	int32_t m_Slot;
+	// 	YYObjectKind m_ObjectKind;
+	// 	int32_t m_RValueInitType;
+	// 	int32_t m_CurrentSlot;
+	// };
+// #ifdef _WIN64
+// 	static_assert(sizeof(YYObjectBase) == 0x88);
+// #endif // _WIN64
+
+	struct CScriptRef : YYObjectBase
+	{
+		CScript* m_CallScript;
+		TRoutine m_CppCall;
+		PFUNC_YYGMLScript m_CallYYC;
+		RValue m_Scope;
+		RValue m_BoundThis;
+		YYObjectBase* m_Static;
+		PVOID m_HasInstance;
+		PVOID m_Construct;
+		const char* m_Tag;
+	};
+// #ifdef _WIN64
+// 	static_assert(sizeof(CScriptRef) == 0xE0);
+// #endif // _WIN64
+
+	// struct CPhysicsDataGM
+	// {
+	// 	float* m_PhysicsVertices;
+	// 	bool m_IsPhysicsObject;
+	// 	bool m_IsPhysicsSensor;
+	// 	bool m_IsPhysicsAwake;
+	// 	bool m_IsPhysicsKinematic;
+	// 	int m_PhysicsShape;
+	// 	int m_PhysicsGroup;
+	// 	float m_PhysicsDensity;
+	// 	float m_PhysicsRestitution;
+	// 	float m_PhysicsLinearDamping;
+	// 	float m_PhysicsAngularDamping;
+	// 	float m_PhysicsFriction;
+	// 	int m_PhysicsVertexCount;
+	// };
+// #ifdef _WIN64
+// 	static_assert(sizeof(CPhysicsDataGM) == 0x30);
+// #endif // _WIN64
+
+	struct CEvent
+	{
+		CCode* m_Code;
+		int32_t m_OwnerObjectID;
+	};
+// #ifdef _WIN64
+// 	static_assert(sizeof(CEvent) == 0x10);
+// #endif // _WIN64
+
+	// struct CObjectGM
+	// {
+	// 	const char* m_Name;
+	// 	CObjectGM* m_ParentObject;
+	// 	CHashMap<int, CObjectGM*, 2>* m_ChildrenMap;
+	// 	CHashMap<int, CEvent*, 3>* m_EventsMap;
+	// 	CPhysicsDataGM m_PhysicsData;
+	// 	LinkedList<CInstance> m_Instances;
+	// 	LinkedList<CInstance> m_InstancesRecursive;
+	// 	uint32_t m_Flags;
+	// 	int32_t m_SpriteIndex;
+	// 	int32_t m_Depth;
+	// 	int32_t m_Parent;
+	// 	int32_t m_Mask;
+	// 	int32_t m_ID;
+	// };
+// #ifdef _WIN64
+// 	static_assert(sizeof(CObjectGM) == 0x98);
+// #endif // _WIN64
+
+	struct GCObjectContainer : YYObjectBase
+	{
+		CHashMap<YYObjectBase*, YYObjectBase*, 3>* m_YYObjectMap;
+	};
+// #ifdef _WIN64
+// 	static_assert(sizeof(GCObjectContainer) == 0x90);
+// #endif // _WIN64
+
+	// struct YYRECT
+	// {
+	// 	float m_Left;
+	// 	float m_Top;
+	// 	float m_Right;
+	// 	float m_Bottom;
+	// };
+
+	// // Not a runner type per-se, used to prevent code duplication in CInstance unions
+	// struct CInstanceInternal
+	// {
+	// 	uint32_t m_InstanceFlags;
+	// 	int32_t m_ID;
+	// 	int32_t m_ObjectIndex;
+	// 	int32_t m_SpriteIndex;
+	// 	float m_SequencePosition;
+	// 	float m_LastSequencePosition;
+	// 	float m_SequenceDirection;
+	// 	float m_ImageIndex;
+	// 	float m_ImageSpeed;
+	// 	float m_ImageScaleX;
+	// 	float m_ImageScaleY;
+	// 	float m_ImageAngle;
+	// 	float m_ImageAlpha;
+	// 	uint32_t m_ImageBlend;
+	// 	float m_X;
+	// 	float m_Y;
+	// 	float m_XStart;
+	// 	float m_YStart;
+	// 	float m_XPrevious;
+	// 	float m_YPrevious;
+	// 	float m_Direction;
+	// 	float m_Speed;
+	// 	float m_Friction;
+	// 	float m_GravityDirection;
+	// 	float m_Gravity;
+	// 	float m_HorizontalSpeed;
+	// 	float m_VerticalSpeed;
+	// 	YYRECT m_BoundingBox;
+	// 	int m_Timers[12];
+	// 	// int64_t m_RollbackFrameKilled;
+	// 	PVOID m_TimelinePath;
+	// 	CCode* m_InitCode;
+	// 	CCode* m_PrecreateCode;
+	// 	CObjectGM* m_OldObject;
+	// 	int32_t m_LayerID;
+	// 	int32_t m_MaskIndex;
+	// 	int16_t m_MouseOverCount;
+	// 	CInstance* m_Flink;
+	// 	CInstance* m_Blink;
+
+	// 	OLinkedList<PVOID*> m_InstancesRecursive;
+	// };
+// #ifdef _WIN64
+// 	static_assert(sizeof(CInstanceInternal) == 0xF8);
+// #endif // _WIN64
+
+// 	struct CInstance : YYObjectBase
+// 	{
+// 		int64_t m_CreateCounter;
+// 		CObjectGM* m_Object;
+// 		CPhysicsObject* m_PhysicsObject;
+// 		CSkeletonInstance* m_SkeletonAnimation;
+
+// 	private:
+// 		// Structs misalign between 2022.1 and 2023.8
+// 		// Easy way to check which to use is to check m_ID and compare
+// 		// it to the result of GetBuiltin("id") on the same instance.
+// 		// Use GetMembers() to get a CInstanceVariables reference.
+// 		union
+// 		{
+// 			// Islets 1.0.0.3 Steam (x86), GM 2022.6
+// 			struct
+// 			{
+// 			public:
+// 				CInstanceInternal Members;
+// 			} MembersOnly;
+// #ifdef _WIN64
+// 			static_assert(sizeof(MembersOnly) == 0xF8);
+// #endif // _WIN64
+
+// 			// 2023.x => 2023.8 (and presumably 2023.11)
+// 			struct
+// 			{
+// 			private:
+// 				PVOID m_SequenceInstance;
+// 			public:
+// 				CInstanceInternal Members;
+// 			} SequenceInstanceOnly;
+// #ifdef _WIN64
+// 			static_assert(sizeof(SequenceInstanceOnly) == 0x100);
+// #endif // _WIN64
+
+// 			// 2022.1 => 2023.1 (may be used later, haven't checked)
+// 			struct
+// 			{
+// 			private:
+// 				PVOID m_SkeletonMask;
+// 				PVOID m_SequenceInstance;
+// 			public:
+// 				CInstanceInternal Members;
+// 			} WithSkeletonMask;
+// #ifdef _WIN64
+// 			static_assert(sizeof(WithSkeletonMask) == 0x108);
+// #endif // _WIN64
+// 		};
+// 	public:
+		/* CInstanceInternal& GetMembers();
+
+		RValue ToRValue() const;
+
+		RValue* GetRefMember(
+			IN const char* MemberName
+		);
+
+		RValue* GetRefMember(
+			IN const std::string& MemberName
+		);
+
+		const RValue* GetRefMember(
+			IN const char* MemberName
+		) const;
+
+		const RValue* GetRefMember(
+			IN const std::string& MemberName
+		) const;
+
+		RValue GetMember(
+			IN const char* MemberName
+		) const;
+
+		RValue GetMember(
+			IN const std::string& MemberName
+		) const;
+
+		int32_t GetMemberCount() const;
+
+		static CInstance* FromInstanceID(
+			IN int32_t InstanceID
+		); */
+};
+// 	// sizeof(0x1A8) is for PreMasked instances
+// 	// sizeof(0x1B0) is for Masked instances
+// #ifdef _WIN64
+// 	static_assert(sizeof(CInstance) == 0x1A8 || sizeof(CInstance) == 0x1B0);
+// #endif // _WIN64
 
 #endif // YYTK_DEFINE_INTERNAL
 #pragma endregion
-}
+// }
 
 #endif // YYTK_SHARED_TYPES_H_

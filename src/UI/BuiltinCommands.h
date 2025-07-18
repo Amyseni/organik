@@ -4,11 +4,19 @@
 #include <vector>
 #include <functional>
 #include "Command.h"
-#include "UIManager.h"
 #include "YYToolkit/YYTK_Shared.hpp"
 #include "Aurie/shared.hpp"
 
 
+namespace Organik 
+{
+    struct OrganikConsole;
+    namespace BuiltinCommands 
+    {
+        void AddCommandHandler(Command* cmd);
+        std::map<std::string, Command*> GetCommands();
+    }
+}
 #define COMMAND(name, helpDesc) \
     class name : public ::Organik::Command { \
     public: \
@@ -20,12 +28,3 @@
         console->AddLog(helpDesc); \
     } \
     void name::Execute(::Organik::OrganikConsole* console, const std::vector<std::string>& args)
-
-namespace Organik 
-{
-    namespace BuiltinCommands 
-    {
-        void AddCommandHandler(Command* cmd);
-        std::map<std::string, Command*> GetCommands();
-    }
-}

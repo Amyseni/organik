@@ -3,13 +3,16 @@
 #include <Windows.h> // For VirtualQuery
 #include "CallbackManager/CallbackManagerInterface.h"
 #include "ModuleMain.h"
-#include <chrono>
-#include <iomanip>
-#include <ctime>
 #include "Logging.h"
 #include "UI/UIManager.h"
-#include <ranges>
 #include "Utils.h"
+#include "InstanceHelper.h"
+#include "VariableHelper.h"
+#include "ScriptHelper.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_stdlib.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx11.h"
 
 // Each CodeEvent is a game engine call to ExecuteIt on a CInstance *self object (equivalent to someObject->someFunction)
 // ALL Code event callbacks should match the following function signature
@@ -29,7 +32,8 @@
         // Additionally, we can modify argv array being passed to the function, or
         // if necessary, detour the CCode function further (though this can have unwanted side effects)
     }
-*/
+*/ 
+
 /* stepCount++;
         if (stepCount % 100 == 0)
         {
@@ -83,8 +87,8 @@ namespace Organik
             CInstance *self = std::get<0>(Args);
             CInstance *other = std::get<1>(Args);
             CCode *CCode = std::get<2>(Args);
-            RValue** argv = std::get<3>(Args);
-            int argc = std::get<4>(Args);
+            int argc = std::get<3>(Args);
+            RValue* argv = std::get<4>(Args);
             RValue name = "";
             RValue buff = RValue(10);
             
@@ -97,21 +101,153 @@ namespace Organik
                 argc
             );
         }
-    }   
+    }
+    void gml_Object_obj_stats_Create_0_Before(CodeEventArgs &Args)
+    {
+        
+    }
+    void gml_Object_obj_stats_Create_0_After(CodeEventArgs &Args)
+    {
+        
+    }
+    void gml_Object_obj_deathstatistics_Create_0_After(CodeEventArgs &Args)
+    {
+        if (!Organik::Utils::g_SSSUnlocksS)
+            return;
+        using vars = Organik::Variables;
+        using objs = Organik::Objects;
+        using scr = Organik::Scripts;
+        static std::string S__ = "S++";
+        CInstance *objStatistics = Organik::Utils::FirstInstanceOrNullptr(
+            Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]
+        );
+        if (!objStatistics)
+        {
+            MessageBoxA(nullptr, "obj_deathstatistics null after Create", "Error", MB_OK | MB_ICONERROR);
+        }
+        if (!S__._Equal(objStatistics->operator[](vars::Hashes[vars::runrating]).ToString()))
+            return;
+        CScript* setAchievement = scr::ScriptPointers[
+            scr::Indexes[
+                scr::gml_Script_scr_instance_create
+            ]
+        ];
+        if (setAchievement == nullptr)
+        {
+            MessageBoxA(nullptr, "Script gml_Script_scr_instance_create not loaded", "Error", MB_OK | MB_ICONERROR);
+            return;
+        }
+        RValue result;
+        RValue ach = RValue(19);
+        std::vector<RValue*> args = 
+        {
+            &ach
+        };
+        setAchievement->m_Functions->m_ScriptFunction(
+            Utils::GetGlobalInstance(),
+            Utils::GetGlobalInstance(),
+            result,
+            args.size(),
+            args.data()
+        );
+    }
     
+    void gml_Object_obj_stats_Other_10_After(CodeEventArgs &Args)
+    {
+        using vars = Organik::Variables;
+        using objs = Organik::Objects;
+
+        CInstance *objStats = Organik::Utils::FirstInstanceOrNullptr(
+            objs::ObjIndexes[objs::obj_stats]
+        );
+        if (!objStats)
+        {
+            MessageBoxA(nullptr, "obj_stats null after Create", "Error", MB_OK | MB_ICONERROR);
+        }
+        objStats->InternalGetYYVarRef(vars::Hashes[vars::base_alwaystakedamage]) = RValue(0.0);
+        objStats->InternalGetYYVarRef(vars::Hashes[vars::base_alwaystakedamagepercent]) = RValue(0.0);
+        objStats->InternalGetYYVarRef(vars::Hashes[vars::base_mindmgtakenpossible]) = RValue(0.0);
+        objStats->InternalGetYYVarRef(vars::Hashes[vars::base_mindmgtakenpossible]) = RValue(0.0);
+        
+        objStats->InternalGetYYVarRef(vars::Hashes[vars::mindamagetakenpercent]) = RValue(0.0);
+        objStats->InternalGetYYVarRef(vars::Hashes[vars::mindamagetakenpercentaftershield]) = RValue(0.0);
+        objStats->InternalGetYYVarRef(vars::Hashes[vars::mindamagetakenpercentwithbuffs]) = RValue(0.0);
+
+        
+    }
     
+    void gml_Object_obj_player_Create_0_Before(CodeEventArgs &Args)
+    {
+        
+    }
+
+    void gml_Object_obj_player_Create_0_After(CodeEventArgs &Args)
+    {
+        
+    }
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    void gml_Object_obj_item124_gunner_Step_0_After(CodeEventArgs &Args)
+    {
+        
+    }
+
+    void gml_Object_obj_item124_gunner_Create_0_After(CodeEventArgs &Args)
+    {
+        if (!g_HGSlowdownFix)
+            return; // are you okay? do you need a hug? we can talk about it.
+        
+        using vars = Organik::Variables;
+        using objs = Organik::Objects;
+        CInstance* onslaughtSystem = CInstance::FirstOrDefault([](CInstance* x) -> bool {
+            if (x->m_ObjectIndex != objs::ObjIndexes[objs::obj_item124_gunner])
+                return false;
+            return (x->InternalGetYYVarRef(vars::Hashes[vars::isLocal]).ToBoolean());
+        });
+        if (!onslaughtSystem)
+            return; // must have been for a remote player.
+
+        onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::spreadpershot]) = RValue(0.0);
+        onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::cantbedropped]) = RValue(0.0);
+        onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::weapon]) = RValue(-4);
+
+        double localPlayerModMovespeed = CInstance::FirstOrDefault([](CInstance* x) -> bool {
+            return (x->m_ObjectIndex == objs::ObjIndexes[objs::obj_stats]);
+        })->InternalGetYYVarRef(vars::Hashes[vars::mod_movespeed]).ToDouble();
+
+        *onslaughtSystem->FindOrAllocValue(
+            "mod_movespeed"
+        ) = RValue(localPlayerModMovespeed);
+        
+        callbackManagerInterfacePtr->CancelOriginalFunction();
+    }
+
+    void gml_Object_obj_item124_gunner_Step_0_Before(CodeEventArgs &Args)
+    {
+        if (!g_HGSlowdownFix)
+            return;
+        
+        using vars = Organik::Variables;
+        using objs = Organik::Objects;
+
+        CInstance* onslaughtSystem = std::get<0>(Args);
+
+        if (!onslaughtSystem) // I know this is literally the object triggering this function, but I have PTSD at this point. 
+                              // We check the null every time.
+            return; // must have been the wind
+        
+        bool wasActive = onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::active]).ToBoolean();
+        double localPlayerModMovespeed = CInstance::FirstOrDefault([](CInstance* x) -> bool {
+            return (x->m_ObjectIndex == objs::ObjIndexes[objs::obj_stats]);
+        })->InternalGetYYVarRef(vars::Hashes[vars::mod_movespeed]).ToDouble();
+        
+        bool isActive = onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::active]).ToBoolean();
+        if (isActive)
+        {
+            *onslaughtSystem->FindOrAllocValue(
+                "mod_movespeed"
+            ) = RValue(localPlayerModMovespeed);
+        };
+    }
     
     
     void gml_Object_obj_splash_screen_Keyboard_13_Before(CodeEventArgs &Args)
@@ -384,76 +520,11 @@ namespace Organik
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
         
-        Organik::UIManager::GetConsole()->Draw(std::string("Organik Console"), &Organik::UIManager::GetInstance()->showConsole);
-        std::vector<CInstance*> activeInstances;
-        if (Organik::UIManager::GetInstance()->showVariableViewer)
-        {
-            RValue layers = g_ModuleInterface->CallBuiltin(
-                "layer_get_all",
-                {}
-            );
-            for (auto layer : layers.ToRefVector())
-            {
-                int layerID = layer->ToInt32();
-                RValue layerElements = g_ModuleInterface->CallBuiltin(
-                    "layer_get_all_elements",
-                    {RValue(layerID)}
-                );
-                for (auto element : layerElements.ToRefVector())
-                {
-                    RValue elementType = g_ModuleInterface->CallBuiltin(
-                        "layer_get_element_type",
-                        {RValue(element->ToInt32())}
-                    );
-                    if (elementType.ToInt32() == 2) // instance == 2
-                    {
-                        RValue elementInstanceID = g_ModuleInterface->CallBuiltin(
-                            "layer_instance_get_instance",
-                            {RValue(element->ToInt32())}
-                        );
-                        CInstance* instance = Organik::Utils::GetInstanceFromID(elementInstanceID.ToInt32());
-                        if (instance)
-                        {
-                            activeInstances.push_back(instance);
-                        }
-                    }
-                }
-            }
-            std::vector<CInstance*> extraInstances;
-            auto playerInstances = Organik::Utils::findInstances(Organik::Utils::getObj_PlayerIndex());
-            if (!playerInstances.empty())
-                extraInstances.append_range(playerInstances);
-            auto chatInstances = Organik::Utils::findInstances(Organik::Utils::getObj_PlayerIndex());
-            if (!chatInstances.empty())
-                extraInstances.append_range(chatInstances);
-            auto statsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Chat_ParentIndex());
-            if (!statsInstances.empty())
-                activeInstances.append_range(statsInstances);
-            auto perksInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Perk_ParentIndex());
-            if (!perksInstances.empty())
-                activeInstances.append_range(perksInstances);
-            auto itemsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Item_ParentIndex());
-            if (!itemsInstances.empty())
-                extraInstances.append_range(itemsInstances);
-            auto weaponsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Weapon_ParentIndex());
-            if (!weaponsInstances.empty())
-                extraInstances.append_range(weaponsInstances);
-            auto pickupsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Pickup_ParentIndex());
-            if (!pickupsInstances.empty())
-                extraInstances.append_range(pickupsInstances);
-            auto itemSlotsInstances = Organik::Utils::findInstances(Organik::Utils::getObj_Item_SlotIndex());
-            if (!itemSlotsInstances.empty())
-                extraInstances.append_range(itemSlotsInstances);
-            if (!extraInstances.empty())
-                activeInstances.append_range(extraInstances);
-            ShowVariableViewer(&UIManager::GetInstance()->showVariableViewer, activeInstances);
-        }
-
+        Organik::UIManager::GetInstance()->DrawEvent();
 
         // Render ImGui
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-        GetLogger()->LogSimple("Step Event");
         UIManager::GetInstance()->StepEvent(); 
 
         // GetLogger()->LogEventCallback(__FILE__, __LINE__, __FUNCTION__, Args);

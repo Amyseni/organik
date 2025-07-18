@@ -1,6 +1,12 @@
 #include "YYTK_Shared_Types.hpp"
 #include "YYTK_Shared_Interface.hpp"
 
+/*
+and, what, you're gonna come stop me? 
+on those scrawny-ass legs? get real.
+*/
+#include "../../src/Utils.h"
+
 using namespace YYTK;
 using namespace Aurie;
 
@@ -8,7 +14,41 @@ double YYTK::RValue::ToDouble() const
 {
 	return GetInterface()->GetRunnerInterface().REAL_RValue(this);
 }
-
+YYTK::CInstance *CInstance::FirstOrDefault(std::function<bool(CInstance*)> func)
+{
+    YYTK::CInstance *c = nullptr;
+    for (
+        c = Organik::Utils::GetCurrentRoom()->m_ActiveInstances.m_First;
+        c;
+        c = c->m_Next
+    )
+		if (func(c))
+    		return c;
+	return nullptr;
+}
+std::vector<YYTK::CInstance*> CInstance::Where(std::function<bool(CInstance*)> func)
+{
+	std::vector<YYTK::CInstance*> ret;
+    YYTK::CInstance *c = nullptr;
+    for (
+        c = Organik::Utils::GetCurrentRoom()->m_ActiveInstances.m_First;
+        c;
+        c = c->m_Next
+    )
+		if (func(c))
+    		ret.push_back(c);
+	return ret;
+}
+void CInstance::ForEach(std::function<void(CInstance*)> func)
+{
+    YYTK::CInstance *c = nullptr;
+    for (
+        c = Organik::Utils::GetCurrentRoom()->m_ActiveInstances.m_First;
+        c;
+        c = c->m_Next
+    )
+    	func(c);
+}
 int32_t YYTK::RValue::ToInt32() const
 {
 	return GetInterface()->GetRunnerInterface().INT32_RValue(this);
@@ -484,41 +524,41 @@ void YYTK::RValue::__Free()
 }
 
 #if YYTK_DEFINE_INTERNAL
-CInstanceInternal& YYTK::CInstance::GetMembers()
-{
-	YYTKInterface* module_interface = GetInterface();
+// CInstanceInternal& YYTK::CInstance::GetMembers()
+// {
+// 	YYTKInterface* module_interface = GetInterface();
 
-	// SequenceInstanceOnly is used in most new games that v3 is targetting
-	if (!module_interface)
-		return this->SequenceInstanceOnly.Members;
+// 	// SequenceInstanceOnly is used in most new games that v3 is targetting
+// 	if (!module_interface)
+// 		return this->SequenceInstanceOnly.Members;
 
-	RValue self_id_builtin;
-	module_interface->GetBuiltin(
-		"id",
-		this,
-		NULL_INDEX,
-		self_id_builtin
-	);
+// 	RValue self_id_builtin;
+// 	module_interface->GetBuiltin(
+// 		"id",
+// 		this,
+// 		NULL_INDEX,
+// 		self_id_builtin
+// 	);
 
-	int32_t self_id = self_id_builtin.ToInt32();
+// 	int32_t self_id = self_id_builtin.ToInt32();
 
-	if (this->MembersOnly.Members.m_ID == self_id)
-		return this->MembersOnly.Members;
+// 	if (this->MembersOnly.Members.m_ID == self_id)
+// 		return this->MembersOnly.Members;
 
-	if (this->SequenceInstanceOnly.Members.m_ID == self_id)
-		return this->SequenceInstanceOnly.Members;
+// 	if (this->SequenceInstanceOnly.Members.m_ID == self_id)
+// 		return this->SequenceInstanceOnly.Members;
 
-	if (this->WithSkeletonMask.Members.m_ID == self_id)
-		return this->WithSkeletonMask.Members;
+// 	if (this->WithSkeletonMask.Members.m_ID == self_id)
+// 		return this->WithSkeletonMask.Members;
 
-	module_interface->PrintError(
-		__FILE__,
-		__LINE__,
-		"Failed to determine CInstance member offset! Report this to GitHub and include the game name!"
-	);
+// 	module_interface->PrintError(
+// 		__FILE__,
+// 		__LINE__,
+// 		"Failed to determine CInstance member offset! Report this to GitHub and include the game name!"
+// 	);
 
-	return this->SequenceInstanceOnly.Members;
-}
+// 	return this->SequenceInstanceOnly.Members;
+// }
 
 bool YYObjectBase::Add(
 	IN const char* Name,
@@ -572,34 +612,102 @@ RValue* YYObjectBase::FindOrAllocValue(
 	return &this->InternalGetYYVarRef(variable_hash);
 }
 
-CRoomInternal& YYTK::CRoom::GetMembers()
+// CRoomInternal& YYTK::CRoom::GetMembers()
+// {
+// 	YYTKInterface* module_interface = GetInterface();
+
+// 	// Return the more likely thing.
+// 	if (!module_interface)
+// 		return this->WithBackgrounds.Internals;
+
+// 	size_t bg_color_idx = 0;
+// 	AurieStatus last_status = module_interface->GetBuiltinVariableIndex(
+// 		"background_color",
+// 		bg_color_idx
+// 	);
+
+// 	// This lookup will fail in newer runners where backgrounds were removed
+// 	if (!AurieSuccess(last_status))
+// 	{
+// 		// Note: We have to craft the pointer manually here, since
+// 		// bool alignment prevents us from just having a struct (it'd get aligned to sizeof(PVOID)).
+
+// 		// Don't ask why it's from m_Color and not from m_ShowColor, it doesn't make sense
+// 		// and I can't figure out why it works - it just does.
+// 		return *reinterpret_cast<CRoomInternal*>(&this->m_Color);
+// 	}
+
+// 	return this->WithBackgrounds.Internals;
+// }YYTK::Vec2::
+const YYTK::Vec2& YYTK::Vec2::operator=(const Vec2& other) {
+	x = other.x;
+	y = other.y;
+	return *this;
+}
+template <typename T>
+requires std::is_assignable_v<std::pair<float, float>, T>
+const YYTK::Vec2& YYTK::Vec2::operator=(const T& other) {
+	x = other.first;
+	y = other.second;
+	return *this;
+}
+const bool YYTK::Vec2::operator==(const Vec2& other) const {
+	return (x == other.x && y == other.y);
+}
+const bool YYTK::Vec2::operator==(const std::pair<float, float>& other) const {
+	return (x == other.first && y == other.second);
+}
+const YYTK::Vec2& YYTK::Vec2::operator=(double other) const 
 {
-	YYTKInterface* module_interface = GetInterface();
-
-	// Return the more likely thing.
-	if (!module_interface)
-		return this->WithBackgrounds.Internals;
-
-	size_t bg_color_idx = 0;
-	AurieStatus last_status = module_interface->GetBuiltinVariableIndex(
-		"background_color",
-		bg_color_idx
-	);
-
-	// This lookup will fail in newer runners where backgrounds were removed
-	if (!AurieSuccess(last_status))
-	{
-		// Note: We have to craft the pointer manually here, since
-		// bool alignment prevents us from just having a struct (it'd get aligned to sizeof(PVOID)).
-
-		// Don't ask why it's from m_Color and not from m_ShowColor, it doesn't make sense
-		// and I can't figure out why it works - it just does.
-		return *reinterpret_cast<CRoomInternal*>(&this->m_Color);
+	memcpy((PVOID)&this->x, &other, sizeof(float));
+	memcpy((PVOID)&this->y, reinterpret_cast<char*>(&other) + sizeof(float), sizeof(float));
+	return *this;
+}
+const bool YYTK::Vec2::operator==(double other) const 
+{
+	Vec2 cmp = { 0.0f, 0.0f };
+	memcpy((PVOID)&cmp.x, &other, sizeof(float));
+	memcpy((PVOID)&cmp.y, reinterpret_cast<char*>(&other) + sizeof(float), sizeof(float));
+	return *this == cmp;
+}
+const Vec2& YYTK::Vec2::operator=(const RValue& other) const 
+{
+	if (other.m_Kind == VALUE_VEC2) {
+		(*this) = { other.m_Vec2.x, other.m_Vec2.y };
+	} else if (other.m_Kind == VALUE_REAL) {
+		(*this) = other.ToDouble();
+	} else if (other.m_Kind == VALUE_INT32) {
+		int i32V = other.m_i32;
+		(*this) = {
+			static_cast<float>((i32V & 0xFFFF0000) >> 16),
+			static_cast<float>(i32V & 0x0000FFFF)
+		};
+	} else if (other.m_Kind == VALUE_INT64) {
+		memcpy((PVOID)&this->x, &other, sizeof(float));
+		memcpy((PVOID)&this->y, reinterpret_cast<const char*>(&(other.m_i64)) + sizeof(float), sizeof(float));
 	}
-
-	return this->WithBackgrounds.Internals;
+	return *this;
+}
+YYTK::Vec2::operator std::pair<float, float>() const {
+	return { x, y };
+}
+YYTK::Vec2::operator double() const {
+	double result = 0.0;
+	memcpy((PVOID)&result, &x, sizeof(float));
+	memcpy(reinterpret_cast<char*>(&result) + sizeof(float), &y, sizeof(float));
+	return result;
+}
+template <typename T>
+requires std::is_assignable<float, T>::value
+const Vec2& YYTK::Vec2::operator=(const T other[2]) const {
+	x = static_cast<float>(other[0]);
+	y = static_cast<float>(other[1]);
+	return *this;
 }
 
+YYTK::Vec2::Vec2() : x(0.0f), y(0.0f) {};
+YYTK::Vec2::Vec2(float x, float y) : x(x), y(y) {};
+YYTK::Vec2::Vec2(const Vec2& other) : x(other.x), y(other.y) {};
 #endif // YYTK_DEFINE_INTERNAL
 
 RValue YYTK::CInstance::ToRValue() const

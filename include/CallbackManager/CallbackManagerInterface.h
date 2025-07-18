@@ -4,7 +4,7 @@
 using namespace Aurie;
 using namespace YYTK;
 
-typedef std::tuple<CInstance*, CInstance*, CCode*, RValue**, int> CodeEventArgs;
+typedef std::tuple<CInstance*, CInstance*, CCode*, int, RValue*> CodeEventArgs;
 typedef void (*CodeEvent)(CodeEventArgs&);
 
 struct CallbackManagerInterface : AurieInterfaceBase

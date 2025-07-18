@@ -4,6 +4,7 @@
 #include "../ModuleMain.h"
 #include "UIManager.h"
 #include "BuiltinCommands.h"
+#include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
 #include "../Logging.h"
@@ -12,7 +13,8 @@
 
 bool InstanceVariableViewer::showPopup = false;
 bool InstanceVariableViewer::showArrayPopup = false;
-void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
+std::map<int32_t, std::unordered_map<int32_t, std::string>> varMapCache;
+void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
 {
     // Main Body: draw variables
     if (ImGui::BeginChild("##tree", ImVec2(300, 0), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders | ImGuiChildFlags_NavFlattened))
@@ -21,25 +23,20 @@ void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
         {
             if (instance)
             {
-                int32_t ID = instance->GetMembers().m_ID;
-                int32_t objectID = instance->GetMembers().m_ObjectIndex;
+                int32_t ID = instance->m_ID;
+                int32_t objectID = instance->m_ObjectIndex;
                 
                 // Get the object name using object_get_name()
                 std::string objectName = std::string(g_ModuleInterface->CallBuiltin("object_get_name", {RValue(objectID)}).ToString());
-                if (objectName.contains("chunk"))
-                {
-                    // Skip chunks
-                    continue;
-                }
                 // Create unique tree node ID using instance pointer
                 ImGui::PushID(instance);
                 if (ImGui::Selectable(
                     ("##instance_" + std::to_string((int)instance)).c_str(),
-                    (VisibleInstance && VisibleInstance == instance->GetMembers().m_ID), 
+                    (VisibleInstance && VisibleInstance == instance->m_ID), 
                     ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
                 ))
                 {
-                    VisibleInstance = instance->GetMembers().m_ID;
+                    VisibleInstance = instance->m_ID;
                 }
                 ImGui::SameLine(0,0);
                 ImGui::Text("#%d (%d vars) - %s", 
@@ -58,45 +55,78 @@ void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
         }
     }
     ImGui::EndChild();
-
     // Below area: draw variable viewer for selected instance
     ImGui::SameLine();
     if (VisibleInstance)
     {
+        RValue existsResult;
+        auto args = std::vector<RValue>(
+            {
+                RValue(VisibleInstance)
+            }
+        );
+        Organik::Utils::getInstanceExists()(existsResult, Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), args.size(), args.data());
+        if (!existsResult.ToBoolean())
+        {
+            ImGui::Text("Instance with ID %d does not exist.", VisibleInstance);
+            return;
+        }
+
         CInstance* instance = Organik::Utils::GetInstanceFromID(VisibleInstance);
         if (!instance)
             return;
+        int id = instance->m_ID;
+
         if (ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders))
         {
             // Get object name for header
-            int32_t objectIndex = instance->GetMembers().m_ObjectIndex;
+            int32_t objectIndex = instance->m_ObjectIndex;
             RValue objectNameRVal = g_ModuleInterface->CallBuiltin("object_get_name", {RValue(objectIndex)});
             std::string objectName = objectNameRVal.ToString();
             ImGui::Text("Variables for: %s (ID: %d)", 
                        objectName.c_str(), 
-                       instance->GetMembers().m_ID);
+                       instance->m_ID);
             ImGui::Separator();
             
-            // Get all instance members using ToRefMap()
-            RValue instanceRValue(instance);
-            std::vector<std::string> memberNames = Utils::getInstanceVariableNames(instance);
             std::map<std::string, RValue*> memberMap;
-            for (const std::string& name : memberNames)
+            if (!varMapCache.contains(id) || (instance->GetMemberCount() != varMapCache[id].size()))
             {
-                if (!instance->ToRValue().ContainsValue(name))
+                std::vector<std::string> memberNames = Utils::getInstanceVariableNames(instance);
+                GetLogger()->LogFormatted("Caching variable map for instance ID %d", id);
+                varMapCache.insert_or_assign(id, std::unordered_map<int32_t, std::string>());
+                for (const std::string& name : memberNames)
                 {
-                    // Skip if the instance does not contain this member
-                    continue;
+                    int slot;
+                    g_ModuleInterface->GetVariableSlot(instance, name.c_str(), slot);
+                    if (!slot)
+                        continue;
+                    RValue* member = &instance->InternalGetYYVarRef(slot);
+                    if (!member || (member->m_Kind == VALUE_NULL || 
+                        member->m_Kind == VALUE_UNDEFINED || 
+                        member->m_Kind == VALUE_UNSET))
+                    {
+                        // If member is null, skip it
+                        continue;
+                    }
+                    memberMap.insert({name, member});
+                    varMapCache[id].insert({slot, name});
                 }
-                RValue* member = instance->GetRefMember(name);
-                if (!member || (member->m_Kind == VALUE_NULL || 
-                    member->m_Kind == VALUE_UNDEFINED || 
-                    member->m_Kind == VALUE_UNSET))
+            }
+            else
+            {
+                GetLogger()->LogFormatted("Using cached varmap for instance ID %d", id);
+                for (const auto& [slot, name] : varMapCache[id])
                 {
-                    // If member is null, skip it
-                    continue;
-                }                
-                memberMap.insert({name, member});
+                    RValue* member = &instance->InternalGetYYVarRef(slot);
+                    if (!member || (member->m_Kind == VALUE_NULL || 
+                        member->m_Kind == VALUE_UNDEFINED || 
+                        member->m_Kind == VALUE_UNSET))
+                    {
+                        // If member is null, skip it
+                        continue;
+                    }
+                    memberMap.insert({name, member});
+                }
             }
             
             // Display all variables in a table
@@ -122,9 +152,9 @@ void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
                         ImGui::PushID(memberName.c_str());
                         
                         // Check if this row is clicked
-                        bool rowClicked = false;
+                        rowClicked = false;
                         if (ImGui::Selectable(("##row_" + memberName).c_str(), (editingInstanceId && editingValue == memberValue), 
-                        ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap ))
+                            ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap ))
                         {
                             if (!(memberValue->m_Kind == VALUE_ARRAY))
                             {
@@ -141,82 +171,18 @@ void InstanceVariableViewer::Draw(std::vector<CInstance*> instances)
                         
                         // Variable value
                         ImGui::TableSetColumnIndex(2);
-                        if (!(memberValue->m_Kind == VALUE_ARRAY))
-                            DisplayVariableValue(memberName, memberValue);
-                        else
-                        {
-                            std::vector<RValue*> editingValueRefArray = memberValue->ToRefVector();
-                            
-                            // Show array summary first
-                            if (ImGui::TreeNode(("Array[" + std::to_string(editingValueRefArray.size()) + "]").c_str()))
-                            {
-                                // Create a nested table for array elements
-                                if (ImGui::BeginTable("ArrayElements", 3, 
-                                                     ImGuiTableFlags_Borders | 
-                                                     ImGuiTableFlags_RowBg | 
-                                                     ImGuiTableFlags_Resizable))
-                                {
-                                    // Setup columns for array elements
-                                    ImGui::TableSetupColumn("Index", ImGuiTableColumnFlags_WidthFixed, 60.0f);
-                                    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-                                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-                                    ImGui::TableHeadersRow();
-                                    
-                                    for (size_t i = 0; i < editingValueRefArray.size(); ++i) 
-                                    {
-                                        ImGui::PushID(editingValueRefArray[i]);
-                                        
-                                        ImGui::TableNextRow();
-                                        
-                                        // Index column
-                                        ImGui::TableSetColumnIndex(0);
-                                        ImGui::Text("[%zu]", i);
-                                        
-                                        // Type column
-                                        ImGui::TableSetColumnIndex(1);
-                                        std::string typeName = editingValueRefArray[i]->GetKindName();
-                                        ImGui::Text("%s", typeName.c_str());
-                                        bool rowArrayClicked = false;
-                                        // Value column
-                                        ImGui::TableSetColumnIndex(2);
-                                        
-                                        if (ImGui::Selectable(("##array_elem_" + std::to_string(i)).c_str(), false, 
-                                            ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
-                                        {
-                                            rowArrayClicked = true;
-                                        }
-                                        
-                                        ImGui::SameLine(0, 0);
-                                        DisplayVariableValue(("Array[" + std::to_string(i) + "]"), editingValueRefArray[i]);
-                                        
-                                        // Handle row click for array elements
-                                        if (rowArrayClicked && editingValueRefArray[i]->m_Kind != VALUE_ARRAY)
-                                        {
-                                            editingVariable = memberName + "[" + std::to_string(i) + "]";
-                                            editingValue = editingValueRefArray[i];
-                                            editingInstanceId = instance->GetMembers().m_ID;
-                                            rowClicked = true;
-                                            showPopup = true;
-                                            PrepareEditValue(editingValueRefArray[i]);
-                                        }
-                                        
-                                        ImGui::PopID();
-                                    }
-                                    ImGui::EndTable();
-                                }
-                                ImGui::TreePop();
-                            }
-                        }
+                        
+                        DisplayVariableValue(memberName, memberValue);
                         // Handle row click - open edit popup
                         if (rowClicked && !showPopup)
                         {
                             editingVariable = memberName;
                             editingValue = memberValue;
-                            editingInstanceId = instance->GetMembers().m_ID;
+                            editingInstanceId = instance->m_ID;
                             
                             if (memberValue->m_Kind != VALUE_ARRAY)
                             {
-                                editingInstanceId = instance->GetMembers().m_ID;
+                                editingInstanceId = instance->m_ID;
                                 editingValue = memberValue;
                                 editingVariable = memberName;
                                 showPopup = true;
@@ -254,10 +220,15 @@ void InstanceVariableViewer::PrepareEditValue(RValue* value)
         editDoubleValue = value->ToDouble();
         Organik::GetLogger()->LogFormatted("%s:%d - double=%f", __FUNCTION__, __LINE__, editDoubleValue);
     }
-    else if (kind == VALUE_INT32 || kind == VALUE_INT64)
+    else if (kind == VALUE_INT32)
     {
         editIntValue = value->ToInt32();
         Organik::GetLogger()->LogFormatted("%s:%d - int=%d", __FUNCTION__, __LINE__, editIntValue);
+    }
+    else if (kind == VALUE_INT64)
+    {
+        editLongLongValue = value->ToInt64();
+        Organik::GetLogger()->LogFormatted("%s:%d - int=%lld", __FUNCTION__, __LINE__, editLongLongValue);
     }
     else if (kind == VALUE_STRING)
     {
@@ -297,17 +268,26 @@ void InstanceVariableViewer::DisplayEditPopup()
         
         if (kind == VALUE_REAL || kind == VALUE_INT32 || kind == VALUE_INT64)
         {
-            if (kind == VALUE_INT32 || kind == VALUE_INT64)
+            if (kind == VALUE_INT32)
             {
-                if (ImGui::InputInt("Value", &editIntValue))
+                if (ImGui::InputInt("Value", &editIntValue, 1, 100, ImGuiInputTextFlags_EnterReturnsTrue))
                 {
-                    *editingValue = RValue(static_cast<double>(editIntValue));
+                    *editingValue = RValue(static_cast<int32_t>(editIntValue));
+                    valueChanged = true;
+                }
+            }
+            else if (kind == VALUE_INT64)
+            {
+                ImS64 one = (ImS64)1;
+                if (ImGui::InputScalar("Value", ImGuiDataType_S64, &editLongLongValue, &one, NULL, "%lld", ImGuiInputTextFlags_EnterReturnsTrue))
+                {
+                    *editingValue = RValue(static_cast<int64_t>(editLongLongValue));
                     valueChanged = true;
                 }
             }
             else
             {
-                if (ImGui::InputDouble("Value", &editDoubleValue, 0.0, 0.0, "%.6f"))
+                if (ImGui::InputDouble("Value", &editDoubleValue, 0.1, 10.0, "%.6f", ImGuiInputTextFlags_EnterReturnsTrue))
                 {
                     *editingValue = RValue(static_cast<double>(editDoubleValue));
                     valueChanged = true;
@@ -320,7 +300,7 @@ void InstanceVariableViewer::DisplayEditPopup()
             strncpy_s(buffer, editStringValue.c_str(), sizeof(buffer) - 1);
             buffer[sizeof(buffer) - 1] = '\0';
             
-            if (ImGui::InputText("Value", buffer, sizeof(buffer)))
+            if (ImGui::InputText("Value", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 *editingValue = RValue(std::string(buffer));
                 valueChanged = true;
@@ -438,20 +418,20 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
     }
     RValueType kind = value->m_Kind;
     
-    if (kind == VALUE_REAL || kind == VALUE_INT32 || kind == VALUE_INT64)
+    if (kind == VALUE_REAL)
     {
         double realVal = value->ToDouble();
+        ImGui::Text("%.6f", realVal);
+    }
+    else if (kind == VALUE_INT32)
+    {
         int32_t intVal = value->ToInt32();
-        
-        // Show both representations for numbers
-        if (realVal == (double)intVal)
-        {
-            ImGui::Text("%d", intVal);
-        }
-        else
-        {
-            ImGui::Text("%.6f", realVal);
-        }
+        ImGui::Text("%d", intVal);
+    }
+    else if (kind == VALUE_INT64)
+    {
+        int64_t longlongval = value->ToInt64();
+        ImGui::Text("%lld", longlongval);
     }
     else if (kind == VALUE_STRING)
     {
@@ -466,8 +446,66 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
     else if (kind == VALUE_ARRAY)
     {
         // Show array info
-        std::vector<RValue> arrayValues = value->ToVector();
-        ImGui::Text("Array[%zu]", arrayValues.size());
+        std::vector<RValue*> editingValueRefArray = value->ToRefVector();
+                            
+        // Show array summary first
+        if (ImGui::TreeNode(("Array[" + std::to_string(editingValueRefArray.size()) + "]").c_str()))
+        {
+            // Create a nested table for array elements
+            if (ImGui::BeginTable("ArrayElements", 3, 
+                                    ImGuiTableFlags_Borders | 
+                                    ImGuiTableFlags_RowBg | 
+                                    ImGuiTableFlags_Resizable))
+            {
+                // Setup columns for array elements
+                ImGui::TableSetupColumn("Index", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+                ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableHeadersRow();
+                
+                for (size_t i = 0; i < editingValueRefArray.size(); ++i) 
+                {
+                    ImGui::PushID(editingValueRefArray[i]);
+                    
+                    ImGui::TableNextRow();
+                    
+                    // Index column
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("[%zu]", i);
+                    
+                    // Type column
+                    ImGui::TableSetColumnIndex(1);
+                    std::string typeName = editingValueRefArray[i]->GetKindName();
+                    ImGui::Text("%s", typeName.c_str());
+                    bool rowArrayClicked = false;
+                    // Value column
+                    ImGui::TableSetColumnIndex(2);
+                    
+                    if (ImGui::Selectable(("##array_elem_" + std::to_string(i)).c_str(), false, 
+                        ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
+                    {
+                        rowArrayClicked = true;
+                    }
+                    
+                    ImGui::SameLine(0, 0);
+                    DisplayVariableValue(("Array[" + std::to_string(i) + "]"), editingValueRefArray[i]);
+                    
+                    // Handle row click for array elements
+                    if (rowArrayClicked && editingValueRefArray[i]->m_Kind != VALUE_ARRAY)
+                    {
+                        editingVariable = name + "[" + std::to_string(i) + "]";
+                        editingValue = editingValueRefArray[i];
+                        rowClicked = true;
+                        showPopup = true;
+                        PrepareEditValue(editingValueRefArray[i]);
+                    }
+                    
+                    ImGui::PopID();
+                }
+                ImGui::EndTable();
+            }
+            ImGui::TreePop();
+        }
     }
     else if (kind == VALUE_PTR)
     {
@@ -549,7 +587,7 @@ std::string InstanceVariableViewer::GetValuePreview(RValue* value)
 }
 
 // Demonstrate creating a simple property editor.
-void ShowVariableViewer(bool* p_open, std::vector<CInstance*> instances)
+void InstanceVariableViewer::Draw(bool& out_mousedOver, bool* p_open, const std::string &title)
 {
     ImGui::SetNextWindowSize(ImVec2(430, 750), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Organik Variable Viewer", p_open))
@@ -557,7 +595,21 @@ void ShowVariableViewer(bool* p_open, std::vector<CInstance*> instances)
         ImGui::End();
         return;
     }
+
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_ChildWindows))
+        out_mousedOver = true;
+
     static InstanceVariableViewer variable_viewer;
-    variable_viewer.Draw(instances);
+    std::vector<CInstance*> instances;
+
+    for (
+        CInstance *instance = Utils::GetCurrentRoom()->m_ActiveInstances.m_First; 
+        instance != nullptr; 
+        instance = instance->m_Next)
+    {
+        instances.push_back(instance);
+    }
+
+    variable_viewer.DrawInner(instances);
     ImGui::End();
 }

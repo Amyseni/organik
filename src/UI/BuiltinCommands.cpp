@@ -1,4 +1,5 @@
 #include "BuiltinCommands.h"
+#include "OrganikConsole.h"
 #include "../Utils.h"
 
 namespace Organik

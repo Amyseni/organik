@@ -20,6 +20,7 @@ namespace Organik
         bool LogSimple(const char* text);
         bool LogFormatted(const char* fmt, ...);
         bool LogEventCallback(const char *sourceFile, const int line, const char* callbackName, CodeEventArgs args);
+        bool TryLogConsole(const char* fmt, ...);
         std::string ParseFormatting(const char* fmt, ...);
         std::string ParseFormatting(const char* fmt, va_list args);
         static bool InitLogging();

@@ -4,10 +4,17 @@
 #include "ModuleMain.h"
 #include "CallbackManager/CallbackManagerInterface.h"
 
+
+extern CallbackManagerInterface *callbackManagerInterfacePtr;
 namespace Organik
 {
     void gml_Object_obj_research_button_Create_0_Before(CodeEventArgs &Args) ;
     void gml_Object_obj_research_button_Create_0_After(CodeEventArgs &Args) ;
+    void gml_Object_obj_stats_Create_0_Before(CodeEventArgs &Args);
+    void gml_Object_obj_player_Create_0_Before(CodeEventArgs &Args);
+    void gml_Object_obj_stats_Create_0_After(CodeEventArgs &Args);
+    void gml_Object_obj_stats_Other_10_After(CodeEventArgs &Args);
+    void gml_Object_obj_player_Create_0_After(CodeEventArgs &Args);
     void gml_Object_obj_research_button_Mouse_11_Before(CodeEventArgs &Args) ;
     void gml_Object_obj_research_button_Mouse_11_After(CodeEventArgs &Args) ;
     void gml_Object_obj_research_button_Mouse_10_Before(CodeEventArgs &Args) ;
@@ -19,6 +26,9 @@ namespace Organik
     void gml_Object_obj_splash_screen_Keyboard_13_Before(CodeEventArgs &Args);
     void gml_Object_obj_splash_screen_Keyboard_13_After(CodeEventArgs &Args);
     void gml_Object_obj_allgame_Step_2_Before(CodeEventArgs &Args);
+    void gml_Object_obj_item124_gunner_Create_0_After(CodeEventArgs &Args);
+    void gml_Object_obj_item124_gunner_Step_0_After(CodeEventArgs &Args);
+    void gml_Object_obj_item124_gunner_Step_0_Before(CodeEventArgs &Args);
     void gml_Object_obj_allgame_Step_2_After(CodeEventArgs &Args);
     void gml_Object_obj_allgame_Draw_0_After(CodeEventArgs &Args);
     void gml_Object_obj_LUT_end_Draw_75_After(CodeEventArgs &Args);
