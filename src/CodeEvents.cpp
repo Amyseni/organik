@@ -14,68 +14,6 @@
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 
-// Each CodeEvent is a game engine call to ExecuteIt on a CInstance *self object (equivalent to someObject->someFunction)
-// ALL Code event callbacks should match the following function signature
-/* 
-    void MyHookFunction(
-        std::tuple<
-            CInstance *self, // effectively *this
-            CInstance *other, // may be nullptr
-            CCode *code, // the code object that is being executed
-            int argc, // number of arguments passed to the function
-            RValue *argv // array of arguments passed to the function  
-        >& Args
-    )
-    {
-        // Note that this function cannot return a value, as it has athe return type of void.
-        // However, since we have access to self, other, and all args, we can modify the global state of the game engine.
-        // Additionally, we can modify argv array being passed to the function, or
-        // if necessary, detour the CCode function further (though this can have unwanted side effects)
-    }
-*/ 
-
-/* stepCount++;
-        if (stepCount % 100 == 0)
-        {
-            if (GetLogger())
-            {
-                GetLogger()->LogFormatted("MainMenu Cursor Step. Step Count: %d", stepCount);
-            }
-            stepCount = 0;
-        }
-        else 
-        {
-            return;
-        }
-        CInstance *global;
-        // LogHelper(Args, __FUNCTION__);
-        if (!GetInterface()->GetGlobalInstance(&global) == AurieStatus::AURIE_SUCCESS)
-        {
-            if (GetLogger())
-            {
-                GetLogger()->LogSimple("Failed to get global instance in gml_Object_obj_cursor_mainmenu_Step_0_Before");
-            }
-            return;
-        }
-        RValue count = g_ModuleInterface->CallBuiltin(
-            "variable_instance_names_count",
-            {global->ToRValue()}
-        );
-        int buf = count.ToInt32();
-        std::vector<RValue*> vec = (g_ModuleInterface->CallBuiltin(
-            "variable_instance_get_names",
-            {global->ToRValue()}
-        )).ToRefVector();
-
-        for (auto [i, name] : vec | std::views::enumerate)
-        {
-            std::string nameStr = name->ToString();
-            if (GetLogger())
-            {
-                GetLogger()->LogFormatted("MainMenu Cursor Step. Child Object %d: %s", i, nameStr.c_str());
-            }
-        } */
-
 
 namespace Organik
 {
@@ -119,7 +57,7 @@ namespace Organik
         using scr = Organik::Scripts;
         static std::string S__ = "S++";
         CInstance *objStatistics = Organik::Utils::FirstInstanceOrNullptr(
-            Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]
+            Organik::Objects::ObjIndexes[scr::Indexes[Organik::Objects::obj_statistics]]
         );
         if (!objStatistics)
         {
@@ -129,12 +67,12 @@ namespace Organik
             return;
         CScript* setAchievement = scr::ScriptPointers[
             scr::Indexes[
-                scr::gml_Script_scr_instance_create
+                scr::gml_Script_scr_set_Achievement
             ]
         ];
         if (setAchievement == nullptr)
         {
-            MessageBoxA(nullptr, "Script gml_Script_scr_instance_create not loaded", "Error", MB_OK | MB_ICONERROR);
+            MessageBoxA(nullptr, "Script gml_Script_scr_set_Achievement not loaded", "Error", MB_OK | MB_ICONERROR);
             return;
         }
         RValue result;
@@ -180,73 +118,49 @@ namespace Organik
     {
         
     }
+    void gml_Object_obj_ingame_ctrl_Create_0_After(CodeEventArgs &Args)
+    {
+        intptr_t me = (intptr_t) std::get<0>(Args);
+        CInstance *inst = nullptr;
 
+        inst = std::get<0>(Args);
+        inst->InternalGetYYVarRef(Variables::Hashes[Variables::artefactperc]) = RValue(0.3); // fix(?)
+        GetLogger()->LogFormatted("SET artefactperc to %06f for %p", inst->InternalGetYYVarRef(Variables::Hashes[Variables::artefactperc]), inst ? ((void*)inst) : ((void*)me));
+
+
+    }
+    void gml_Object_obj_chest_parent_Create_0_After(CodeEventArgs &Args)
+    {
+        intptr_t me = (intptr_t) std::get<0>(Args);
+        CInstance *inst = nullptr;
+   
+        inst = std::get<0>(Args);
+        inst->InternalGetYYVarRef(Variables::Hashes[Variables::forONEplayeronly]) = RValue(false); // fix(?)
+        GetLogger()->LogFormatted("SET forONEplayeronly to %s for %p", inst->InternalGetYYVarRef(Variables::Hashes[Variables::forONEplayeronly]) ? "trew" : "fauls", (void*)inst);
+    }
+    
     void gml_Object_obj_player_Create_0_After(CodeEventArgs &Args)
     {
-        
     }
     
     void gml_Object_obj_item124_gunner_Step_0_After(CodeEventArgs &Args)
     {
-        
+
+    }
+
+    void gml_Object_obj_item124_gunner_Create_0_Before(CodeEventArgs &Args)
+    {
+
     }
 
     void gml_Object_obj_item124_gunner_Create_0_After(CodeEventArgs &Args)
     {
-        if (!g_HGSlowdownFix)
-            return; // are you okay? do you need a hug? we can talk about it.
         
-        using vars = Organik::Variables;
-        using objs = Organik::Objects;
-        CInstance* onslaughtSystem = CInstance::FirstOrDefault([](CInstance* x) -> bool {
-            if (x->m_ObjectIndex != objs::ObjIndexes[objs::obj_item124_gunner])
-                return false;
-            return (x->InternalGetYYVarRef(vars::Hashes[vars::isLocal]).ToBoolean());
-        });
-        if (!onslaughtSystem)
-            return; // must have been for a remote player.
-
-        onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::spreadpershot]) = RValue(0.0);
-        onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::cantbedropped]) = RValue(0.0);
-        onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::weapon]) = RValue(-4);
-
-        double localPlayerModMovespeed = CInstance::FirstOrDefault([](CInstance* x) -> bool {
-            return (x->m_ObjectIndex == objs::ObjIndexes[objs::obj_stats]);
-        })->InternalGetYYVarRef(vars::Hashes[vars::mod_movespeed]).ToDouble();
-
-        *onslaughtSystem->FindOrAllocValue(
-            "mod_movespeed"
-        ) = RValue(localPlayerModMovespeed);
-        
-        callbackManagerInterfacePtr->CancelOriginalFunction();
     }
-
+    
     void gml_Object_obj_item124_gunner_Step_0_Before(CodeEventArgs &Args)
     {
-        if (!g_HGSlowdownFix)
-            return;
-        
-        using vars = Organik::Variables;
-        using objs = Organik::Objects;
 
-        CInstance* onslaughtSystem = std::get<0>(Args);
-
-        if (!onslaughtSystem) // I know this is literally the object triggering this function, but I have PTSD at this point. 
-                              // We check the null every time.
-            return; // must have been the wind
-        
-        bool wasActive = onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::active]).ToBoolean();
-        double localPlayerModMovespeed = CInstance::FirstOrDefault([](CInstance* x) -> bool {
-            return (x->m_ObjectIndex == objs::ObjIndexes[objs::obj_stats]);
-        })->InternalGetYYVarRef(vars::Hashes[vars::mod_movespeed]).ToDouble();
-        
-        bool isActive = onslaughtSystem->InternalGetYYVarRef(vars::Hashes[vars::active]).ToBoolean();
-        if (isActive)
-        {
-            *onslaughtSystem->FindOrAllocValue(
-                "mod_movespeed"
-            ) = RValue(localPlayerModMovespeed);
-        };
     }
     
     

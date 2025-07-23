@@ -304,6 +304,10 @@ EXPORTED AurieStatus ModuleInitialize(
 		{ "gml_Object_rb_dailybonus_PreCreate_0", std::vector<fnCallback> {&Organik::gml_Object_rb_dailybonus_PreCreate_0_Before, &Organik::gml_Object_rb_dailybonus_PreCreate_0_After}},
 		{ "gml_Object_rb_dailybonus_Create_0", std::vector<fnCallback> {&Organik::gml_Object_rb_dailybonus_Create_0_Before, &Organik::gml_Object_rb_dailybonus_Create_0_After}},
 		{ "gml_Object_obj_research_button_PARENT_PreCreate_0", std::vector<fnCallback>{&Organik::gml_Object_obj_research_button_PARENT_PreCreate_0_Before, &Organik::gml_Object_obj_research_button_PARENT_PreCreate_0_After}},
+		{ "gml_Object_obj_ingame_ctrl_Create_0", std::vector<fnCallback>{nullptr, &Organik::gml_Object_obj_ingame_ctrl_Create_0_After}},
+		{ "gml_Object_obj_chest_parent_Create_0", std::vector<fnCallback>{nullptr, &Organik::gml_Object_obj_chest_parent_Create_0_After}},
+		{ "gml_Object_obj_item124_gunner_Create_0", std::vector<fnCallback>{&Organik::gml_Object_obj_item124_gunner_Create_0_Before, &Organik::gml_Object_obj_item124_gunner_Create_0_After}},
+		{ "gml_Object_obj_item124_gunner_Step_0", std::vector<fnCallback>{&Organik::gml_Object_obj_item124_gunner_Step_0_Before, &Organik::gml_Object_obj_item124_gunner_Step_0_After}},
 		
 		// { "gml_Object_obj_net_MS_client_Create_0", std::vector<fnCallback> { &Organik::MSClientCreate_0_Before, &Organik::MSClientCreate_0_After}},
 		// { "gml_Object_obj_net_MS_client_Destroy_1", std::vector<fnCallback> { &Organik::MSClientDestroy_1_Before, &Organik::MSClientDestroy_1_After}},

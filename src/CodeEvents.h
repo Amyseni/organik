@@ -26,12 +26,15 @@ namespace Organik
     void gml_Object_obj_splash_screen_Keyboard_13_Before(CodeEventArgs &Args);
     void gml_Object_obj_splash_screen_Keyboard_13_After(CodeEventArgs &Args);
     void gml_Object_obj_allgame_Step_2_Before(CodeEventArgs &Args);
+    void gml_Object_obj_item124_gunner_Create_0_Before(CodeEventArgs &Args);
     void gml_Object_obj_item124_gunner_Create_0_After(CodeEventArgs &Args);
-    void gml_Object_obj_item124_gunner_Step_0_After(CodeEventArgs &Args);
     void gml_Object_obj_item124_gunner_Step_0_Before(CodeEventArgs &Args);
+    void gml_Object_obj_item124_gunner_Step_0_After(CodeEventArgs &Args);
     void gml_Object_obj_allgame_Step_2_After(CodeEventArgs &Args);
     void gml_Object_obj_allgame_Draw_0_After(CodeEventArgs &Args);
     void gml_Object_obj_LUT_end_Draw_75_After(CodeEventArgs &Args);
+    void gml_Object_obj_ingame_ctrl_Create_0_After(CodeEventArgs &Args);
+    void gml_Object_obj_chest_parent_Create_0_After(CodeEventArgs &Args);
     // void gml_Object_obj_net_global_chat_Step_2_Before(CodeEventArgs &Args);
     // void gml_Object_obj_net_global_chat_Step_2_After(CodeEventArgs &Args);
     // void gml_Object_obj_net_global_chat_Step_1_Before(CodeEventArgs &Args);

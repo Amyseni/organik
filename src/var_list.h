@@ -3580,6 +3580,8 @@
     THING(hoveruptime) \
     THING(hoverweapon) \
     THING(hovery) \
+    THING(hp) \
+    THING(HP) \
     THING(hp_barcolorinput) \
     THING(hp_damagecolor) \
     THING(hp_max) \

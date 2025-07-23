@@ -8,6 +8,7 @@
 #include "ModuleMain.h"
 #include "InstanceHelper.h"
 #include "VariableHelper.h"
+#include <random>
 
 using namespace YYTK;
 using namespace Aurie;
@@ -152,6 +153,12 @@ namespace Organik {
             }
             return game_exe;
         }
+        static inline std::mt19937 getrng()
+        {
+            static std::random_device rd; // ARE EN GEE
+            static std::mt19937 gen(rd()); // Standard mersenne_twister_engine
+            return gen;
+        } 
         
         INLINE_GETTER_CONST(OutgameIndex, int, builtinAssetGetIndex("outgame"))
         INLINE_GETTER_CONST(Obj_PlayerIndex, int, builtinAssetGetIndex("obj_player"))
@@ -170,6 +177,8 @@ namespace Organik {
         INLINE_BUILTIN_FN_GETTER(AssetGetIndex, asset_get_index)
         INLINE_BUILTIN_FN_GETTER(InstanceDestroy, instance_destroy)
         INLINE_BUILTIN_FN_GETTER(InstanceExists, instance_exists)
+        INLINE_BUILTIN_FN_GETTER(BufferWrite, buffer_write)
+        INLINE_BUILTIN_FN_GETTER(BufferCreate, buffer_create)
         
         INLINE_GLOBALSTATIC_GETTER(Run_Room, YYTK::CRoom*, UTEXT("\x00\x00\x00\x00\x85\xF6\x74\x00\x8B\xB6\x00\x00\x00\x00\x85\xF6\x74\x00\x8B\x86"), "????xxx?xx????xxx?xx")
         INLINE_GLOBALSTATIC_GETTER(CurrentRoom, int, UTEXT("\x00\x00\x00\x00\x83\xC4\x04\x85\xC9\x78"), "????xxxxxx")
@@ -276,7 +285,7 @@ namespace Organik {
             const double log2_e = 1.4426950408889634;
             double v = x * log2_e;
 
-            // basically, i is bit magic and f is the fraction we have at home
+            // basically, i is bit magic and f is the remainder we have at home
             const int64_t i = static_cast<int64_t>(v);
             const double f = v - i;
             

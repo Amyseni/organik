@@ -86,6 +86,12 @@ static std::deque<std::string> stackTraceLines;
 #define ev_draw_pre             RValue(76)     // Pre-draw (sub-event 76)
 #define ev_draw_post            RValue(77)     // Post-draw (sub-event 77)
 
+#define buffer_u16              3
+#define buffer_s16              4
+#define buffer_u32              5
+#define buffer_s32              6
+#define buffer_bool            10
+
 using namespace Organik;
 
 
