@@ -291,20 +291,17 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                             objRoomCtrl->InternalGetYYVarRef(VAR_HASH(roomSeed)) = RValue(roomSeed);
                             objRoomCtrl->InternalGetYYVarRef(VAR_HASH(roomTransitionTarget)) = Organik::Rooms::AssetIndexes[i];
                             objRoomCtrl->InternalGetYYVarRef(VAR_HASH(roomTransitionRunning)) = RValue(1);
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            if (objControl == nullptr)
+                                                        if (objControl == nullptr)
                             {
                                 GetLogger()->LogFormatted("obj_control instance not found.");
                                 continue;
                             }
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            if (!isMultiplayer)
+                                                        if (!isMultiplayer)
                             {
                                 GetLogger()->LogFormatted("%d not multiplayer", __LINE__);
                                 return;
                             }
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            RValue result;
+                                                        RValue result;
                             byte godRoom = 0;
                             TRoutine bufferWrite = Organik::Utils::getBufferWrite();
                             Organik::Utils::getBufferCreate()(result, 
@@ -319,64 +316,52 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                             int32_t buffIndex = result.ToInt32();
                             short packetID = 37;
                             short roomID = (short) Organik::Rooms::AssetIndexes[i];
-                            GetLogger()->LogFormatted("%d", __LINE__);
-
+                            
                             bufferWrite(result, 
                                 Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), 
                                 3, std::vector<RValue>({RValue(buffIndex), RValue(buffer_u16), RValue(packetID)}).data()); 
-                            GetLogger()->LogFormatted("%d", __LINE__);
-
+                            
                             bufferWrite(result, 
                                 Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), 
                                 3, std::vector<RValue>({RValue(buffIndex), RValue(buffer_s16), RValue(roomID)}).data()); 
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            
+                                                        
                             int32_t currentFloor = objRoomCtrl->InternalGetYYVarRef(VAR_HASH(currentfloor)).ToInt32();
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            
+                                                        
                             bufferWrite(result, 
                                 Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), 
                                 3, std::vector<RValue>({RValue(buffIndex), RValue(buffer_s32), RValue(roomID)}).data()); 
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            
+                                                        
                             bufferWrite(result, 
                                 Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), 
                                 3, std::vector<RValue>({RValue(buffIndex), RValue(buffer_s32), RValue(roomSeed)}).data()); 
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            int32_t roomClearedAmount = objRoomCtrl->InternalGetYYVarRef(VAR_HASH(roomclearedamount)).ToInt32();
+                                                        int32_t roomClearedAmount = objRoomCtrl->InternalGetYYVarRef(VAR_HASH(roomclearedamount)).ToInt32();
                             
                             bufferWrite(result, 
                                 Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), 
                                 3, std::vector<RValue>({RValue(buffIndex), RValue(buffer_s32), RValue(roomClearedAmount)}).data()); 
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            
+                                                        
                             bufferWrite(result, 
                                 Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), 
                                 3, std::vector<RValue>({RValue(buffIndex), RValue(buffer_bool), RValue(godRoom)}).data()); 
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            
+                                                        
+                                                        
                             CScript *sendPacket = Scripts::ScriptPointers[Scripts::Indexes[Scripts::gml_Script_scr_send_packet]];
                             RValue rBuffIndex = RValue(buffIndex);  // buffer of packet data
                             RValue rReliable = RValue(1);           // 1 = reliable packet
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            RValue ret = RValue(0);
+                                                        RValue ret = RValue(0);
                             std::vector<RValue*> args = 
                             {
                                 &rBuffIndex, // the buffer
                                 &rReliable   // u can also just lie
                             };
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                            sendPacket->m_Functions->m_ScriptFunction(
+                                                        sendPacket->m_Functions->m_ScriptFunction(
                                 Utils::GetGlobalInstance(),
                                 Utils::GetGlobalInstance(),
                                 ret,
                                 args.size(),
                                 args.data()
                             );
-                            GetLogger()->LogFormatted("%d", __LINE__);
-                        }
+                                                    }
                     }
                 }
             }
