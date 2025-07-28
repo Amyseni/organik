@@ -1,0 +1,11 @@
+**/var_list.h
+**/script_list.h
+**/room_list.h
+**/obj_list.h
+build/**
+x86/**
+CMAke/**
+README.md
+libzhlgen/**
+vertexai.json
+polydiv*.json
