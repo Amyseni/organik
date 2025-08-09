@@ -10,31 +10,9 @@ moveOutput() {
 	#move output from "$1/x86/Release to $STEAMAPPS/common/Synthetik" for further processing
 	if test -d "$1/x86/Release"; then
 		cd "$1/x86/Release"
-		if test -f *.pdb; then 
-			cp *.pdb "$STEAMAPPS/common/Synthetik/mods/aurie"
-			echo "Copied pdb from $1" 
-		fi
 		if test -f *.dll; then 
-			cp *.dll "$STEAMAPPS/common/Synthetik/mods/aurie"; 
+			cp *.dll "$STEAMAPPS/common/Synthetik/NativeMods/"; 
 			echo "Copied dlls from $1"
-		else
-			exe_file=`find $PWD -maxdepth 1 -name *.exe -print | head -n 1`
-			if test -f "$exe_file"; then
-				cp "$exe_file" "$STEAMAPPS/common/Synthetik";
-				cDir="$PWD"/
-				exe_name=${exe_file/$cDir/}
-				if test -f "$STEAMAPPS/common/Synthetik/game_org.exe"; then
-					rm "$STEAMAPPS/common/Synthetik/game.exe"
-					rm "$STEAMAPPS/common/Synthetik/SYNTHETIK.exe"
-				else
-					mv "$STEAMAPPS/common/Synthetik/SYNTHETIK.exe" "$STEAMAPPS/common/Synthetik/game_org.exe"
-				fi
-				ln -s "$STEAMAPPS/common/Synthetik/game_org.exe" "$STEAMAPPS/common/Synthetik/game.exe"
-				ln -s "$STEAMAPPS/common/Synthetik/$exe_name" "$STEAMAPPS/common/Synthetik/SYNTHETIK.exe"
-				echo "New exe linked"
-			else
-				echo "No exe found"
-			fi
 		fi
 	fi
 	cd "$orgDir"
