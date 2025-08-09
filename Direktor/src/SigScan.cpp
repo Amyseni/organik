@@ -20,6 +20,7 @@ SigScan::SigScan(const char *sig) : m_pAddress(0)
 {
 	m_bStartFromLastAddress = false;
 	m_bNoReturnSeek = false;
+	m_fnEntryAlignment = 0x10;
 	m_dist = 0;
 
 	// Default signature if nothing was specified
@@ -76,6 +77,11 @@ SigScan::SigScan(const char *sig) : m_pAddress(0)
 			continue;
 		}
 
+		if (c == '#')
+		{
+			m_fnEntryAlignment = 0;
+			continue;
+		}
 		if(c == '(')
 		{
 			matchStart = i;
@@ -147,8 +153,9 @@ bool SigScan::Scan(Callback callback)
 
 	for( ; pStart <= pEnd ; ++pStart)
 	{
-		if ((uintptr_t) pStart % g_SigscanAlign != 0)
-			continue; // align to g_SigscanAlign)
+		if (m_fnEntryAlignment && m_matches.size() < 1) // unless we are matching variables...
+			if ((uintptr_t) pStart % m_fnEntryAlignment != 0)
+				continue; // align to g_SigscanAlign (all functions are aligned to 16 bytes)
 		
 		const unsigned char *p = pStart;
 		const unsigned char *s = usig;
@@ -166,7 +173,6 @@ bool SigScan::Scan(Callback callback)
 				m_dist = pStart-s_pBase;
 
 			m_pAddress = pStart;
-
 			// Find out where the function ends
 			s_pLastStartAddress = pStart;
 

@@ -1,15 +1,12 @@
 #pragma once
-#include "zhl_internal.h"
 #include "Synthetik.h"
+#include "zhl_internal.h"
 #include <vector>
 #include <unordered_map>
-#include <functional>     // For std::function and std::hash
+#include <functional>
 #include <typeinfo>
 #include <string>
-#include <map>           // Add this for std::map
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_impl_dx11.h"
+#include <map>
 #define WINDOW_TYPE(name, shortcut) \
     std::pair<std::string, std::tuple<std::string, std::function<Organik::UIElement*()>,std::function<Organik::UIElement*()>>> { #name, \
         std::make_tuple( \
@@ -50,7 +47,27 @@ namespace Organik
         }
 
         static UIManager* GetInstance();
+        static bool isImGuiInitialized(bool set = false)
+        {
+            static bool isInitialized = false;
+            if (!isInitialized)
+                if (set)
+                    isInitialized = true;
+            
+            return isInitialized;
+        };
+        static bool isFullyInitialized(bool set = false)
+        {
+            static bool firstFrameStarted = false;
 
+            if (!firstFrameStarted)
+                if (set)
+                    firstFrameStarted = true;
+            
+            return firstFrameStarted;
+        };
+        static HWND g_hWnd;
+        
         std::unordered_map<size_t, UIElement*> elements;
         std::vector<UIElement*> elementsToRemove;
         

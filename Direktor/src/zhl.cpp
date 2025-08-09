@@ -43,7 +43,7 @@ void ZHL::Init()
 		MessageBoxA(0, FunctionHook_private::GetLastError(), "Error", MB_ICONERROR);
 		ExitProcess(1);
 	}
-
+	Organik::GetLogger()->InitLogging();
 	initialized = true;
 }
 
@@ -186,7 +186,7 @@ int VariableDefinition::Load()
     else
         *(void**)_outVar = (void*)m.address;
 
-	std::cout << "Found value for " << _name << ": " << std::to_string((uintptr_t)_outVar) << ", dist " << std::to_string(sig.GetDistance());
+	std::cout << "Found value for " << _name << ": @" << _outVar << ", dist " << std::to_string(sig.GetDistance());
 
 	return 1;
 }
@@ -247,8 +247,31 @@ FunctionDefinition::FunctionDefinition(const char *name, const std::type_info &t
 
 }
 
+FunctionDefinition::FunctionDefinition(const char *name, const std::type_info &type, void* addr, const short *argdata, int nArgs, unsigned int flags, void **outfunc):
+	_address(addr),
+	_argdata(argdata),
+	_nArgs(nArgs),
+	_flags(flags),
+	_outFunc(outfunc)
+{
+
+
+    SetName(name, type.name());
+    strcpy(_name, name);
+
+    Add(_name, this);
+
+}
+
 int FunctionDefinition::Load()
 {
+	if (_address)
+	{
+		std::cout << "Function " << _name << " has predefined address: " << std::hex << _address << std::dec << std::endl;
+		*_outFunc = _address;
+		return 1;
+	}
+	
 	SigScan sig = SigScan(_sig);
 
 	if(!sig.Scan())
@@ -259,7 +282,7 @@ int FunctionDefinition::Load()
 
 	_address = sig.GetAddress<void*>();
 	*_outFunc = _address;
-	std::cout << "Found address for " << _name  <<  std::to_string(((uintptr_t)_address)) << " after " << std::to_string(sig.GetDistance()) << " bytes" << std::endl;
+	std::cout << "Found address for " << _name  << " @ " << std::hex << _address << " after " << std::dec << sig.GetDistance() << " bytes" << std::endl;
 
 	return 1;
 }
@@ -691,6 +714,7 @@ int FunctionHook_private::Install()
 Log("HookAddress: " PTR_PRINT_F ", SuperAddress: " PTR_PRINT_F "\n\n", (uintptr_t) _hook, (uintptr_t) original);
 #endif // __amd64__
 #ifdef __i386__
+#define DEBUG 1
 #ifdef DEBUG
 	Log("Successfully hooked function %s\n", _name);
     Log("InternalHookAddress: " PTR_PRINT_F "\n", (uintptr_t)&_internalHook);

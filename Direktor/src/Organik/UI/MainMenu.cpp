@@ -1,13 +1,15 @@
 #include "MainMenu.h"
 #include "UIElement.h"
-#include "../Utils.h"
+#include "Utils.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "UIManager.h"
 #include "InstanceHelper.h"
+#include <GameMaker_Defs.h>
 #include "VariableHelper.h"
+#include "DefinitionHelpers/BuiltinHelper.h"
 #include "ScriptHelper.h"
 #include "room_list.h"
 
@@ -22,9 +24,9 @@ namespace Organik
     struct Scripts;
 }
 
-#define GETSCR(script) Organik::Scripts::ScriptPointers[Organik::Scripts::Indexes[Organik::Scripts::gml_Script_##script]]
+#define GETSCR(script) Organik::Scripts::Indexes[Organik::Scripts::gml_Script_##script]
 
-
+using Settings = Organik::Utils::Settings;
 static int  Strnicmp(const char* s1, const char* s2, int n) { int d = 0; while (n > 0 && (d = toupper(*s2) - toupper(*s1)) == 0 && *s1) { s1++; s2++; n--; } return d; }
 
 bool spawnMode_items = false;
@@ -42,154 +44,116 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
     }
     #define VAR_HASH(var) Organik::Variables::Hashes[Organik::Variables::##var]
     #define OBJ_INDEX(obj) Organik::Objects::ObjIndexes[Organik::Objects::##obj]
-    CInstance* allgameObj = CInstance::GetFirstOrDefault(OBJ_INDEX(obj_allgame));
-    CInstance* outgameObj = Utils::FirstInstanceOrNullptr(OBJ_INDEX(outgame));
-    CInstance* localPlayerObj = Utils::FirstInstanceOrNullptr(OBJ_INDEX(obj_localPlayer));
-    CInstance* remotePlayerObj = Utils::FirstInstanceOrNullptr(OBJ_INDEX(obj_remotePlayer));
+    CInstance* allgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_allgame); });
+    CInstance* outgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(outgame); });
+    CInstance* localPlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_localPlayer); });
+    CInstance* remotePlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_remotePlayer); });
     bool isMultiplayer = remotePlayerObj != nullptr;
-    CInstance* objRoomCtrl = Utils::FirstInstanceOrNullptr(OBJ_INDEX(obj_room_ctrl));
-    bool gamestarted = allgameObj ? allgameObj->InternalGetYYVarRef(VAR_HASH(gamestarted)).ToBoolean() : false;
+    CInstance* objRoomCtrl = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_room_ctrl); });
+    bool gamestarted = allgameObj ? allgameObj->InternalReadYYVar(VAR_HASH(gamestarted))->ToBoolean() : false;
     if (ImGui::BeginMenu("Godmode"))
     {
-        if (ImGui::MenuItem("Non-Beta Multiplayer (26.1)", "Alt+F2", g_EnableMultiplayerCompat, outgameObj != nullptr))
+        if (ImGui::MenuItem("Non-Beta Multiplayer (26.1)", "Alt+F2", Settings::g_EnableMultiplayerCompat, outgameObj != nullptr))
         {
-            g_EnableMultiplayerCompat = !g_EnableMultiplayerCompat;
-            outgameObj->InternalGetYYVarRef(VAR_HASH(ClientVersion)) = g_EnableMultiplayerCompat ? "26.1" : "26.2";
+            Settings::g_EnableMultiplayerCompat = !Settings::g_EnableMultiplayerCompat;
+            YYSetString(outgameObj->InternalReadYYVar(VAR_HASH(ClientVersion)), const_cast<char*>(Settings::g_EnableMultiplayerCompat ? "26.1" : "26.2"));
         }
         if (ImGui::MenuItem("Devcom Mode (!)", "", 
-            outgameObj ? outgameObj->InternalGetYYVarRef(VAR_HASH(devcom)).ToBoolean() : false, // default false (avoid nullptr)
+            outgameObj ? outgameObj->InternalReadYYVar(VAR_HASH(devcom))->ToBoolean() : false, // default false (avoid nullptr)
             outgameObj != nullptr
         ))
         {
-            outgameObj->InternalGetYYVarRef(VAR_HASH(devcom)) = !(outgameObj->InternalGetYYVarRef(VAR_HASH(devcom)).ToBoolean());
+            *(outgameObj->InternalReadYYVar(VAR_HASH(devcom))) = RValue(!(outgameObj->InternalReadYYVar(VAR_HASH(devcom))->ToBoolean()));
         }
         if (ImGui::MenuItem("Development Display", "", 
-            outgameObj ? outgameObj->InternalGetYYVarRef(VAR_HASH(developmentdisplay)).ToBoolean() : false,
+            outgameObj ? outgameObj->InternalReadYYVar(VAR_HASH(developmentdisplay))->ToBoolean() : false,
             outgameObj != nullptr
         ))
         {
-            outgameObj->InternalGetYYVarRef(VAR_HASH(developmentdisplay)) = !(outgameObj->InternalGetYYVarRef(VAR_HASH(developmentdisplay)).ToBoolean());
+            (*outgameObj->InternalReadYYVar(VAR_HASH(developmentdisplay))) = !(outgameObj->InternalReadYYVar(VAR_HASH(developmentdisplay))->ToBoolean());
         }
         if (ImGui::BeginMenu("Uh oh... (Stinky poopy)", true))
         {
             if (ImGui::InputTextWithHint("Victim", "127.0.0.1", &g_cursedBoxInput, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
             {
-                int cursedIndex = g_ModuleInterface->GetRunnerInterface().CreateBuffer(
-                    1 << 24,
-                    YYTK::eBuffer_Fixed,
-                    1
-                );
-                RValue buf = g_ModuleInterface->CallBuiltin("buffer_fill", 
-                    {
-                        RValue(cursedIndex), 
-                        RValue(0), 
-                        RValue(YYTK::eBuffer_U8), 
-                        RValue(43), 
-                        RValue(1<<24)
-                    }
-                );
-                CInstance* networkParentObj = Utils::FirstInstanceOrNullptr(OBJ_INDEX(obj_networking_parent));
-                int socketUDP = networkParentObj->operator[]("socketUDP").ToInt32();
-                g_ModuleInterface->CallBuiltin("buffer_fill", 
-                    {
-                        RValue(socketUDP), 
-                        RValue(g_cursedBoxInput.c_str()),
+                int bufferIndex = DoBuiltin(&gml_buffer_create, {
+                    RValue(1 << 24), // size
+                    RValue(eBuffer_Fixed), // type
+                    RValue(1) // flags
+                }).m_i32;
+
+                RValue buf = DoBuiltin(&gml_buffer_fill, {
+                    RValue(bufferIndex), 
+                    RValue(0), 
+                    RValue(eBuffer_U8), 
+                    RValue(43), 
+                    RValue(1<<24)
+                });
+                CInstance* networkParentObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_networking_parent); });
+                int socketUDP = networkParentObj->operator[]("socketUDP")->m_i32;
+                // int32_t networkTime = networkParentObj->operator[]("networkTime")->m_i32;
+                // RValue result;
+                // std::vector<RValue*> args = {
+                //     &RValue(socketUDP), 
+                //     &RValue(g_cursedBoxInput), 
+                    
+                // ScriptFromId(GETSCR(scr_send_packet))->m_Functions->m_Function.m_ScriptFunction(
+                //     GetGlobalInstance(),
+                //     GetGlobalInstance(),
+                //     &result, // result
+                    
+                //     {
+                //         &RValue(socketUDP), 
+                //         &RValue(g_cursedBoxInput), 
+                //         &RValue(eBuffer_U8), 
+                //         &RValue(43), 
+                //         &RValue(1<<24)
+                //     }
+                // );
+                // DoBuiltin(&gml_script)
+
+                
+                
+                // g_ModuleInterface->CallBuiltin("buffer_fill", 
+                //     {
+                //         RValue(socketUDP), 
+                //         RValue(g_cursedBoxInput.c_str()),
                         
-                        RValue(YYTK::eBuffer_U8), 
-                        RValue(43), 
-                        RValue(1<<24)
-                    }
-                );
+                //         RValue(YYTK::eBuffer_U8), 
+                //         RValue(43), 
+                //         RValue(1<<24)
+                //     }
+                // );
             }
-            outgameObj->InternalGetYYVarRef(VAR_HASH(developmentdisplay)) = !(outgameObj->InternalGetYYVarRef(VAR_HASH(developmentdisplay)).ToBoolean());
+            ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Player"))
         {
-            if (ImGui::MenuItem("Invincible", "Ctrl+Shift+I", g_EnableInvincibility, gamestarted))
+            if (ImGui::MenuItem("Invincible", "Ctrl+Shift+I", Settings::g_EnableInvincibility, gamestarted))
             {
-                g_EnableInvincibility = !g_EnableInvincibility;
-                localPlayerObj->InternalGetYYVarRef(VAR_HASH(invincible)) = g_EnableInvincibility;
-                if (g_EnableInvincibility)
+                Settings::g_EnableInvincibility = !Settings::g_EnableInvincibility;
+                (*localPlayerObj->InternalReadYYVar(VAR_HASH(invincible))) = Settings::g_EnableInvincibility;
+                if (Settings::g_EnableInvincibility)
                 {
-                    localPlayerObj->InternalGetYYVarRef(VAR_HASH(invincibletimer)) = RValue(99999.00000);
+                    (*localPlayerObj->InternalReadYYVar(VAR_HASH(invincibletimer))) = RValue(99999.00000);
                 }
                 else
                 {
-                    localPlayerObj->InternalGetYYVarRef(VAR_HASH(invincibletimer)) = RValue(0.00000);
+                    (*localPlayerObj->InternalReadYYVar(VAR_HASH(invincibletimer))) = RValue(0.00000);
                 }
             }
             bool amIDead = (isMultiplayer)  //since single player doesn't allow respawning, only enable in mulit.
-                            ?(localPlayerObj->InternalGetYYVarRef(VAR_HASH(multiplayerDeath)).ToBoolean()) 
+                            ?(localPlayerObj->InternalReadYYVar(VAR_HASH(multiplayerDeath))->ToBoolean()) 
                             : false;
             bool mpDead = (isMultiplayer)  //since single player doesn't allow respawning, only enable in mulit.
-                            ?(remotePlayerObj->InternalGetYYVarRef(VAR_HASH(multiplayerDeath)).ToBoolean()) 
+                            ?(remotePlayerObj->InternalReadYYVar(VAR_HASH(multiplayerDeath))->ToBoolean()) 
                             : false;
-            if (ImGui::BeginMenu("Revive Self...", gamestarted && (amIDead)))
+            if (ImGui::MenuItem("Revive Self", "", false, gamestarted && (amIDead)))
             {
-                if (ImGui::MenuItem("... on Partner", "", false, gamestarted && (amIDead) && !mpDead))
-                {
-                    CScript* reviveScript = GETSCR(scr_player_multiplayer_revive);
-
-                    if (reviveScript == nullptr)
-                    {
-                        MessageBoxA(nullptr, "Script gml_Script_scr_player_multiplayer_revive not found", "Error", MB_OK | MB_ICONERROR);
-                    }
-                    else
-                    {
-                        localPlayerObj->m_X = remotePlayerObj->m_X;
-                        localPlayerObj->m_Y = remotePlayerObj->m_Y;
-                        localPlayerObj->m_Direction = remotePlayerObj->m_Direction;
-                        RValue result;
-                        auto mID = RValue(localPlayerObj->m_ID);
-                        std::vector<RValue*> args = 
-                        {
-                            &mID
-                        };
-                        reviveScript->m_Functions->m_ScriptFunction(
-                            Utils::GetGlobalInstance(),
-                            Utils::GetGlobalInstance(),
-                            result,
-                            args.size(),
-                            args.data()
-                        );
-                    }
-                }
-                if (ImGui::MenuItem("... at Spawn TP", "", false, gamestarted && (amIDead)))
-                {
-                    CScript* reviveScript = GETSCR(scr_player_multiplayer_revive);
-
-                    if (reviveScript == nullptr)
-                    {
-                        MessageBoxA(nullptr, "Script gml_Script_scr_player_multiplayer_revive not found", "Error", MB_OK | MB_ICONERROR);
-                    }
-                    else
-                    {
-                        int32_t tpObjID = Objects::ObjIndexes[Objects::obj_teleporter];
-                        CInstance *spawnTP = CInstance::FirstOrDefault([tpObjID](CInstance* x) -> bool {
-                            if (x->m_ObjectIndex == tpObjID)
-                            {
-                                return (x->InternalGetYYVarRef(VAR_HASH(endingteleporter)).ToBoolean());
-                            }
-                        });
-                        localPlayerObj->m_X = 
-                        localPlayerObj->m_Y = remotePlayerObj->m_Y;
-                        localPlayerObj->m_Direction = remotePlayerObj->m_Direction;
-                        RValue result;
-                        auto mID = RValue(localPlayerObj->m_ID);
-                        std::vector<RValue*> args = 
-                        {
-                            &mID
-                        };
-                        reviveScript->m_Functions->m_ScriptFunction(
-                            Utils::GetGlobalInstance(),
-                            Utils::GetGlobalInstance(),
-                            result,
-                            args.size(),
-                            args.data()
-                        );
-                    }
-                }
-                ImGui::EndMenu(); // revive self
+                CInstance* cursorCamera = CInstance::FirstOrDefault(
+                    [](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_cursor_camera); }
+                );
+                (*localPlayerObj->operator[](VAR_HASH(multiplayerDeathRespawnTime))) = RValue(0.02f);
             }
             ImGui::EndMenu(); // player
         }
@@ -266,11 +230,11 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                             MessageBoxA(nullptr, "Script gml_Script_scr_instance_create not found", "Error", MB_OK | MB_ICONERROR);
                             continue;
                         }
-                        CScript* createScript = scr::ScriptPointers[
+                        CScript* createScript = ScriptFromId(
                             scr::Indexes[
                                 scr::gml_Script_scr_instance_create
                             ]
-                        ];
+                        );
                         if (createScript == nullptr)
                         {
                             MessageBoxA(nullptr, "Script gml_Script_scr_instance_create not loaded", "Error", MB_OK | MB_ICONERROR);                                continue;
@@ -286,10 +250,10 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                             &posY,
                             &objIndexR
                         };
-                        createScript->m_Functions->m_ScriptFunction(
-                            Utils::GetGlobalInstance(),
-                            Utils::GetGlobalInstance(),
-                            result,
+                        createScript->m_Functions->m_Function.m_ScriptFunction(
+                            GetGlobalInstance(),
+                            GetGlobalInstance(),
+                            &result,
                             args.size(),
                             args.data()
                         );
@@ -325,8 +289,8 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                         {
                             int scriptIndex = Organik::Scripts::gml_Script_scr_goto_room;
                             
-                            objRoomCtrl->InternalGetYYVarRef(VAR_HASH(roomTransitionTarget)) = Organik::Rooms::AssetIndexes[i];
-                            objRoomCtrl->InternalGetYYVarRef(VAR_HASH(roomTransitionRunning)) = RValue(1);
+                            (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionTarget))) = Organik::Rooms::AssetIndexes[i];
+                            (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionRunning))) = RValue(1);
                         }
                     }
                 }
@@ -353,10 +317,8 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
     }
     if (ImGui::BeginMenu("Options/Bugfixes"))
     {
-        if (ImGui::MenuItem("HG Slowdown Fix", "", g_HGSlowdownFix))
-        {
-            g_HGSlowdownFix = !g_HGSlowdownFix;
-        }
+        if (ImGui::MenuItem("HG Slowdown Fix/Unstuck", "", false, gamestarted))
+            *localPlayerObj->InternalReadYYVar(VAR_HASH(mod_movespeed)) = RValue(1.00000);
         ImGui::EndMenu(); // Options/Bugfixes
 
     }

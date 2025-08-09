@@ -22,8 +22,8 @@ namespace Organik
             SCRIPTS_DO(MAKE_ENUM)
         };
         static std::vector<int32_t> Indexes;
-        static std::unordered_map<int32_t, CScript*> ScriptPointers;
         static const char* const ScriptNamesArr[];
+        static std::unordered_map<int32_t, CScript*> scriptPointerMap; 
     };
 }
 #endif
