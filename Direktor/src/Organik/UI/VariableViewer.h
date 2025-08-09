@@ -18,16 +18,15 @@ namespace Organik
             AnotherValue = 1,
             YetAnotherValue = 2,
         };
-        int VisibleInstance = 0; // Currently visible instance
+        CInstance* VisibleInstance = 0; // Currently visible instance
         InstanceVariableViewer(std::string name = "Instance Variable Viewer") : UIElement(name) {};
         ~InstanceVariableViewer() = default;
         void Draw(bool& out_mousedOver, bool* p_open = NULL, const std::string &title = "");
 
     private:
-        void DrawInner(std::vector<CInstance*> instances = {});
+        void DrawInner();
         void DisplayVariableValue(const std::string& name, RValue* value);
         std::string GetValuePreview(RValue* value);
-        void DisplayArrayPopup(RValue *array);
         std::string editingVariable;
         int32_t editingInstanceId;
         RValue* editingValue = nullptr;
@@ -35,7 +34,9 @@ namespace Organik
         bool rowClicked = false;
         static bool showPopup;
         static bool showArrayPopup;
-
+        static bool matchNone;
+        static bool matchAny;        
+        static bool matchAll;
 
         // Edit value buffers
         double editDoubleValue = 0.0;

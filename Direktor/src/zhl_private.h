@@ -26,11 +26,11 @@ public:
 	static int Init();
 	static const char *GetLastError();
 	void *_hook;
+	int Install();
 
 private:
 	static void Add(FunctionHook_private *hook);
 	void SetName(const char *name, const char *type);
-	int Install();
 
 public:
 	FunctionHook_private(const char *name, const std::type_info &type, void *hook, void **outInternalSuper, int priority);

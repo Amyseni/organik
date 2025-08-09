@@ -26,21 +26,20 @@ struct InstanceClone : CInstance
     
     InstanceClone() : CInstance() { 
         InternalReadYYVar: [this](int index) -> RValue* {
-        if (this->m_VariableNameIndexMap.contains(index))
-        {
-            auto& varPair = this->m_VariableNameIndexMap[index];
-            auto it = this->m_VariableMap.find(varPair.second);
-            if (it != this->m_VariableMap.end())
+            if (this->m_VariableNameIndexMap.contains(index))
             {
-                return it->second;
+                auto& varPair = this->m_VariableNameIndexMap[index];
+                auto it = this->m_VariableMap.find(varPair.second);
+                if (it != this->m_VariableMap.end())
+                {
+                    return it->second;
+                }
             }
-        }
-        return CInstance::InternalReadYYVar(index);
-    };
+            return CInstance::InternalReadYYVar(index);
+        };
         YYObjectBase::m_Vars = nullptr;
         YYObjectBase::m_YYVarsMap = new CHashMap<int, RValue*, 3>();
-        this->
-        m_VariableNameIndexMap = {};
+        this->m_VariableNameIndexMap = {};
     }
     ~InstanceClone()
     {
@@ -55,19 +54,4 @@ struct InstanceClone : CInstance
         }
         m_VariableMap.clear();
     }
-    // __declspec(dllexport) RValue *InternalReadYYVar(int index)
-    // {
-    //     if (this->InternalReadYYVar(Organik::Variables::Hashes[Organik::Variables::ORGNK_remap_vars])->asInt64() != -4ll)
-    //     {
-    //         if (this->m_VariableNameIndexMap.contains(index))
-    //         {
-    //             auto& varPair = this->m_VariableNameIndexMap[index];
-    //             auto it = this->m_VariableMap.find(varPair.second);
-    //             if (it != this->m_VariableMap.end())
-    //             {
-    //                 return it->second;
-    //             }
-    //         }
-    //     }
-    // }
 };

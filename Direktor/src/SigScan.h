@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <list>
-constexpr uint32_t g_SigscanAlign = 0x10;
+
 class SigScan
 {
 public:
@@ -31,6 +31,7 @@ private:
 	unsigned char *m_sig;
 	unsigned char *m_mask;
 	std::list<Match> m_matches;
+	unsigned char m_fnEntryAlignment = 0x10;
 
 	bool m_bNoReturnSeek;
 	bool m_bStartFromLastAddress;

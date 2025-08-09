@@ -4,11 +4,13 @@
 #include "InstanceHelper.h"
 #include "VariableHelper.h"
 #include "VariableViewer.h"
+#include "ItemFilter.h"
 #include "UIManager.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
 #include "../Logging.h"
+#include "DefinitionHelpers/BuiltinHelper.h"
 #include "../Utils.h"
 #include "imgui/imgui_impl_dx11.h"
 
@@ -16,12 +18,13 @@ bool InstanceVariableViewer::showPopup = false;
 bool InstanceVariableViewer::showArrayPopup = false;
 bool matchAllVariables = false; // false = ay, true = all
 
-std::map<int32_t, bool> variablesToMatchMap;
+std::map<int32_t, bool> variablesToMatchMap = std::map<int32_t, bool>();
 std::map<int32_t, std::unordered_map<int32_t, std::string>> varMapCache;
 std::string objectHasVariableFilter;
 std::string variableNameFitler;
 std::string variableTypeFilter;
-
+#define VARHASH_FROMNAME(name) Organik::Variables::Hashes[Organik::Variables::##name]
+#define VARNAME_FROMHASH(hash) Organik::Variables::HashToVariableMap[hash]
 static bool dummyDoTheTHING = []() -> bool {
     // Initialize the variablesToMatchMap with all variables
     for (const auto& hash : Organik::Variables::Hashes) {
@@ -29,157 +32,211 @@ static bool dummyDoTheTHING = []() -> bool {
     }
     return true;
 }();
-void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
+bool InstanceVariableViewer::matchAll = false;
+bool InstanceVariableViewer::matchNone = false;
+bool InstanceVariableViewer::matchAny = true;
+
+
+static auto instanceFilter = ItemFilter();
+void InstanceVariableViewer::DrawInner()
 {
     // Main Body: draw variables
     static ImGuiTextFilter objectNameFilter;
-
+    
+    Organik::GetLogger()->LogFormatted("%s:%d Drawing %s", __FILE__, __LINE__, __FUNCTION__);
     if (ImGui::CollapsingHeader("Object Filters"))
     {
+        Organik::GetLogger()->LogFormatted("%s:%d Object Filters %s", __FILE__, __LINE__, __FUNCTION__);
         if (ImGui::BeginChild("##object_filter", ImVec2(0.0f, 350.0f), ImGuiChildFlags_FrameStyle | ImGuiChildFlags_AutoResizeX))
         {
             ImGui::Text
             (
-                "For ALL filters, anywhere in Organik, the following apply:\n"
-                "Caps is ignored, partial match (match anything containing filter text)\n"
-                "\"\" (empty search box) - match everything\n"
-                "\"-weapon\" - DO NOT match 'weapon'\n"
-                "\"weapon\" - match 'weapon'\n"
-                "\"item,weapon\" - match 'item' OR 'weapon'\n"
+                "Filter objects. Confused? Try out the EZFilters below.\n"
+                "All filters are partial matching, and case insensitive.\n"
+                "Use - to invert the text filters (match WITHOUT only).\n"
+                "As well as ',' to match EITHER/ANY from a list of terms.\n"
             );
             objectNameFilter.Draw("Object Name");
             ImGui::Text("Object Variables:\n"
                         "Click to select, hold Ctrl to select multiple.\n"
-                        "Matches objects with a value set for %s selected variable(s).\n",
-                        matchAllVariables ? "ALL" : "ANY"
+                        "Matches objects with a value set for selected variable(s).\n",
+                        "See below.\n"
                     );
 
+            
+            static ImGuiTextFilter varNameFilter;
+            varNameFilter.Draw("Variable Name");
             if (ImGui::BeginChild("##varnames_list", ImVec2(0.0f, 250.0f), ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_Borders))
             {
-                for (const auto& [hash, name] : Variables::HashToVariableMap)
-                {
-                    if (ImGui::Selectable(name, variablesToMatchMap.contains(hash) ? variablesToMatchMap[hash] : false, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_Highlight))
-                    {
-                        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl))
+                std::for_each(Variables::HashToVariableMap.begin(), Variables::HashToVariableMap.end(),
+                    [&](std::pair<int32_t, const char*> pair) {
+                        if (instanceFilter.variableFilters.contains(pair.first))
+                            return; // Skip if already filtered
+                        if (!varNameFilter.PassFilter(pair.second))
+                            return;
+                        
+                        if (ImGui::Selectable(pair.second, variablesToMatchMap.contains(pair.first) ? variablesToMatchMap[pair.first] : false, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_Highlight))
                         {
-                            // Toggle selection
-                            variablesToMatchMap[hash] = !variablesToMatchMap[hash];
+                            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                            {
+                                instanceFilter.setVariableFilter(pair.first, true);
+                            }
                         }
-                        else
-                        {
-                            // Clear all and select this one
-                            for (auto& [k, v] : variablesToMatchMap)
-                                v = false;
-                            variablesToMatchMap[hash] = true;
-                        }
-                    }
-                }
+                    });
             }
             ImGui::EndChild();
+            ImGui::SameLine();
+
+            if (ImGui::BeginChild("##varnames_activelist", ImVec2(0.0f, 250.0f), ImGuiChildFlags_Borders))
+            {
+                std::for_each(Variables::HashToVariableMap.begin(), Variables::HashToVariableMap.end(),
+                    [&](std::pair<int32_t, const char*> pair) {
+                        if (!instanceFilter.variableFilters.contains(pair.first))
+                            return;
+
+                        if (ImGui::Selectable(pair.second, variablesToMatchMap.contains(pair.first) ? variablesToMatchMap[pair.first] : false, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_Highlight))
+                        {
+                            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                            {
+                                instanceFilter.setVariableFilter(pair.first, false);
+                            }
+                        }
+                    }
+                );
+            }
         }
         ImGui::EndChild();
     }
-    static ImGuiTextFilter varNameFilter;
-    static ImGuiTextFilter varTypeFilter;
-    ImGui::SameLine();
-    ImGui::InputTextWithHint("Var Name", "Only objects with matching variable...", &instanceHasVariableFilter, ImGuiInputTextFlags_AutoSelectAll);
-    if (instances.empty())
-    {
-        CInstance::Where([&](CInstance* x) -> bool {
-            if (strlen(objectNameFilter.InputBuf))
-                if(!objectHasVarFilter.PassFilter(x->m_Object->m_Name))
-                    return false;
-            if (strlen(instanceHasVariableFilter.c_str()))
-            {
-                if (!x->HasVariable(instanceHasVariableFilter.c_str()))
-                    return false;
-            }
-        });
-    }
+    instanceFilter.updateTextFilter(objectNameFilter.InputBuf);
+	const auto& instanceMap = instanceFilter.FilterInstances();
     if (ImGui::BeginChild("##tree", ImVec2(300, 0), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders | ImGuiChildFlags_NavFlattened))
     {
-        for (CInstance* instance : instances)
-        {
-            if (instance)
-            {
-                int32_t ID = instance->m_ID;
-                int32_t objectID = instance->m_ObjectIndex;
-                
-                // Get the object name using object_get_name()
-                std::string objectName = std::string(g_ModuleInterface->CallBuiltin("object_get_name", {RValue(objectID)}).ToString());
-                // Create unique tree node ID using instance pointer
-                ImGui::PushID(instance);
-                if (ImGui::Selectable(
-                    ("##instance_" + std::to_string((int)instance)).c_str(),
-                    (VisibleInstance && VisibleInstance == instance->m_ID), 
-                    ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
-                ))
+        std::for_each(instanceMap.begin(), instanceMap.end(),
+            [&](std::pair<int32_t, std::vector<CInstance*>> pair) {
+            int32_t objectID = pair.first;
+            RValue objectNameRVal;
+            DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectID)});
+            std::string objectName = objectNameRVal.ToString();
+
+                if (ImGui::TreeNode(objectName.c_str(), "%s (%d)", objectName.c_str(), static_cast<int>(pair.second.size())))
                 {
-                    VisibleInstance = instance->m_ID;
+                    for (CInstance* instance : pair.second) 
+                    {
+                        int32_t ID = instance->m_ID;
+                        ImGui::PushID(instance);
+                        if (ImGui::Selectable(
+                            ("##instance_" + std::to_string((int)instance)).c_str(),
+                            (VisibleInstance && VisibleInstance == instance), 
+                            ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
+                        ))
+                        {
+                            VisibleInstance = instance;
+                        }
+                        ImGui::SameLine(0,0);
+                        ImGui::Text("#%d (%d vars)", 
+                            ID, 
+                            instance->m_VariableCount
+                        );
+                        ImGui::Separator();
+                        ImGui::PopID();
+                    }  
+                    ImGui::TreePop();
                 }
-                ImGui::SameLine(0,0);
-                ImGui::Text("#%d (%d vars) - %s", 
-                    ID, 
-                    instance->GetMemberCount(),
-                    (objectName.substr(0, 
-                        min(
-                            objectName.length(), 
-                            20
-                        )
-                    ) + (objectName.length() > 20 ? "..." : "")).c_str()
-                );
-                ImGui::Separator();
-                ImGui::PopID();
             }
-        }
+        );
+        // for (CInstance* instance : instances)
+        // {
+	    //     if (instance)
+        //     {
+	    //         int32_t ID = instance->m_ID;
+        //         int32_t objectID = instance->m_ObjectIndex;
+                
+        //         // Get the object name using object_get_name()
+        //         RValue objectNameRVal;
+        //         DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectID)});
+        //         std::string objectName = objectNameRVal.ToString();
+        //         // Create unique tree node ID using instance pointer
+        //         ImGui::PushID(instance);
+	    //         if (ImGui::Selectable(
+        //             ("##instance_" + std::to_string((int)instance)).c_str(),
+        //             (VisibleInstance && VisibleInstance == instance->m_ID), 
+        //             ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
+        //         ))
+        //         {
+        //             VisibleInstance = instance->m_ID;
+        //         }
+	    //         ImGui::SameLine(0,0);
+        //         ImGui::Text("#%d (%d vars) - %s", 
+        //             ID, 
+        //             instance->GetMemberCount(),
+        //             (objectName.substr(0, 
+        //                 min(
+        //                     objectName.length(), 
+        //                     20
+        //                 )
+        //             ) + (objectName.length() > 20 ? "..." : "")).c_str()
+        //         );
+        //         ImGui::Separator();
+        //         ImGui::PopID();
+        //     }
+        // }
     }
     ImGui::EndChild();
     // Below area: draw variable viewer for selected instance
     ImGui::SameLine();
-    if (VisibleInstance)
+    CInstance* instance;
+    if (instance = VisibleInstance)
     {
-        RValue existsResult;
-        auto args = std::vector<RValue>(
-            {
-                RValue(VisibleInstance)
-            }
-        );
-        Organik::Utils::getInstanceExists()(existsResult, Organik::Utils::GetGlobalInstance(), Organik::Utils::GetGlobalInstance(), args.size(), args.data());
-        if (!existsResult.ToBoolean())
-        {
-            ImGui::Text("Instance with ID %d does not exist.", VisibleInstance);
-            return;
-        }
-
-        CInstance* instance = Organik::Utils::GetInstanceFromID(VisibleInstance);
-        if (!instance)
+	    if (!instance)
             return;
         int id = instance->m_ID;
 
+        if (!GetActiveInstances().contains(VisibleInstance->m_ID))
+        {
+            ImGui::Text("Instance with ID %d does not exist or is inactive.", VisibleInstance->m_ID);
+            return;
+        }
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         if (ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders))
         {
             // Get object name for header
             int32_t objectIndex = instance->m_ObjectIndex;
-            RValue objectNameRVal = g_ModuleInterface->CallBuiltin("object_get_name", {RValue(objectIndex)});
+            RValue objectNameRVal;
+            DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectIndex)});
+	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
             std::string objectName = objectNameRVal.ToString();
             ImGui::Text("Variables for: %s (ID: %d)", 
                        objectName.c_str(), 
                        instance->m_ID);
             ImGui::Separator();
             
+	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
             std::map<std::string, RValue*> memberMap;
             if (!varMapCache.contains(id) || (instance->GetMemberCount() != varMapCache[id].size()))
             {
-                std::vector<std::string> memberNames = Utils::getInstanceVariableNames(instance);
+                RValue refResult;
                 GetLogger()->LogFormatted("Caching variable map for instance ID %d", id);
+                GetLogger()->LogFormatted("Returnd: %s: %d", refResult.GetKindName(), refResult.GetArrayLength());
+                std::vector<RValue*> refVector = refResult.ToRefVector(); 
+                std::vector<std::string> memberNames;
+                for (RValue *memberNameRVal : refVector)
+                {
+                    Organik::GetLogger()->LogFormatted("%d: %s", id, memberNameRVal->ToCString());
+                    if (memberNameRVal->m_Kind == VALUE_STRING)
+                    {
+                        memberNames.push_back(memberNameRVal->ToString());
+                    }
+                }
                 varMapCache.insert_or_assign(id, std::unordered_map<int32_t, std::string>());
                 for (const std::string& name : memberNames)
                 {
-                    int slot;
-                    g_ModuleInterface->GetVariableSlot(instance, name.c_str(), slot);
-                    if (!slot)
+                    int32_t slot = Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(name.c_str()));
+                    if (!slot || slot < 0)
+                    {
                         continue;
-                    RValue* member = &instance->InternalGetYYVarRef(slot);
+                    }
+	                Organik::GetLogger()->LogFormatted("%s:%d --- %s %s", __FILE__, __LINE__, name.c_str(), __FUNCTION__);
+                    RValue* member = instance->InternalReadYYVar(slot);
                     if (!member || (member->m_Kind == VALUE_NULL || 
                         member->m_Kind == VALUE_UNDEFINED || 
                         member->m_Kind == VALUE_UNSET))
@@ -188,15 +245,18 @@ void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
                         continue;
                     }
                     memberMap.insert({name, member});
+	                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                     varMapCache[id].insert({slot, name});
                 }
             }
             else
             {
+                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                 GetLogger()->LogFormatted("Using cached varmap for instance ID %d", id);
                 for (const auto& [slot, name] : varMapCache[id])
                 {
-                    RValue* member = &instance->InternalGetYYVarRef(slot);
+	                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
+                    RValue* member = instance->InternalReadYYVar(slot);
                     if (!member || (member->m_Kind == VALUE_NULL || 
                         member->m_Kind == VALUE_UNDEFINED || 
                         member->m_Kind == VALUE_UNSET))
@@ -218,6 +278,7 @@ void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
                 // Setup columns
                 ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150.0f);
                 ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+	            Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableHeadersRow();
                 for (const auto& [memberName, memberValue] : memberMap)
@@ -240,6 +301,7 @@ void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
                                 rowClicked = true;
                             }
                         }
+	                    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                         ImGui::SameLine(0,0);
                         ImGui::Text("%s", memberName.c_str());
                         
@@ -251,6 +313,7 @@ void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
                         // Variable value
                         ImGui::TableSetColumnIndex(2);
                         
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                         DisplayVariableValue(memberName, memberValue);
                         // Handle row click - open edit popup
                         if (rowClicked && !showPopup)
@@ -268,6 +331,7 @@ void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
                                 PrepareEditValue(memberValue);
                             }
                         }
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                         if (rowClicked && showPopup)
                         {
                             ImGui::OpenPopup("VarEdit");
@@ -284,6 +348,7 @@ void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
     }
     else
     {
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         ImGui::TextDisabled("Select an instance to view its variables");
     }
 }
@@ -291,8 +356,9 @@ void InstanceVariableViewer::DrawInner(std::vector<CInstance*> instances)
 void InstanceVariableViewer::PrepareEditValue(RValue* value)
 {
     if (!value) return;
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
     Organik::GetLogger()->LogFormatted("%s:%d - Preparing edit value for %p", __FUNCTION__, __LINE__, value);
-    RValueType kind = value->m_Kind;
+    RValueType kind = (RValueType) value->m_Kind;
     
     if (kind == VALUE_REAL)
     {
@@ -311,18 +377,18 @@ void InstanceVariableViewer::PrepareEditValue(RValue* value)
     }
     else if (kind == VALUE_STRING)
     {
-        editStringValue = value->GetString();
+        editStringValue = value->ToString();
         Organik::GetLogger()->LogFormatted("%s:%d - string=%s", __FUNCTION__, __LINE__, editStringValue.c_str());
     }
     else if (kind == VALUE_BOOL)
     {
-        editBoolValue = value->asBool();
+        editBoolValue = value->ToBoolean();
         Organik::GetLogger()->LogFormatted("%s:%d - bool=%d", __FUNCTION__, __LINE__, editBoolValue);
     }
     else
     {
-        editStringValue = value->GetString();
-        Organik::GetLogger()->LogFormatted("%s:%d - unsupported type, name=%s", __FUNCTION__, __LINE__, KIND_NAME_RValue(value).c_str());
+        editStringValue = value->ToString();
+        Organik::GetLogger()->LogFormatted("%s:%d - unsupported type, name=%s", __FUNCTION__, __LINE__, KIND_NAME_RValue(value));
     }
 }
 
@@ -337,16 +403,20 @@ void InstanceVariableViewer::DisplayEditPopup()
             showPopup = false;
             return;
         }
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         if (!(editingVariable.size()))
             ImGui::Text("Editing: %s", editingVariable.c_str());
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         ImGui::Text("Type: %s", KIND_NAME_RValue(editingValue));
         ImGui::Separator();
         
-        RValueType kind = KIND_NAME_RValue(editingValue)->m_Kind;
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
+        RValueType kind = (RValueType)editingValue->m_Kind;
         bool valueChanged = false;
         
         if (kind == VALUE_REAL || kind == VALUE_INT32 || kind == VALUE_INT64)
         {
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
             if (kind == VALUE_INT32)
             {
                 if (ImGui::InputInt("Value", &editIntValue, 1, 100, ImGuiInputTextFlags_EnterReturnsTrue))
@@ -372,6 +442,7 @@ void InstanceVariableViewer::DisplayEditPopup()
                     valueChanged = true;
                 }
             }
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         }
         else if (kind == VALUE_STRING)
         {
@@ -422,18 +493,20 @@ void InstanceVariableViewer::DisplayArrayElement(size_t index, RValue* element, 
 {
     if (!(element->m_Kind == VALUE_ARRAY))
     {
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         DisplayVariableValue(("Array[" + std::to_string(index) + "]"), element);
     }
     else
     {
         // Nested array - show size and allow drilling down
-        std::vector<RValue*> nestedArray = element->m_RefArray;
-        if (nestedArray.empty())
+        int arrayLength = element->GetArrayLength();
+        RValue* arrayValues = element->ToVector().data();
+        if (!arrayLength || !arrayValues) 
         {
-            ImGui::Text("Array[%zu] (empty)", nestedArray.size());
+            ImGui::Text("Array[%zu] (empty)", arrayLength);
             return;
         }
-        if (ImGui::TreeNode(element, "Array[%zu]", nestedArray.size()))
+        if (ImGui::TreeNode(element, "Array[%zu]", arrayLength))
         {
             // Create nested table for sub-array
             if (ImGui::BeginTable("NestedArray", 3, 
@@ -444,20 +517,22 @@ void InstanceVariableViewer::DisplayArrayElement(size_t index, RValue* element, 
                 ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableHeadersRow();
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                 
-                for (size_t j = 0; j < nestedArray.size(); ++j)
+                for (int32_t j = 0; j < arrayLength; ++j)
                 {
-                    ImGui::PushID(nestedArray[j]);
+                    ImGui::PushID(&arrayValues[j]);
                     ImGui::TableNextRow();
                     
                     ImGui::TableSetColumnIndex(0);
                     ImGui::Text("[%zu]", j);
                     
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", nestedArray[j]->GetKindName().c_str());
+                    
+                    ImGui::Text("%s", KIND_NAME_RValue(&arrayValues[j]));
                     
                     ImGui::TableSetColumnIndex(2);
-                    DisplayArrayElement(j, nestedArray[j]);
+                    DisplayArrayElement(j, &arrayValues[j]);
                     
                     ImGui::PopID();
                 }
@@ -467,37 +542,14 @@ void InstanceVariableViewer::DisplayArrayElement(size_t index, RValue* element, 
         }
     }
 }
-void InstanceVariableViewer::DisplayArrayPopup(RValue* array)
-{
-     // GetLogger()->LogFormatted("%s:%d - Displaying array popup", __FUNCTION__, __LINE__);
-    if (ImGui::BeginPopup("View/Edit Array", ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup))
-    {
-        if (!editingValueArray)
-        {
-             // GetLogger()->LogFormatted("%s:%d - No array selected", __FUNCTION__, __LINE__);
-            ImGui::TextDisabled("No array selected");
-            editingInstanceId = 0;
-            ImGui::EndPopup();
-            return;
-        }
-        std::vector<RValue*> editingValueRefArray = editingValueArray->ToRefVector();
-         // GetLogger()->LogFormatted("%s:%d - Editing array of size %zu", __FUNCTION__, __LINE__, editingValueRefArray.size());        
-        
-           
-        ImGui::EndTable();
-        
-        ImGui::Separator();
-        
-        ImGui::EndPopup();
-    }
-}
 
 void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValue* value)
 {
     if (!value) {
         return;
     }
-    RValueType kind = value->m_Kind;
+    RValueType kind = (RValueType) value->m_Kind;
+	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
     
     if (kind == VALUE_REAL)
     {
@@ -526,6 +578,9 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
     }
     else if (kind == VALUE_ARRAY)
     {
+	    Organik::GetLogger()->LogFormatted("%s:%d VALUE_ARRAY %s", __FILE__, __LINE__, __FUNCTION__);
+        DisplayArrayElement(0, value, name);
+        /* 
         // Show array info
         std::vector<RValue*> editingValueRefArray = value->ToRefVector();
                             
@@ -586,11 +641,12 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
                 ImGui::EndTable();
             }
             ImGui::TreePop();
-        }
+        } 
+        */
     }
     else if (kind == VALUE_PTR)
     {
-        void* ptr = value->ToPointer();
+        void* ptr = value->m_Pointer;
         ImGui::Text("0x%p", ptr);
     }
     else if (kind == VALUE_OBJECT)
@@ -600,14 +656,17 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
     }
     else if (kind == VALUE_UNDEFINED || kind == VALUE_UNSET)
     {
+	    Organik::GetLogger()->LogFormatted("%s:%d VALUE_UNDEFINED || kind == VALUE_UNSET %s", __FILE__, __LINE__, __FUNCTION__);
         ImGui::TextDisabled("undefined");
     }
     else if (kind == VALUE_NULL)
     {
         ImGui::TextDisabled("null");
+	    Organik::GetLogger()->LogFormatted("%s:%d VALUE_NULL %s", __FILE__, __LINE__, __FUNCTION__);
     }
     else
     {
+	    Organik::GetLogger()->LogFormatted("%s:%d VALUE_UNK %s", __FILE__, __LINE__, __FUNCTION__);
         // For other types, try to get string representation
         std::string strVal = value->ToString();
         std::string kindName = value->GetKindName();
@@ -615,62 +674,11 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
     }
 }
 
-std::string InstanceVariableViewer::GetValuePreview(RValue* value)
-{
-    if (!value) {
-        return "null";
-    }
-    RValueType kind = value->m_Kind;
-    
-    if (kind == VALUE_REAL || kind == VALUE_INT32 || kind == VALUE_INT64)
-    {
-        return std::to_string(REAL_RValue(value));
-    }
-    else if (kind == VALUE_STRING)
-    {
-        std::string str = value->ToString();
-        if (str.length() > 30)
-        {
-            return "\"" + str.substr(0, 30) + "...\"";
-        }
-        return "\"" + str + "\"";
-    }
-    else if (kind == VALUE_BOOL)
-    {
-        return value->ToBoolean() ? "true" : "false";
-    }
-    else if (kind == VALUE_ARRAY)
-    {
-        return "Array[" + std::to_string(value->ToVector().size()) + "]";
-    }
-    else if (kind == VALUE_PTR)
-    {
-        std::stringstream ss;
-        ss << "0x" << std::hex << value->ToPointer();
-        return ss.str();
-    }
-    else if (kind == VALUE_OBJECT)
-    {
-        return "<Object>";
-    }
-    else if (kind == VALUE_UNDEFINED || kind == VALUE_UNSET)
-    {
-        return "<undefined>";
-    }
-    else if (kind == VALUE_NULL)
-    {
-        return "<null>";
-    }
-    else
-    {
-        return "<unknown:" + std::to_string((int)kind) + ">";
-    }
-}
-
 // Demonstrate creating a simple property editor.
 void InstanceVariableViewer::Draw(bool& out_mousedOver, bool* p_open, const std::string &title)
 {
     ImGui::SetNextWindowSize(ImVec2(430, 750), ImGuiCond_FirstUseEver);
+	    // Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
     if (!ImGui::Begin("Organik Variable Viewer", p_open))
     {
         ImGui::End();

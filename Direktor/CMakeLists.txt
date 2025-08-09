@@ -18,8 +18,7 @@ if(NOT CMAKE_VS_PLATFORM_NAME)
 endif()
 message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
 
-if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
-     OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
+if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
     message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
 endif()
 
@@ -69,6 +68,8 @@ add_library(${PROJ_NAME} SHARED
     "include/imgui/imgui_impl_dx11.h"
     "include/imgui/imgui_stdlib.h"
     "include/imgui/imgui_impl_win32.h"
+    "src/main.h"
+    "src/main.cpp"
     "src/detours.h"
     "src/PALMemoryProtection.h"
     "src/SigScan.h"
@@ -83,9 +84,25 @@ add_library(${PROJ_NAME} SHARED
     "include/imgui/imgui_widgets.cpp"
     "include/imgui/imgui_impl_dx11.cpp"
     "include/imgui/imgui_stdlib.cpp"
+    "src/DefinitionHelpers/BuiltinHelper.cpp"
+    "src/DefinitionHelpers/BuiltinHelper.h"
+    "src/DefinitionHelpers/InstanceHelper.cpp"
+    "src/DefinitionHelpers/InstanceHelper.h"
+    "src/DefinitionHelpers/room_list.h"
+    "src/DefinitionHelpers/script_list.h"
+    "src/DefinitionHelpers/ScriptHelper.h"
+    "src/DefinitionHelpers/var_list.h"
+    "src/Hooks/CInstance.cpp"
+    "src/Hooks/CRoom.cpp"
+    "src/Utils.h"
+    "src/Utils.cpp"
+    "src/ConsoleWindow.cpp"
+    "src/ConsoleWindow.h"
+    "src/DefinitionHelpers/VariableHelper.h"
     "include/imgui/imgui_impl_win32.cpp"
     "include/imgui/imgui.cpp"
-    "src/Organik/UI/UIManager.h"
+    "src/Organik/UI/ItemFilter.h"
+    "src/Organik/CustomInstances/InstanceClone.h"
     "src/Organik/UI/VariableViewer.h"
     "src/Organik/UI/VariableViewer.cpp"
     "src/Organik/UI/UIElement.h"
@@ -95,7 +112,6 @@ add_library(${PROJ_NAME} SHARED
     "src/SigScan.cpp"
     "src/RValue.cpp"
     "src/Synthetik.cpp"
-    "src/main.cpp"
     "src/hde.cpp"
     "src/zhl.cpp"
     )
@@ -132,11 +148,11 @@ set_target_properties(${PROJ_NAME} PROPERTIES
 
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     set_target_properties(${PROJ_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE "FALSE"
     )
 elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
     set_target_properties(${PROJ_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE "FALSE"
     )
 endif()
 
@@ -224,59 +240,63 @@ target_compile_definitions(${PROJ_NAME} PRIVATE LIBZHL_EXPORTS)
 ################################################################################
 
 if(MSVC)
-#    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-#        target_compile_options(${PROJ_NAME} PRIVATE
-#            $<$<CONFIG:Debug>:
-#                /W4;
-#                /WX;
-#                /Z7
-#            >
-#            $<$<CONFIG:Release>:
-#                /Oi;
-#                /Gy;
-#                /W3
-#            >
-#            /permissive-;
-#            /std:c++23;
-#            /sdl;
-#            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-#        )
-#    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-#        target_compile_options(${PROJ_NAME} PRIVATE
-#            $<$<CONFIG:Debug>:
-#                /W4;
-#                /WX;
-#                /Z7
-#            >
-#            $<$<CONFIG:Release>:
-#                /Oi;
-#                /Gy;
-#                /W3
-#            >
-#            /permissive-;
-#            /std:c++23;
-#            /sdl;
-#            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-#        )
-#    endif()
-#    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-#        target_link_options(${PROJ_NAME} PRIVATE
-#            $<$<CONFIG:Release>:
-#                /OPT:REF;
-#                /OPT:ICF
-#            >
-#            /NDEBUG;
-#            /SUBSYSTEM:CONSOLE
-#        )
-#    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-#        target_link_options(${PROJ_NAME} PRIVATE
-#            $<$<CONFIG:Release>:
-#                /OPT:REF;
-#                /OPT:ICF
-#            >
-#            /NDEBUG;
-#            /SUBSYSTEM:CONSOLE
-#        )
-#    endif()
+    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+        target_compile_options(${PROJ_NAME} PRIVATE
+            $<$<CONFIG:Debug>:
+                /Od;
+                /Ox;
+                /W4;
+                /WX;
+                /Z7
+            >
+            $<$<CONFIG:Release>:
+                /Od;
+                /Ox;
+                /Gy;
+                /W3
+            >
+            /permissive-;
+            /std:c++23;
+            /sdl;
+            )
+    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
+        target_compile_options(${PROJ_NAME} PRIVATE
+            $<$<CONFIG:Debug>:
+                /Od;
+                /Ox;
+                /W4;
+                /WX;
+                /Z7
+            >
+            $<$<CONFIG:Release>:
+                /Od;
+                /Ox;
+                /Gy;
+                /W3
+            >
+            /permissive-;
+            /std:c++23;
+            /sdl;
+        )
+    endif()
+    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+        target_link_options(${PROJ_NAME} PRIVATE
+            $<$<CONFIG:Release>:
+                /OPT:REF;
+                /OPT:ICF
+            >
+            /NDEBUG;
+            /SUBSYSTEM:CONSOLE
+        )
+    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
+        target_link_options(${PROJ_NAME} PRIVATE
+            $<$<CONFIG:Release>:
+                /OPT:REF;
+                /OPT:ICF
+            >
+            /NDEBUG;
+            /SUBSYSTEM:CONSOLE
+        )
+    endif()
 endif()
 

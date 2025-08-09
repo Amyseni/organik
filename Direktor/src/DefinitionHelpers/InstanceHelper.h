@@ -4,6 +4,10 @@
 using namespace Organik;
 using namespace Utils;
 
+namespace Organik 
+{
+    void DoHelperSetup();
+}
 
 #ifndef CONCATENATE
 #define CONCATENATE(s1, s2) s1##s2

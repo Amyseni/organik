@@ -42,6 +42,7 @@ private:
 
 public:
 	FunctionDefinition(const char *name, const std::type_info &type, const char* sig, const short *argdata, int nArgs, unsigned int flags, void **outfunc);
+	FunctionDefinition(const char *name, const std::type_info &type, void *addr, const short *argdata, int nArgs, unsigned int flags, void **outfunc);
 
 	virtual int Load();
 

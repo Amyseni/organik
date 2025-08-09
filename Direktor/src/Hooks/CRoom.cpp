@@ -2,94 +2,66 @@
 #include "zhl_internal.h"
 #include "zhl.h"
 #include <unordered_map>
+#include "Logging.h"
+#include "Utils.h"
 
-HOOK_METHOD(CRoom, DeleteInstance, (CInstance* self, bool removeGlobal) -> void)
+
+
+// HOOK_METHOD(CRoom, SwitchRoom, (int newRoom) -> void)
+// {
+//     std::cout << "Switching room to: " << newRoom << std::endl;
+//     super(newRoom);
+//     std::cout << "Room switched successfully." << std::endl;
+// }
+
+static bool g_fake =  ([]() -> bool {
+    return true;
+})();
+static std::unordered_map<int32_t, CInstance*> g_ActiveInstances = std::unordered_map<int32_t, CInstance*>();
+std::mutex g_ActiveInstancesMutex;
+std::unordered_map<int32_t, CInstance*> GetActiveInstances()
 {
-    if (self == nullptr)
-    {
-        std::cerr << "Attempted to delete a null instance." << std::endl;
-        return;
-    }
-    if (!GetActiveInstances().contains(self->m_ID))
-    {
-        std::cerr << "Tried to remove " << self->m_ID << " but it is not in the instances list." << std::endl;
-        super(self, removeGlobal);
-        return;
-    }
-    auto it = GetActiveInstances().find(self->m_ID);
-    if (it != GetActiveInstances().end())
-    {
-        GetActiveInstances().erase(it);
-        std::cout << "Instance with ID " << self->m_ID << " removed from instance viewer list." << std::endl;
-    }
-    // Call the original method to handle the rest of the deletion logic
-    super(self, removeGlobal);
+    std::lock_guard<std::mutex> lock(g_ActiveInstancesMutex);
+    return std::unordered_map<int32_t, CInstance*>(g_ActiveInstances);
 }
-
-
-//re-created from the disassembly, in an attempt to trace the logic as it runs
 HOOK_METHOD(CRoom, UpdateActive, (void) -> void)
 {
-    std::cout << "Updating active instances in the room:" << std::endl;
-    CInstance* cur = this->m_Deactive.m_First;
-    CInstance* other = nullptr;
-    CInstance* theOneSheSaidNotToWorryAbout = nullptr;
-    while (true)
+    if (!this)
+        Error_Show_Action(const_cast<char*>("CRoom::UpdateActive called with null 'this' pointer."), true, true);
+    this->super();
+    if (!Organik::Utils::isInitializationDone())
+        return;
+    Organik::GetLogger()->LogSimple("CRoom::UpdateActive called");
+    
+    if (!m_Active.m_First || !m_Active.m_Count)
     {
-        do
-        {
-            other = cur;
-            if (other == nullptr)
-            {
-                cur = this->m_Active.m_First;
-                while (other = cur, other != nullptr) // I didn't even know this was legal syntax
-                {
-                    cur = other->m_Next;
-                    if (other->m_InstanceFlags >> 1 & 1)
-                    {
-                        if (other->m_Prev == nullptr) {
-                            this->m_Active.m_First = other->m_Next;
-                        } else {
-                            other->m_Prev->m_Next = other->m_Next;
-                        }
-                        if (other->m_Next == nullptr) {
-                            this->m_Active.m_Last = other->m_Prev;
-                        } else {
-                            other->m_Next->m_Prev = other->m_Prev;
-                        }
-                        other->m_Next = nullptr;
-                        other->m_Prev = nullptr;
-                        this->m_Active.m_Count--;
-                        this->m_Deactive.m_Count++;
-                        theOneSheSaidNotToWorryAbout = this->m_Deactive.m_Last;
-                        if (theOneSheSaidNotToWorryAbout == nullptr)
-                        {
-                            this->m_Deactive.m_First = other;
-                            this->m_Deactive.m_Last = other;
-                            other->m_Prev = nullptr;
-                        } else {
-                            theOneSheSaidNotToWorryAbout->m_Next = other;
-                            other->m_Prev = this->m_Deactive.m_Last;
-                            this->m_Deactive.m_Last = other;
-                        }
-                        other->m_Next = nullptr;
-                    }
-                }
-            }
-        } while ((cur->m_InstanceFlags >> 1 & 1) != 0);
+        Organik::GetLogger()->LogSimple("No active instances found in the room.");
+        std::lock_guard<std::mutex> lock(g_ActiveInstancesMutex);
+        g_ActiveInstances.clear();
+        return;
     }
+    std::lock_guard<std::mutex> lock(g_ActiveInstancesMutex);
+    g_ActiveInstances.clear();
+    g_ActiveInstances.reserve(m_Active.m_Count);
+    for (CInstance* in = m_Active.m_First; in; in = in->m_Next)
+    {
+        if (!in)
+            continue;
+        g_ActiveInstances.insert({in->m_ID, in});
+    }
+    Organik::GetLogger()->LogFormatted("Updated active instances in the room. Total count: %d", m_Active.m_Count);
 }
 
 // I'm pretty sure this is for collision detection? Since it references the sprites.
-HOOK_GLOBAL(MarkInstancesAsDirty, (int spriteIndex) -> void)
-{
-    // This function marks all instances of a given sprite as dirty
-    for (auto& [id, instance] : GetActiveInstances())
-    {
-        if (instance->m_SpriteIndex == spriteIndex)
-        {
-            instance->m_InstanceFlags |= 0x1; // Assuming 0x1 is the dirty flag
-            std::cout << "Marked instance with ID " << id << " as dirty." << std::endl;
-        }
-    }
-}
+// HOOK_GLOBAL(MarkInstancesAsDirty, (int spriteIndex) -> void)
+// {
+//     // This function marks all instances of a given sprite as dirty
+//     for (auto& [id, instance] : GetActiveInstances())
+//     {
+//         if (instance->m_SpriteIndex == spriteIndex)
+//         {
+//             instance->m_InstanceFlags |= 0x1; // Assuming 0x1 is the dirty flag
+//             std::cout << "Marked instance with ID " << id << " as dirty." << std::endl;
+//         }
+//     }
+// }

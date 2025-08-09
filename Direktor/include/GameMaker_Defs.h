@@ -165,9 +165,39 @@ typedef void (*PFUNC_process)(HTTP_REQ_CONTEXT* _pContext);
 typedef void (*TSetRunnerInterface)(const YYRunnerInterface* pRunnerInterface, size_t _functions_size);
 typedef void (*TYYBuiltin)(RValue* Result, CInstance* selfinst, CInstance* otherinst, int argc, RValue* arg);
 typedef void (*TRoutine)(RValue& _result, CInstance* _self, CInstance* _other, int _argc, RValue _args[]);
+std::unordered_map<int32_t, CInstance*> GetActiveInstances();
+template <typename T>
+requires std::is_invocable_r_v<bool, T, CInstance*>
+static CInstance* GetFirstInstanceOrDefault(T predicate, CInstance* defaultInstance = nullptr)
+{
+    for (auto& [id, instance] : GetActiveInstances())
+    {
+        if (predicate(instance))
+        {
+            return instance; // Return the first match
+        }
+    }
+    return defaultInstance;
+}
+
+template <typename T>
+requires std::is_invocable_r_v<bool, T, CInstance*>
+static std::vector<CInstance*> GetInstancesWhere(T predicate)
+{
+    std::vector<CInstance*> result;
+    for (auto& [id, instance] : GetActiveInstances())
+    {
+        if (predicate(instance))
+        {
+            result.push_back(instance);
+        }
+    }
+    return result;
+}
 
 template <typename T>
 struct CArrayStructure {
+    char padding[0x8];
 
 };
 struct SLLVMVars{
@@ -195,7 +225,7 @@ concept NumberCompatible = requires(T Param)
 {   
     requires std::_Is_any_of_v<T, 
         int, long, long long, float, double, 
-        short, byte, char, unsigned char, 
+        short, char, unsigned char, 
         unsigned int, unsigned long, 
         unsigned long long, unsigned short>;
 };
@@ -286,7 +316,7 @@ enum YYObjectKind {
     OBJECT_KIND_MAX=26
 };
 #define MASK_KIND_RVALUE 0x0ffffff
-enum RValueType : uint32_t
+enum RValueType : uint
 {
     VALUE_REAL = 0,				// Real value
     VALUE_STRING = 1,			// String value
@@ -296,15 +326,15 @@ enum RValueType : uint32_t
     VALUE_UNDEFINED = 5,		// Undefined value
     VALUE_OBJECT = 6,			// YYObjectBase* value 
     VALUE_INT32 = 7,			// Int32 value
-    VALUE_VEC4 = 8,				// Vec4 (x,y,z,w) value (allocated from pool)
-    VALUE_VEC44 = 9,			// Vec44 (matrix) value (allocated from pool)
+    VALUE_VEC4 = 8,				// vec4* value 
+    VALUE_VEC44 = 9,			// matrix44* value
     VALUE_INT64 = 10,			// Int64 value
     VALUE_ACCESSOR = 11,		// Actually an accessor
     VALUE_NULL = 12,			// JS Null
     VALUE_BOOL = 13,			// Bool value
-    VALUE_ITERATOR = 14,		// JS For-in Iterator
-    VALUE_REF = 15,				// Reference value
-    VALUE_UNSET = 0x0ffffff		// Unset value (never initialized)
+    VALUE_ITERATOR = 14,     // JS For-in Iterator
+    VALUE_REF = 15,          // Reference value
+    VALUE_UNSET = 0x0ffffff  // Unset value (never initialized)
 };
 enum eVM_Type
 {
@@ -315,19 +345,11 @@ enum eVM_Type
 	eVMT_Bool,
 	eVMT_Variable,
 	eVMT_String,
-	eVMT_GMDebug_StringPatch,	
+	eVMT_GMDebug_StringPatch, 
 	eVMT_Delete,
 	eVMT_Undefined,
 	eVMT_PtrType,
 	eVMT_Error = 0xf,			
-};
-enum EventTriggers : uint32_t
-{
-    EVENT_OBJECT_CALL = 1,	// The event represents a Code_Execute() call.
-    EVENT_FRAME = 2,		// The event represents an IDXGISwapChain::Present() call.
-    EVENT_RESIZE = 3,		// The event represents an IDXGISwapChain::ResizeBuffers() call.
-    EVENT_UNUSED = 4,		// This value is unused.
-    EVENT_WNDPROC = 5		// The event represents a WndProc() call.
 };
 enum eBuffer_Type : int32_t
 {

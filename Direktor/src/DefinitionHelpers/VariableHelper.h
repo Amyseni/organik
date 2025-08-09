@@ -15,15 +15,14 @@ namespace Organik
 {
     struct Variables
     {
-        enum : uint32_t
+        enum : unsigned int
         {
             VARIABLES_DO(MAKE_ENUM)
         };
-        static std::unordered_map<const char*, int> varToEnumMap;
+        static std::unordered_map<const char*, int> varToIndexMap;
         static std::vector<int32_t> Hashes;
         static const char* const VariableNamesArr[];
         static std::unordered_map<int32_t, const char*> HashToVariableMap;
-        static int32_t GetHash(const char* name);
     };
 }
 #endif
