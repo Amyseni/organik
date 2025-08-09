@@ -12,7 +12,7 @@
 
 HMODULE mod;
 HMODULE hModule_Dupe;
-
+HMODULE* modref;
 void doLoadLibraryW()
 {
 	if (!mod)
