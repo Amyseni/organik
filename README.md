@@ -3,11 +3,12 @@ This will always be [directly on the latest release.](https://github.com/Amyseni
 
 # Credits/Special Thanks/Links/Etc.
 So many people to thank... I really hope I got everyone, but **please** if your name is missing, reach out and let me know. 
-## Mysterious Benefactor
-@inspectorboat (Discord) - Direct donation / other
 
-## "Big Money, Big Prizes"
-@suny_n - Power Grid Supervisor / "Let's play games" -> waits for me to start the call (true combo) - Direct donation / PayPal
+## Mysterious Benefactor
+@inspectorboat (Discord) - Direct Donation / Other
+
+### "Big Money, Big Prizes"
+@suny_n - Power Grid Supervisor / "Let's play games" -> waits for me to start the call (true combo) - Direct Donation / PayPal
 
 ### Venture Capital / Tooltip Ignorer (Patreon)
 @simonsis - "Big Tech"/Electrical Expert/Analyst - Patreon ~~Simp~~
@@ -15,7 +16,6 @@ So many people to thank... I really hope I got everyone, but **please** if your 
 ### Raider Enjoyer (Patreon)
 TODO: write a snappy one-liner
 
-====
 ### Other Projects / Libraries / Art & Audio / Special Thanks
 *(any code included in any mod version, past or present--including code indirectly based on existing projects. Art, sfx, music--always used with permission. Active/involved community members. Anyone else Organik couldn't exist without). In no particular order.*
 
