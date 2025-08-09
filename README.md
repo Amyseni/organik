@@ -14,6 +14,7 @@ So many people to thank... I really hope I got everyone, but **please** if your 
 
 ### Raider Enjoyer (Patreon)
 TODO: write a snappy one-liner
+
 ====
 ### Other Projects / Libraries / Art & Audio / Special Thanks
 *(any code included in any mod version, past or present--including code indirectly based on existing projects. Art, sfx, music--always used with permission. Active/involved community members. Anyone else Organik couldn't exist without). In no particular order.*
