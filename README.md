@@ -1,11 +1,13 @@
 # How do I get started?
 This will always be [directly on the latest release.](https://github.com/Amyseni/organik/releases/latest) Need help/have a specific issue? [Discord is the place to be](https://discord.gg/KrTA2QkyCx)
 
-# Credits/Special Thanks/Links/Etc.
+# Credits
 So many people to thank... I really hope I got everyone, but **please** if your name is missing, reach out and let me know. 
 
-## Mysterious Benefactor
-@inspectorboat (Discord) - Direct Donation / Other
+Money Givers
+=
+### Mysterious Benefactor
+@inspectorboat - Direct Donation / Other
 
 ### "Big Money, Big Prizes"
 @suny_n - Power Grid Supervisor / "Let's play games" -> waits for me to start the call (true combo) - Direct Donation / PayPal
@@ -16,22 +18,26 @@ So many people to thank... I really hope I got everyone, but **please** if your 
 ### Raider Enjoyer (Patreon)
 TODO: write a snappy one-liner
 
-### Other Projects / Libraries / Art & Audio / Special Thanks
+Other Projects / Libraries / Art & Audio / Special Thanks
+==
 *(any code included in any mod version, past or present--including code indirectly based on existing projects. Art, sfx, music--always used with permission. Active/involved community members. Anyone else Organik couldn't exist without). In no particular order.*
 
-[Kilburn (@FixItVinh)](https://x.com/fixitvinh) (Creator of ZHL/[Antibirth](https://www.antibirth.com/)) - Genius/Brain person, inspired me to be more than I thought possible.
-[Archie](https://github.com/Archie-osu) (Creator of [Aurie](https://github.com/AurieFramework/Aurie) / [YYToolkit](https://github.com/AurieFramework/YYToolkit), oracle of gamemaker secrets/cool person extraordinaire) -- Saved me from an unknowable length of time reverse engineering an entire GameMaker.<br>
-@en.ge ( [ART (cara.app) ](https://cara.app/enge) ) - Concept art, Banner art (Patreon, Youtube), idea bouncer, inspirer of things. Did I mention art? Also an artist. A really good one. Like dam.<br>
-@NotYourSagittarius ([tweeter](https://x.com/NY_Sagittarius )) - The Mushroom profile-pic/icon art (MushBot). Also just a very cool person (insanely talented)<br>
-@simonsis (AGAIN??) - The only reason I got good enough at Synthetik to care about modding it.<br>
-@tactu - Keeping me on track, "that one guy from synthcord from way back when", maybe the person outside myself who cares most deeply about this mod being done "right," and not just "done." (Beau is also in the running)<br>
-@beauregarde_35490 - "lunatic on-call," THE LOUD ONE, purveyor of cursed Synthetik 1 secrets. Has never been accused of not playing enough Synthetik.<br>
-@omnx - ADHD Squirrel/DistractionFactory::Create()/"I bet you could train an LLM to do this" incarnate. Also saved me countless hours of spinning in circles/weeks of potential dev time<br>
-Aurie/YYToolkit (links above) - The rock solid foundation upon which I constructed this rickety 100ft ladder. The basis I've used for all gamemaker structs/types/YYC binary format (this cut at least a year of dev time, probably more).<br>
-[ImGui](https://github.com/ocornut) -- Does what it says on the tin. I don't even want to think about the reality where I kept on with my own GUI "solution" (read: problem)<br>
-[Tiny Mod Injector](https://github.com/YAL-Game-Tools/TinyModInjector)<br> -- Freed me from the peril of trying to support a launcher .exe / installer package for both Proton AND Windows itself. (effectively saving me from writing TinyModInjector)
-[CallbackManagerMod - hooking/callbacks library.](https://github.com/PippleCultist/CallbackManagerMod) -- **The** "it just works" callbacks/hooking package for YYToolkit. Seriously, it just does the thing and that is magical all by itself.<br>
-(and other [PippleCultist](https://github.com/PippleCultist) works, inspiration and code references.)<br>
+### People
+  - [Kilburn (@FixItVinh)](https://x.com/fixitvinh) (Creator of ZHL/[Antibirth](https://www.antibirth.com/)) - Genius/Brain person, inspired me to be more than I thought possible.
+  - [Archie](https://github.com/Archie-osu) (Creator of [Aurie](https://github.com/AurieFramework/Aurie) / [YYToolkit](https://github.com/AurieFramework/YYToolkit), oracle of gamemaker secrets/cool person extraordinaire) -- Saved me from an unknowable length of time reverse engineering an entire GameMaker.<br>
+  - @en.ge ( [ART (cara.app) ](https://cara.app/enge) ) - Concept art, Banner art (Patreon, Youtube), idea bouncer, inspirer of things. Did I mention art? Also an artist. A really good one. Like dam.<br>
+  - @NotYourSagittarius ([tweeter](https://x.com/NY_Sagittarius )) - The Mushroom profile-pic/icon art (MushBot). Also just a very cool person (insanely talented)<br>
+  - @simonsis (AGAIN??) - The only reason I got good enough at Synthetik to care about modding it.<br>
+  - @tactu - Keeping me on track, "that one guy from synthcord from way back when", maybe the person outside myself who cares most deeply about this mod being done "right," and not just "done." (Beau is also in the running)<br>
+  - @beauregarde_35490 - "lunatic on-call," THE LOUD ONE, purveyor of cursed Synthetik 1 secrets. Has never been accused of not playing enough Synthetik.<br>
+  - @omnx - ADHD Squirrel/DistractionFactory::Create()/"I bet you could train an LLM to do this" incarnate. Also saved me countless hours of spinning in circles/weeks of potential dev time<br>
+
+### Projects
+  - Aurie/YYToolkit (links above) - The rock solid foundation upon which I constructed this rickety 100ft ladder. The basis I've used for all gamemaker structs/types/YYC binary format (this cut at least a year of dev time, probably more).<br>
+  - [ImGui](https://github.com/ocornut) -- Does what it says on the tin. I don't even want to think about the reality where I kept on with my own GUI "solution" (read: problem)<br>
+  - [Tiny Mod Injector](https://github.com/YAL-Game-Tools/TinyModInjector)<br> -- Freed me from the peril of trying to support a launcher .exe / installer package for both Proton AND Windows itself. (effectively saving me from writing TinyModInjector)
+  - [CallbackManagerMod - hooking/callbacks library.](https://github.com/PippleCultist/CallbackManagerMod) -- **The** "it just works" callbacks/hooking package for YYToolkit. Seriously, it just does the thing and that is magical all by itself.<br>
+      - (and other [PippleCultist](https://github.com/PippleCultist) works (incl. HolocureMultiplayerMod): inspiration and code references.)<br>
 
 # Licensing
 [Organik - GPL3](https://github.com/Amyseni/organik/blob/master/LICENSE)<br>
