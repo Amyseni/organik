@@ -2,8 +2,12 @@
 This will always be [directly on the latest release.](https://github.com/Amyseni/organik/releases/latest) Need help/have a specific issue? [Discord is the place to be](https://discord.gg/KrTA2QkyCx)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 # Foreword / "Just Type Commit"
+=======
+## Foreword / "Just Type Commit"
+>>>>>>> 9dfadac (no u)
 This entire set of projects I am working on follows a principle--inspired (unintentionally) by [Kilburn](#people)--that by its own definition, I am compelled to share with you all:<br><br>Commit now. Just do it. Go to your terminal, type `commit -a`, write ANYTHING and send it. In fact, work towards a commit for every successful build/compile. Stop worrying, make a new branch, forget about (main/master) for a while and just keep posting your work. You can figure out what version(s) are main-worthy as you test and iterate. In my opinion, open sourcing even the things you struggle to be proud of is the only way to truly reveal the space that would have been left `void` by your silence.
 
 >>>>>>> 06c653f (Update README.md)
@@ -46,7 +50,7 @@ Other Projects / Libraries / Art & Audio / Special Thanks
 >>>>>>> 06c653f (Update README.md)
   - @simonsis (AGAIN??) - The only reason I got good enough at Synthetik to care about modding it.<br>
   - @tactu - Keeping me on track, "that one guy from synthcord from way back when", maybe the person outside myself who cares most deeply about this mod being done "right," and not just "done." (Beau is also in the running)<br>
-  - @beauregarde_35490 - "lunatic on-call," THE LOUD ONE, purveyor of cursed Synthetik 1 secrets. Has never been accused of not playing enough Synthetik.<br>
+  - @beauregarde_35490 - "lunatic on-call," known weapon kit enjoyer. Can occasionally be found in a multiplayer lobby. I wonder why we never see him in global chat? I THINK HIS LSHIFT KEY MIGHT BE BROKEN<br>
   - @omnx - ADHD Squirrel/DistractionFactory::Create()/"I bet you could train an LLM to do this" incarnate. Also saved me countless hours of spinning in circles/weeks of potential dev time<br>
 
 ### Projects
