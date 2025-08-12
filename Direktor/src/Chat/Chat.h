@@ -4,6 +4,6 @@
 #include "Utils.h"
 
 struct Chat : public CInstance {
-    static void Draw();
+    void Draw();
     
 };

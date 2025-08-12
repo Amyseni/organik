@@ -5,29 +5,26 @@
 #include "Logging.h"
 #include "Utils.h"
 
-
-
-// HOOK_METHOD(CRoom, SwitchRoom, (int newRoom) -> void)
-// {
-//     std::cout << "Switching room to: " << newRoom << std::endl;
-//     super(newRoom);
-//     std::cout << "Room switched successfully." << std::endl;
-// }
-
 static bool g_fake =  ([]() -> bool {
     return true;
 })();
-static std::unordered_map<int32_t, CInstance*> g_ActiveInstances = std::unordered_map<int32_t, CInstance*>();
+
+// maybe it's best if you just don't look too hard at this, it may hurt your brain holes. I know it hurts mine.
+
+static std::unordered_map<int32_t, CInstance*> g_ActiveInstances = {};
 std::mutex g_ActiveInstancesMutex;
-std::unordered_map<int32_t, CInstance*> GetActiveInstances()
+_NODISCARD_LOCK std::pair<std::unique_lock<std::mutex>, std::unordered_map<int32_t, CInstance*>> GetActiveInstances()
 {
-    std::lock_guard<std::mutex> lock(g_ActiveInstancesMutex);
-    return std::unordered_map<int32_t, CInstance*>(g_ActiveInstances);
+    std::unique_lock<std::mutex> lock(g_ActiveInstancesMutex);
+    return std::make_pair(std::move(lock), g_ActiveInstances);
 }
 HOOK_METHOD(CRoom, UpdateActive, (void) -> void)
 {
     if (!this)
-        Error_Show_Action(const_cast<char*>("CRoom::UpdateActive called with null 'this' pointer."), true, true);
+        Error_Show_Action(
+            const_cast<char*>("CRoom::UpdateActive called with null 'this' pointer. (??? how)"), 
+            true /* requireCrash */, true /* manualError */
+        );
     this->super();
     if (!Organik::Utils::isInitializationDone())
         return;
@@ -51,17 +48,3 @@ HOOK_METHOD(CRoom, UpdateActive, (void) -> void)
     }
     Organik::GetLogger()->LogFormatted("Updated active instances in the room. Total count: %d", m_Active.m_Count);
 }
-
-// I'm pretty sure this is for collision detection? Since it references the sprites.
-// HOOK_GLOBAL(MarkInstancesAsDirty, (int spriteIndex) -> void)
-// {
-//     // This function marks all instances of a given sprite as dirty
-//     for (auto& [id, instance] : GetActiveInstances())
-//     {
-//         if (instance->m_SpriteIndex == spriteIndex)
-//         {
-//             instance->m_InstanceFlags |= 0x1; // Assuming 0x1 is the dirty flag
-//             std::cout << "Marked instance with ID " << id << " as dirty." << std::endl;
-//         }
-//     }
-// }

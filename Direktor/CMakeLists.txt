@@ -244,7 +244,6 @@ if(MSVC)
         target_compile_options(${PROJ_NAME} PRIVATE
             $<$<CONFIG:Debug>:
                 /Od;
-                /Ox;
                 /W4;
                 /WX;
                 /Z7
@@ -263,7 +262,6 @@ if(MSVC)
         target_compile_options(${PROJ_NAME} PRIVATE
             $<$<CONFIG:Debug>:
                 /Od;
-                /Ox;
                 /W4;
                 /WX;
                 /Z7
@@ -271,6 +269,7 @@ if(MSVC)
             $<$<CONFIG:Release>:
                 /Od;
                 /Ox;
+                /Z7;
                 /Gy;
                 /W3
             >
@@ -294,7 +293,7 @@ if(MSVC)
                 /OPT:REF;
                 /OPT:ICF
             >
-            /NDEBUG;
+            /DEBUG;
             /SUBSYSTEM:CONSOLE
         )
     endif()

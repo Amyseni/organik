@@ -111,39 +111,38 @@ void InstanceVariableViewer::DrawInner()
 	const auto& instanceMap = instanceFilter.FilterInstances();
     if (ImGui::BeginChild("##tree", ImVec2(300, 0), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders | ImGuiChildFlags_NavFlattened))
     {
-        std::for_each(instanceMap.begin(), instanceMap.end(),
-            [&](std::pair<int32_t, std::vector<CInstance*>> pair) {
+        for (auto& pair : instanceMap)
+        {
             int32_t objectID = pair.first;
             RValue objectNameRVal;
-            DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectID)});
+            DoBuiltinRef(&gml_object_get_name, &objectNameRVal, {RValue(objectID)});
             std::string objectName = objectNameRVal.ToString();
 
-                if (ImGui::TreeNode(objectName.c_str(), "%s (%d)", objectName.c_str(), static_cast<int>(pair.second.size())))
+            if (ImGui::TreeNode(objectName.c_str(), "%s (%d)", objectName.c_str(), static_cast<int>(pair.second.size())))
+            {
+                for (CInstance* instance : pair.second) 
                 {
-                    for (CInstance* instance : pair.second) 
+                    int32_t ID = instance->m_ID;
+                    ImGui::PushID(instance);
+                    if (ImGui::Selectable(
+                        ("##instance_" + std::to_string((int)instance)).c_str(),
+                        (VisibleInstance && VisibleInstance == instance), 
+                        ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
+                    ))
                     {
-                        int32_t ID = instance->m_ID;
-                        ImGui::PushID(instance);
-                        if (ImGui::Selectable(
-                            ("##instance_" + std::to_string((int)instance)).c_str(),
-                            (VisibleInstance && VisibleInstance == instance), 
-                            ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
-                        ))
-                        {
-                            VisibleInstance = instance;
-                        }
-                        ImGui::SameLine(0,0);
-                        ImGui::Text("#%d (%d vars)", 
-                            ID, 
-                            instance->m_VariableCount
-                        );
-                        ImGui::Separator();
-                        ImGui::PopID();
-                    }  
-                    ImGui::TreePop();
-                }
+                        VisibleInstance = instance;
+                    }
+                    ImGui::SameLine(0,0);
+                    ImGui::Text("#%d (%d vars)", 
+                        ID, 
+                        instance->m_VariableCount
+                    );
+                    ImGui::Separator();
+                    ImGui::PopID();
+                }  
+                ImGui::TreePop();
             }
-        );
+        }
         // for (CInstance* instance : instances)
         // {
 	    //     if (instance)
@@ -182,16 +181,19 @@ void InstanceVariableViewer::DrawInner()
         // }
     }
     ImGui::EndChild();
-    // Below area: draw variable viewer for selected instance
+    
     ImGui::SameLine();
     CInstance* instance;
     if (instance = VisibleInstance)
     {
+        // basically both of these checks should be unreachable code, but you know how I get down.
 	    if (!instance)
             return;
         int id = instance->m_ID;
 
-        if (!GetActiveInstances().contains(VisibleInstance->m_ID))
+        if (!CInstance::FirstOrDefault([&](CInstance* inst) -> bool {
+            return inst == VisibleInstance;
+        }))
         {
             ImGui::Text("Instance with ID %d does not exist or is inactive.", VisibleInstance->m_ID);
             return;
@@ -202,12 +204,12 @@ void InstanceVariableViewer::DrawInner()
             // Get object name for header
             int32_t objectIndex = instance->m_ObjectIndex;
             RValue objectNameRVal;
-            DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectIndex)});
+            DoBuiltinRef(&gml_object_get_name, &objectNameRVal, {RValue(objectIndex)});
 	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
             std::string objectName = objectNameRVal.ToString();
             ImGui::Text("Variables for: %s (ID: %d)", 
                        objectName.c_str(), 
-                       instance->m_ID);
+                       id);
             ImGui::Separator();
             
 	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
@@ -215,39 +217,41 @@ void InstanceVariableViewer::DrawInner()
             if (!varMapCache.contains(id) || (instance->GetMemberCount() != varMapCache[id].size()))
             {
                 RValue refResult;
+                constexpr int szInst = sizeof(CInstance);
                 GetLogger()->LogFormatted("Caching variable map for instance ID %d", id);
-                GetLogger()->LogFormatted("Returnd: %s: %d", refResult.GetKindName(), refResult.GetArrayLength());
-                std::vector<RValue*> refVector = refResult.ToRefVector(); 
+                auto varmap = Organik::Utils::GetVariableMap(instance);
+                // GetLogger()->LogFormatted("Returnd: %s: %d", refResult.GetKindName(), refResult.GetArrayLength());
+                //std::vector<RValue*> refVector = refResult.ToRefVector(); 
                 std::vector<std::string> memberNames;
-                for (RValue *memberNameRVal : refVector)
-                {
-                    Organik::GetLogger()->LogFormatted("%d: %s", id, memberNameRVal->ToCString());
-                    if (memberNameRVal->m_Kind == VALUE_STRING)
-                    {
-                        memberNames.push_back(memberNameRVal->ToString());
-                    }
-                }
-                varMapCache.insert_or_assign(id, std::unordered_map<int32_t, std::string>());
-                for (const std::string& name : memberNames)
-                {
-                    int32_t slot = Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(name.c_str()));
-                    if (!slot || slot < 0)
-                    {
-                        continue;
-                    }
-	                Organik::GetLogger()->LogFormatted("%s:%d --- %s %s", __FILE__, __LINE__, name.c_str(), __FUNCTION__);
-                    RValue* member = instance->InternalReadYYVar(slot);
-                    if (!member || (member->m_Kind == VALUE_NULL || 
-                        member->m_Kind == VALUE_UNDEFINED || 
-                        member->m_Kind == VALUE_UNSET))
-                    {
-                        // If member is null, skip it
-                        continue;
-                    }
-                    memberMap.insert({name, member});
-	                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-                    varMapCache[id].insert({slot, name});
-                }
+                // for (RValue *memberNameRVal : refVector)
+                // {
+                //     Organik::GetLogger()->LogFormatted("%d: %s", id, memberNameRVal->ToCString());
+                //     if (memberNameRVal->m_Kind == VALUE_STRING)
+                //     {
+                //         memberNames.push_back(memberNameRVal->ToString());
+                //     }
+                // }
+                varMapCache.insert_or_assign(id, varmap);
+                // for (const std::string& name : memberNames)
+                // {
+                //     int32_t slot = Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(name.c_str()));
+                //     if (!slot || slot < 0)
+                //     {
+                //         continue;
+                //     }
+	            //     Organik::GetLogger()->LogFormatted("%s:%d --- %s %s", __FILE__, __LINE__, name.c_str(), __FUNCTION__);
+                //     RValue* member = instance->InternalReadYYVar(slot);
+                //     if (!member || (member->m_Kind == VALUE_NULL || 
+                //         member->m_Kind == VALUE_UNDEFINED || 
+                //         member->m_Kind == VALUE_UNSET))
+                //     {
+                //         // If member is null, skip it
+                //         continue;
+                //     }
+                //     memberMap.insert({name, member});
+	            //     Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
+                //     varMapCache[id].insert({slot, name});
+                // }
             }
             else
             {
