@@ -310,9 +310,9 @@ void InstanceVariableViewer::DrawObjectList()
         {
             ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanFullWidth;
 
-            if (ImGui::TreeNodeEx((void*)pair.second, node_flags, "%s (%d)", pair.second->m_Name, pair.second->m_InstancesRecursive.m_Count))
+            if (ImGui::TreeNodeEx((void*)pair.second, node_flags, "%s (%d)", pair.second->m_Name, pair.second->m_Instances.m_Count))
             {
-                CInstance* inst = pair.second->m_InstancesRecursive.m_First;
+                CInstance* inst = pair.second->m_Instances.m_First;
 
                 while (inst)
                 {

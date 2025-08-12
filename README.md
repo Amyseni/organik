@@ -45,6 +45,7 @@ Other Projects / Libraries / Art & Audio / Special Thanks
 =======
   - [Kilburn (@FixItVinh)](https://x.com/fixitvinh) (Creator of ZHL/[Antibirth](https://www.antibirth.com/)) - Genius/Brain person, inspired me to be more than I thought possible, and who without meaning to, taught me that doubting your own work is just another thing made easier with greater skill.
   - [Archie](https://github.com/Archie-osu) (Creator of [Aurie](https://github.com/AurieFramework/Aurie) / [YYToolkit](https://github.com/AurieFramework/YYToolkit), oracle of gamemaker secrets/cool person extraordinaire) -- Saved me from an unknowable length of time reverse engineering an entire GameMaker.<br>
+    - Also thanks for that one time you helped me debug some stupid thing I did at 6AM on a Tuesday that was awesome.
   - @en.ge ( [ART (cara.app) ](https://cara.app/enge) ) - Banner art (Patreon, Youtube), Concept art, (actual, serious) idea creator/organizer/filter and backboard, inspirer of the improbable. Did I mention art? Also an artist. A really good one. Like dam.<br>
   - NotYourSagittarius ([tweeter](https://x.com/NY_Sagittarius )) - The Robo-Mushroom profile-pic/icon art (MushBot). Also just a very cool person (insanely talented)<br>
 >>>>>>> 06c653f (Update README.md)
