@@ -6,7 +6,6 @@
 #include "DefinitionHelpers/BuiltinHelper.h"
 
 #define ARRAY_OFFSET 0x6c
-#pragma optimize("", off)
 const char* RValue::GetKindName() const
 {
 	Organik::GetLogger()->LogFormatted("RValue::GetKindName called for RValue at %p", this);
@@ -75,13 +74,14 @@ bool RValue::ContainsValue (std::string_view _name) const
 	
     if ((m_Kind & MASK_KIND_RVALUE) == VALUE_OBJECT) {
         return (
-			this->ToObject()
+			this->ToObject())
 			->InternalReadYYVar(
 				Code_Variable_FindAlloc_Slot_From_Name(
 					(YYObjectBase*)this, 
-					const_cast<char*>(_name.data())
+					const_cast<char*>(_name.data()
 				)
-		)) != nullptr;	
+			)
+		) != nullptr;
     }
 // 	Organik::GetLogger()->LogFormatted("_name: %s", (_name.size() ?  _name.data() : "empty string"));
     return false;
@@ -140,7 +140,7 @@ const char* RValue::ToCString() const
 	Organik::GetLogger()->LogFormatted("RValue::ToCString called for RValue at %p", this);
 
 	
-	return **(char***)m_i32;
+	return YYGetString(const_cast<RValue*>(this), 0);
 }
 RValue::~RValue()
 {
@@ -148,9 +148,6 @@ RValue::~RValue()
 	Organik::GetLogger()->LogFormatted("RValue::~RValue: m_Kind=%d", this->m_Kind);
 	
 	if (!this) {
-		return;
-	}
-	if (this->m_Kind == VALUE_UNDEFINED) {
 		return;
 	}
 
@@ -161,7 +158,7 @@ std::string RValue::ToString() const
 	Organik::GetLogger()->LogFormatted("RValue::ToString called for RValue at %p", this);
 	Organik::GetLogger()->LogFormatted("RValue::ToString: this->ToCString=%s", this->ToCString());
 	
-	return **ToPointer<const char***>();
+	return std::string(ToCString());
 }
 
 std::u8string RValue::ToUTF8String() const
@@ -276,7 +273,7 @@ void* RValue::ToPointer() const
 	Organik::GetLogger()->LogFormatted("RValue::ToPointer called for RValue at %p", this);
 	Organik::GetLogger()->LogFormatted("RValue::ToPointer: m_Pointer=%p", this->m_Pointer);
 	
-	return this->m_Pointer;
+	return PTR_RValue(this);
 }
 
 RValue::RValue()
@@ -433,11 +430,13 @@ RValue::operator std::string()
 
 void RValue::__Free()
 {
-	if (!this) return;
+	Organik::GetLogger()->LogFormatted("RValue::__Free called for RValue at %p", this);
+	Organik::GetLogger()->LogFormatted("RValue::__Free: m_Kind=%d", this->m_Kind);
 	Organik::GetLogger()->LogFormatted("__Free called for RValue at %p", this);
-	Organik::GetLogger()->LogFormatted("__Free: m_Kind=%d", this->m_Kind);
+	if (!this) return;
+	Organik::GetLogger()->LogFormatted("__Free: Checking if RValue is undefined");
+	//if (this->m_Kind == VALUE_UNDEFINED) return;
 	Organik::GetLogger()->LogFormatted("__Free: Freeing RValue of kind %s at %p", this->GetKindName(), this);
 	FREE_RValue(this);
 	Organik::GetLogger()->LogFormatted("__Free: Freed");
 }
-#pragma optimize("", off)

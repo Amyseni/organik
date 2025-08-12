@@ -107,15 +107,15 @@ void InstanceVariableViewer::DrawInner()
         }
         ImGui::EndChild();
     }
+    (*Run_Room)->UpdateActive();
     instanceFilter.updateTextFilter(objectNameFilter.InputBuf);
 	const auto& instanceMap = instanceFilter.FilterInstances();
     if (ImGui::BeginChild("##tree", ImVec2(300, 0), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders | ImGuiChildFlags_NavFlattened))
     {
-        for (auto& pair : instanceMap)
-        {
+        std::for_each(instanceMap.begin(), instanceMap.end(), [&](std::pair<int32_t, std::vector<CInstance*>> pair) {
             int32_t objectID = pair.first;
-            RValue objectNameRVal;
-            DoBuiltinRef(&gml_object_get_name, &objectNameRVal, {RValue(objectID)});
+            RValue objectNameRVal = RValue(pair.second.at(0)->m_Object->m_Name);
+            //DoBuiltinRef(&gml_object_get_name, &objectNameRVal, {RValue(objectID)});
             std::string objectName = objectNameRVal.ToString();
 
             if (ImGui::TreeNode(objectName.c_str(), "%s (%d)", objectName.c_str(), static_cast<int>(pair.second.size())))
@@ -142,7 +142,7 @@ void InstanceVariableViewer::DrawInner()
                 }  
                 ImGui::TreePop();
             }
-        }
+        });
         // for (CInstance* instance : instances)
         // {
 	    //     if (instance)
