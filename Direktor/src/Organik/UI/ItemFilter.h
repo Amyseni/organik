@@ -56,7 +56,8 @@ struct ItemFilter
         if (!textFilterValue.empty())
             updateTextFilter(textFilterValue);
         std::unordered_map<int32_t, std::vector<CInstance*>> filteredInstances;
-        for (auto [id, instance] : GetActiveInstances())
+        auto [lock, instances] = GetActiveInstances();
+        for (auto [id, instance] : instances)
         {
             std::string objectName = getNameRepresentation(instance);
             if (textFilterValue.length())

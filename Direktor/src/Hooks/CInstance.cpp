@@ -31,7 +31,9 @@ RValue* CInstance::operator[](int32_t index) {
 std::vector<CInstance*> CInstance::Where(std::function<bool(CInstance*)> func)
 {
 	std::vector<CInstance*> ret;
-    for (auto [id,c] : GetActiveInstances())
+    auto [lock, instances] = GetActiveInstances();
+    // lock is automatically released when it goes out of scope
+    for (auto [id,c] : instances)
     {
 		if (func(c))
     		ret.push_back(c);
@@ -41,7 +43,9 @@ std::vector<CInstance*> CInstance::Where(std::function<bool(CInstance*)> func)
 CInstance* CInstance::FirstOrDefault(std::function<bool(CInstance*)> func)
 {
 	std::vector<CInstance*> ret;
-    for (auto [id,c] : GetActiveInstances())
+    auto [lock, instances] = GetActiveInstances();
+     
+    for (auto [id,c] : instances)
     {
 		if (func(c))
     		return c;
@@ -50,7 +54,9 @@ CInstance* CInstance::FirstOrDefault(std::function<bool(CInstance*)> func)
 }
 bool CInstance::Any(std::function<bool(CInstance*)> func)
 {
-    for (auto [id,c] : GetActiveInstances())
+    auto [lock, instances] = GetActiveInstances();
+
+    for (auto [id,c] : instances)
     {
 		if (func(c))
     		return true;
@@ -59,7 +65,9 @@ bool CInstance::Any(std::function<bool(CInstance*)> func)
 }
 void CInstance::ForEach(std::function<void(CInstance*)> func)
 {
-    for (auto [id,c] : GetActiveInstances())
+    auto [lock, instances] = GetActiveInstances();
+
+    for (auto [id,c] : instances)
     	func(c);
 }
 // HOOK_GLOBAL(AddGlobalObject, (YYObjectBase *toAdd) -> void)

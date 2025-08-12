@@ -1,6 +1,14 @@
 #pragma once
 
 
+/* 
+ * Basically, this file is 99% credit to YYToolkit/Archie, 0.75% yoyo.lib and the gamemaker runtime headers, and 0.25% random shit Amy had to do
+ * Because Synthetik is built on some weirdly compiled gamemaker version with an extra debug flag? IDK I have structs that don't line up to 
+ * anything you can get on an official build of gamemaker compiling a YYC binary, and yet they are there for sure, and I also get logs from
+ * DebugConsoleOutput just by allocating the console. Much of it makes no sense, all I can tell you is that the following structs are at least
+ * all sized correctly, and they don't break in any of the ways I try to use them
+*/
+
 #define YEXTERN 
 #define YYCEXPORT 
 #define VMExec void*
@@ -154,6 +162,12 @@ typedef bool (*FNSetVariable)(CInstance* self, int ind, RValue *val);
 #ifndef NULL_INDEX
 #define NULL_INDEX INT_MIN
 #endif // NULL_INDEX
+#ifndef HASH_DELETED
+#define HASH_DELETED 0x80000000
+#endif // HASH_DELETED
+#ifndef HASH_EMPTY
+#define HASH_EMPTY 0
+#endif // HASH_EMPTY
 
 typedef void* HYYMUTEX;
 typedef void* HSPRITEASYNC;
@@ -165,7 +179,7 @@ typedef void (*PFUNC_process)(HTTP_REQ_CONTEXT* _pContext);
 typedef void (*TSetRunnerInterface)(const YYRunnerInterface* pRunnerInterface, size_t _functions_size);
 typedef void (*TYYBuiltin)(RValue* Result, CInstance* selfinst, CInstance* otherinst, int argc, RValue* arg);
 typedef void (*TRoutine)(RValue& _result, CInstance* _self, CInstance* _other, int _argc, RValue _args[]);
-std::unordered_map<int32_t, CInstance*> GetActiveInstances();
+_NODISCARD_LOCK std::pair<std::unique_lock<std::mutex>, std::unordered_map<int32_t, CInstance*>> GetActiveInstances();
 template <typename T>
 requires std::is_invocable_r_v<bool, T, CInstance*>
 static CInstance* GetFirstInstanceOrDefault(T predicate, CInstance* defaultInstance = nullptr)

@@ -170,7 +170,7 @@ HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
         
 //         Organik::GetLogger()->LogSimple("Window is not minimized.");
         RValue infoDSMap = RValue(-4); 
-        DoBuiltinRef(&gml_os_get_info, infoDSMap, {});
+        DoBuiltinRef(&gml_os_get_info, &infoDSMap, {});
         int infoDSMapID = infoDSMap.m_i32;
 
         RValue videod3ddevice = RValue();
@@ -180,8 +180,8 @@ HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
 
         RValue d3d11deviceRV;
         RValue d3d11contextRV;
-        DoBuiltinRef(&gml_ds_map_find_value, d3d11deviceRV, { infoDSMap, videod3ddevice });
-        DoBuiltinRef(&gml_ds_map_find_value, d3d11contextRV, { infoDSMap,  videod3dcontext });
+        DoBuiltinRef(&gml_ds_map_find_value, &d3d11deviceRV, { infoDSMap, videod3ddevice });
+        DoBuiltinRef(&gml_ds_map_find_value, &d3d11contextRV, { infoDSMap,  videod3dcontext });
         ID3D11Device* d3d11device = d3d11deviceRV.ToPointer<ID3D11Device*>();
         ID3D11DeviceContext* d3d11context = d3d11contextRV.ToPointer<ID3D11DeviceContext*>();
         

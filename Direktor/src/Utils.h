@@ -4,9 +4,10 @@
 #include "zhl_internal.h"
 #include "d3d11.h"
 #include "zhl.h"
+#include <xstring>
 #include "Organik/UI/UIManager.h"
 #include "Logging.h"
-
+#include "DefinitionHelpers/VariableHelper.h"
 #include "imgui/imgui.h"
 
 
@@ -66,7 +67,6 @@ namespace Organik
             static bool g_EnableInvincibility; // Enable invincibility in the game; 
         };
 
-        template <typename T>
         static inline std::unordered_map<int32_t, std::string> GetVariableMap(CInstance* inst)
         {
             std::unordered_map<int32_t, std::string> variableMap = {};
@@ -74,16 +74,22 @@ namespace Organik
                 Organik::GetLogger()->LogSimple("Invalid instance.");
                 return variableMap;
             }
-            CHashMapElement<int, RValue*>* currentElement = nullptr;
-            for (int i = 0; i < inst->m_VariableCount; i++) {
-                if (!inst->m_YYVarsMap->m_Elements[i])
-                    break;
+            CHashMapElement<int, RValue*> currentElement;
+            for (uint32_t i = 0; i < inst->m_VariableCount; i++) {
+                if (inst->m_YYVarsMap->m_Elements[i].m_Hash == HASH_EMPTY || (inst->m_YYVarsMap->m_Elements[i].m_Hash & HASH_DELETED) == HASH_DELETED)
+                    continue;
                 Organik::GetLogger()->LogFormatted("Getting variable %d from instance %p", i, inst);
                 currentElement = inst->m_YYVarsMap->m_Elements[i];
-                int32_t hash = currentElement->m_Hash;
-                if (hash <= 0)
-                    break;
-                
+                int32_t hash = currentElement.m_Hash;
+                Organik::GetLogger()->LogFormatted("Variable %d hash: %d", i, hash);
+                const char* name = Organik::Variables::HashToVariableMap[hash];
+                Organik::GetLogger()->LogFormatted("Variable %d name: %s", i, name);
+                if (name) {
+                    variableMap[hash] = name;
+                } else {
+                    Error_Show_Action(
+                    const_cast<char*>(std::string("FUCK").c_str()), true, true); // crash is imminent anyways.
+                }
             }
             return variableMap;
         }
