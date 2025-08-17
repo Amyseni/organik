@@ -7,7 +7,7 @@
 #include "ScriptHelper.h"
 #define MAKE_SCRIPTIDS(script) Script_Find_Id(const_cast<char*>(#script)),
 #define MAKE_HASHES(var) Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(#var)),
-#define MAKE_ASSETINDEXES(object) DoBuiltin(&gml_asset_get_index, {RValue(#object)}).m_i32,
+#define MAKE_ASSETINDEXES(object) DoBuiltin(&gml_asset_get_index, {RValue(#object)}).ToInt32(),
 #define MAKE_VARMAP(var) {Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(#var)), #var},
 std::vector<int32_t> Organik::Variables::Hashes;
 std::vector<int32_t> Organik::Objects::ObjIndexes;
@@ -58,8 +58,10 @@ void Organik::DoHelperSetup()
    Organik::GetLogger()->LogSimple("Setting up object indexes...");
     for (int i=0;i<objectCount;i++)
     {
+        RValue r = DoBuiltin(&gml_asset_get_index, { RValue(Organik::Objects::ObjectNamesArr[i]) });
+        int32_t iVal = r.ToInt32();
         Organik::Objects::ObjIndexes.push_back(
-            DoBuiltin(&gml_asset_get_index, {RValue(Organik::Objects::ObjectNamesArr[i])}).m_i32
+            iVal
         );
     }
     Organik::GetLogger()->LogSimple("Object indexes initialized.");
@@ -68,7 +70,7 @@ void Organik::DoHelperSetup()
     for (int i=0;i<roomCount;i++)
     {
         Organik::Rooms::AssetIndexes.push_back(
-            DoBuiltin(&gml_asset_get_index, {RValue(Organik::Rooms::RoomNamesArr[i])}).m_i32
+            DoBuiltin(&gml_asset_get_index, {RValue(Organik::Rooms::RoomNamesArr[i])}).ToInt32()
         );
     }
     Organik::GetLogger()->LogSimple("Room indexes initialized.");
@@ -76,12 +78,14 @@ void Organik::DoHelperSetup()
 
     for (int i=0;i<scriptCount;i++)
     {
-        Organik::Scripts::Indexes.push_back(
-            Script_Find_Id(const_cast<char*>(Organik::Scripts::ScriptNamesArr[i]))-100000
-        );
+        int scriptID = Script_Find_Id(const_cast<char*>(Organik::Scripts::ScriptNamesArr[i]))-100000;
+        Organik::GetLogger()->LogFormatted("Script ID for %s: %d", Organik::Scripts::ScriptNamesArr[i], scriptID);
+        CScript *script = ScriptFromId(scriptID);
+        Organik::GetLogger()->LogFormatted("Script %d, is located at %p", scriptID, (void*)script);
+        Organik::Scripts::Indexes.push_back(scriptID);
         Organik::Scripts::scriptPointerMap.insert_or_assign(
-            Organik::Scripts::Indexes[i],
-            ScriptFromId(Organik::Scripts::Indexes[i])
+            i,
+            script
         );
     }
     Organik::GetLogger()->LogSimple("Script indexes initialized.");

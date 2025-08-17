@@ -1,7 +1,7 @@
 #include "Synthetik.h"
 #include "zhl_internal.h"
 #include "zhl.h"
-#include "InstanceHelper.h"
+#include "DefinitionHelpers/InstanceHelper.h"
 #include "VariableHelper.h"
 #include "VariableViewer.h"
 #include "ItemFilter.h"
@@ -9,9 +9,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
-#include "../Logging.h"
+#include "Logging.h"
 #include "DefinitionHelpers/BuiltinHelper.h"
-#include "../Utils.h"
+#include "Utils.h"
 #include "imgui/imgui_impl_dx11.h"
 
 bool InstanceVariableViewer::showPopup = false;
@@ -104,6 +104,7 @@ void InstanceVariableViewer::DrawInner()
                     }
                 );
             }
+            ImGui::EndChild();
         }
         ImGui::EndChild();
     }
@@ -115,7 +116,7 @@ void InstanceVariableViewer::DrawInner()
         std::for_each(instanceMap.begin(), instanceMap.end(), [&](std::pair<int32_t, std::vector<CInstance*>> pair) {
             int32_t objectID = pair.first;
             RValue objectNameRVal = RValue(pair.second.at(0)->m_Object->m_Name);
-            //DoBuiltinRef(&gml_object_get_name, &objectNameRVal, {RValue(objectID)});
+            //DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectID)});
             std::string objectName = objectNameRVal.ToString();
 
             if (ImGui::TreeNode(objectName.c_str(), "%s (%d)", objectName.c_str(), static_cast<int>(pair.second.size())))
@@ -135,7 +136,7 @@ void InstanceVariableViewer::DrawInner()
                     ImGui::SameLine(0,0);
                     ImGui::Text("#%d (%d vars)", 
                         ID, 
-                        instance->m_VariableCount
+                        instance->m_YYVarsMap->m_CurrentSize
                     );
                     ImGui::Separator();
                     ImGui::PopID();
@@ -204,7 +205,7 @@ void InstanceVariableViewer::DrawInner()
             // Get object name for header
             int32_t objectIndex = instance->m_ObjectIndex;
             RValue objectNameRVal;
-            DoBuiltinRef(&gml_object_get_name, &objectNameRVal, {RValue(objectIndex)});
+            DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectIndex)});
 	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
             std::string objectName = objectNameRVal.ToString();
             ImGui::Text("Variables for: %s (ID: %d)", 
@@ -216,42 +217,42 @@ void InstanceVariableViewer::DrawInner()
             std::map<std::string, RValue*> memberMap;
             if (!varMapCache.contains(id) || (instance->GetMemberCount() != varMapCache[id].size()))
             {
-                RValue refResult;
                 constexpr int szInst = sizeof(CInstance);
                 GetLogger()->LogFormatted("Caching variable map for instance ID %d", id);
-                auto varmap = Organik::Utils::GetVariableMap(instance);
+                // TODO:auto varmap = Organik::Utils::GetVariableMap(instance); == ALMOST WORKS BUT NOT QUITE
                 // GetLogger()->LogFormatted("Returnd: %s: %d", refResult.GetKindName(), refResult.GetArrayLength());
-                //std::vector<RValue*> refVector = refResult.ToRefVector(); 
+                RValue instanceVarNames = DoBuiltin(&gml_variable_instance_get_names, { RValue(id) });
+                std::vector<RValue*> refVector = instanceVarNames.ToRefVector();
                 std::vector<std::string> memberNames;
-                // for (RValue *memberNameRVal : refVector)
-                // {
-                //     Organik::GetLogger()->LogFormatted("%d: %s", id, memberNameRVal->ToCString());
-                //     if (memberNameRVal->m_Kind == VALUE_STRING)
-                //     {
-                //         memberNames.push_back(memberNameRVal->ToString());
-                //     }
-                // }
-                varMapCache.insert_or_assign(id, varmap);
-                // for (const std::string& name : memberNames)
-                // {
-                //     int32_t slot = Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(name.c_str()));
-                //     if (!slot || slot < 0)
-                //     {
-                //         continue;
-                //     }
-	            //     Organik::GetLogger()->LogFormatted("%s:%d --- %s %s", __FILE__, __LINE__, name.c_str(), __FUNCTION__);
-                //     RValue* member = instance->InternalReadYYVar(slot);
-                //     if (!member || (member->m_Kind == VALUE_NULL || 
-                //         member->m_Kind == VALUE_UNDEFINED || 
-                //         member->m_Kind == VALUE_UNSET))
-                //     {
-                //         // If member is null, skip it
-                //         continue;
-                //     }
-                //     memberMap.insert({name, member});
-	            //     Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-                //     varMapCache[id].insert({slot, name});
-                // }
+                for (RValue *memberNameRVal : refVector)
+                {
+                    Organik::GetLogger()->LogFormatted("%d: %s", id, memberNameRVal->ToCString());
+                    if (memberNameRVal->m_Kind == VALUE_STRING)
+                    {
+                        memberNames.push_back(memberNameRVal->ToString());
+                    }
+                }
+                //varMapCache.insert_or_assign(id, varmap);
+                for (const std::string& name : memberNames)
+                {
+                    int32_t slot = Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(name.c_str()));
+                    if (!slot || slot < 0)
+                    {
+                        continue;
+                    }
+	                Organik::GetLogger()->LogFormatted("%s:%d --- %s %s", __FILE__, __LINE__, name.c_str(), __FUNCTION__);
+                    RValue* member = instance->InternalReadYYVar(slot);
+                    if (!member || (member->m_Kind == VALUE_NULL || 
+                        member->m_Kind == VALUE_UNDEFINED || 
+                        member->m_Kind == VALUE_UNSET))
+                    {
+                        // If member is null, skip it
+                        continue;
+                    }
+                    memberMap.insert({name, member});
+	                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
+                    varMapCache[id].insert({slot, name});
+                }
             }
             else
             {
@@ -305,7 +306,6 @@ void InstanceVariableViewer::DrawInner()
                                 rowClicked = true;
                             }
                         }
-	                    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                         ImGui::SameLine(0,0);
                         ImGui::Text("%s", memberName.c_str());
                         
@@ -317,7 +317,6 @@ void InstanceVariableViewer::DrawInner()
                         // Variable value
                         ImGui::TableSetColumnIndex(2);
                         
-	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                         DisplayVariableValue(memberName, memberValue);
                         // Handle row click - open edit popup
                         if (rowClicked && !showPopup)

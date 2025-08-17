@@ -24,7 +24,7 @@
  *
  * @brief	Includes the 32 or 64 bit version of the HDE sources
  */
-
+#pragma once
 #include "hde.h"
 
 #if defined(MOLOGIE_DETOURS_HDE_32)

@@ -6,7 +6,7 @@
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "UIManager.h"
-#include "InstanceHelper.h"
+#include "DefinitionHelpers/InstanceHelper.h"
 #include <GameMaker_Defs.h>
 #include "VariableHelper.h"
 #include "DefinitionHelpers/BuiltinHelper.h"
@@ -44,12 +44,12 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
     }
     #define VAR_HASH(var) Organik::Variables::Hashes[Organik::Variables::##var]
     #define OBJ_INDEX(obj) Organik::Objects::ObjIndexes[Organik::Objects::##obj]
-    CInstance* allgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_allgame); });
-    CInstance* outgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(outgame); });
-    CInstance* localPlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_localPlayer); });
-    CInstance* remotePlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_remotePlayer); });
+    CInstance* allgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_allgame); });
+    CInstance* outgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(outgame); });
+    CInstance* localPlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_localPlayer); });
+    CInstance* remotePlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_remotePlayer); });
     bool isMultiplayer = remotePlayerObj != nullptr;
-    CInstance* objRoomCtrl = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_room_ctrl); });
+    CInstance* objRoomCtrl = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_room_ctrl); });
     bool gamestarted = allgameObj ? allgameObj->InternalReadYYVar(VAR_HASH(gamestarted))->ToBoolean() : false;
     if (ImGui::BeginMenu("Godmode"))
     {
@@ -80,7 +80,7 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                     RValue(1 << 24), // size
                     RValue(eBuffer_Fixed), // type
                     RValue(1) // flags
-                }).m_i32;
+                }).ToInt32();
 
                 RValue buf = DoBuiltin(&gml_buffer_fill, {
                     RValue(bufferIndex), 
@@ -230,33 +230,24 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                             MessageBoxA(nullptr, "Script gml_Script_scr_instance_create not found", "Error", MB_OK | MB_ICONERROR);
                             continue;
                         }
-                        CScript* createScript = ScriptFromId(
-                            scr::Indexes[
-                                scr::gml_Script_scr_instance_create
-                            ]
-                        );
-                        if (createScript == nullptr)
-                        {
-                            MessageBoxA(nullptr, "Script gml_Script_scr_instance_create not loaded", "Error", MB_OK | MB_ICONERROR);                                continue;
-                            continue;
-                        }
                         RValue result;
                         RValue posX = RValue(localPlayerObj->m_X);
                         RValue posY = RValue(localPlayerObj->m_Y);
                         RValue objIndexR = RValue(objIndex);
-                        std::vector<RValue*> args = 
+                        std::vector<RValue> args = 
                         {
-                            &posX,
-                            &posY,
-                            &objIndexR
+                            posX,
+                            posY,
+                            objIndexR
                         };
-                        createScript->m_Functions->m_Function.m_ScriptFunction(
-                            GetGlobalInstance(),
-                            GetGlobalInstance(),
-                            &result,
-                            args.size(),
-                            args.data()
-                        );
+                        Script_Perform(scr::Indexes[scr::gml_Script_scr_instance_create], GetGlobalInstance(), GetGlobalInstance(), args.size(), &result, args.data());
+                        // createScript->m_Functions->m_Function.m_ScriptFunction(
+                        //     GetGlobalInstance(),
+                        //     GetGlobalInstance(),
+                        //     &result,
+                        //     args.size(),
+                        //     args.data()
+                        // );
                     }
                 }
             }
@@ -290,7 +281,7 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                             int scriptIndex = Organik::Scripts::gml_Script_scr_goto_room;
                             
                             (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionTarget))) = Organik::Rooms::AssetIndexes[i];
-                            (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionRunning))) = RValue(1);
+                            (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionRunning))) = RValue((const int32_t)1l);
                         }
                     }
                 }

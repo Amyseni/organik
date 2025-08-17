@@ -131,10 +131,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
             
             // gamer multithreading. way too early to initialize imgui
 			std::thread t(gamerD3DetourThread);
-            std::thread t2(ConsoleWindow::Init);
-			std::cout << "Created threads with ID(s): " << t.get_id()._Get_underlying_id() << "," << t2.get_id()._Get_underlying_id() << std::endl;
+            ConsoleWindow::Init();
+			std::cout << "Created thread with ID: " << t.get_id() << std::endl;
 			t.detach();
-            t2.detach();
 		}
 	}
     else if (ul_reason_for_call == DLL_PROCESS_DETACH)
