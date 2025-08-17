@@ -75,20 +75,19 @@ namespace Organik
                 return variableMap;
             }
             CHashMapElement<int, RValue*> currentElement;
-            for (uint32_t i = 0; i < inst->m_VariableCount; i++) {
-                if (inst->m_YYVarsMap->m_Elements[i].m_Hash == HASH_EMPTY || (inst->m_YYVarsMap->m_Elements[i].m_Hash & HASH_DELETED) == HASH_DELETED)
+            for (int32_t i = 1; i < inst->m_YYVarsMap->m_CurrentSize; i++) {
+                if ((inst->m_YYVarsMap->m_Elements[i].m_Hash & inst->m_YYVarsMap->m_CurrentMask) == HASH_EMPTY || (inst->m_YYVarsMap->m_Elements[i].m_Hash & HASH_DELETED) == HASH_DELETED)
                     continue;
                 Organik::GetLogger()->LogFormatted("Getting variable %d from instance %p", i, inst);
                 currentElement = inst->m_YYVarsMap->m_Elements[i];
-                int32_t hash = currentElement.m_Hash;
+                int32_t hash = currentElement.m_Hash & inst->m_YYVarsMap->m_CurrentMask;
                 Organik::GetLogger()->LogFormatted("Variable %d hash: %d", i, hash);
                 const char* name = Organik::Variables::HashToVariableMap[hash];
                 Organik::GetLogger()->LogFormatted("Variable %d name: %s", i, name);
                 if (name) {
                     variableMap[hash] = name;
                 } else {
-                    Error_Show_Action(
-                    const_cast<char*>(std::string("FUCK").c_str()), true, true); // crash is imminent anyways.
+                    continue;
                 }
             }
             return variableMap;
