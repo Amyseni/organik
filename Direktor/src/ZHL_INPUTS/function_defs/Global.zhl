@@ -1,0 +1,437 @@
+struct GlobalPre
+{{
+	#define _WINSOCKAPI_
+    #include <Windows.h>
+    #include "zhl.h"
+    #include <d3d11.h>
+    #include <iostream>
+    #include <vector>
+    #include <fstream>
+    #include <mutex>
+    #include <string>
+    #include <map>
+    #include <cstdarg>
+	#include <unordered_map>
+	#include <functional>
+    #include <GameMaker_Defs.h>
+	#include <random>
+	#include "zhl_internal.h"
+    struct SWithIterator;
+    struct CBackGM;
+    struct CCode;
+    struct CEvent;
+    template <typename TKey, typename TValue, int TInitialSize>
+    struct CHashMap;
+    struct CInstance;
+    struct CInstanceBase;
+    struct CLayer;
+    struct CLayerEffectInfo;
+    struct CLayerElementBase;
+    struct CLayerInstanceElement;
+    struct CLayerSpriteElement;
+    struct CObjectGM;
+    struct CPhysicsDataGM;
+    struct CPhysicsObject;
+    struct CPhysicsWorld;
+    struct CRoom;
+    struct CScript;
+    struct CScriptRef;
+    struct CSkeletonInstance;
+    struct CViewGM;
+    struct CWeakRef;
+    struct DLL_RFunction;
+    enum eBuffer_Format : int32_t;
+    struct GCObjectContainer;
+    struct IBuffer;
+    struct RTile;
+    struct RToken;
+    struct RValue;
+    struct RVariableRoutine;
+    struct YYGMLFuncs;
+    struct YYObjectBase;
+    struct YYRECT;
+    struct YYRoom;
+    struct YYRoomInstances;
+    struct YYRoomTiles;
+    struct YYRunnerInterface;
+
+    typedef void (*MFunction)(YYRunnerInterface* Interface, size_t Size);
+
+    struct vec3
+    {
+        float x, y, z;
+    };
+
+    struct vec4
+    {
+        float x, y, z, w;
+    };
+
+    struct matrix44
+    {
+        vec4 m[4];
+    };
+
+    using PFN_FindAllocSlot = int(*)(YYObjectBase* Object, const char* Name);
+
+	struct RefRValueArray;
+        
+    struct CInstance;
+
+    struct RValue;
+    struct DynamicArrayOfRValue
+    {
+        int m_Length;
+        RValue* m_Array;
+    };
+    template <typename T>
+	struct LinkedList
+	{
+		T* m_First;
+		T* m_Last;
+		int32_t m_Count;
+		int32_t m_DeleteType;
+	};
+    template <typename T>
+	struct OLinkedList
+	{
+		T* m_First;
+		T* m_Last;
+		int32_t m_Count;
+	};
+
+	struct YYLink
+	{
+		YYLink *p_next;
+		YYLink *m_Last;
+		PVOID *list;
+	};
+    
+    using CHashMapHash = uint32_t;
+
+	template <typename TKey, typename TValue>
+	struct CHashMapElement
+	{
+		TValue m_Value;
+		TKey m_Key;
+		CHashMapHash m_Hash;
+	};
+
+	template <typename TKey, typename TValue, int TInitialMask>
+	struct CHashMap
+	{
+	private:
+		// Typed functions for calculating hashes
+		static CHashMapHash CHashMapCalculateHash(
+			int Key
+		)
+		{
+			return (Key * -0x61c8864f + 1) & INT_MAX;
+		}
+
+		static CHashMapHash CHashMapCalculateHash(
+			YYObjectBase* Key
+		)
+		{
+			return ((static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(Key)) >> 6) * 7 + 1) & INT_MAX;
+		}
+
+		static CHashMapHash CHashMapCalculateHash(
+			void* Key
+		)
+		{
+			return ((static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(Key)) >> 8) + 1) & INT_MAX;
+		};
+
+		static CHashMapHash CHashMapCalculateHash(
+			const char* Key
+		)
+		{
+			// https://github.com/jwerle/murmurhash.c - Licensed under MIT
+			size_t len = strlen(Key);
+			uint32_t c1 = 0xcc9e2d51;
+			uint32_t c2 = 0x1b873593;
+			uint32_t r1 = 15;
+			uint32_t r2 = 13;
+			uint32_t m = 5;
+			uint32_t n = 0xe6546b64;
+			uint32_t h = 0;
+			uint32_t k = 0;
+			uint8_t* d = (uint8_t*)Key; // 32 bit extract from 'key'
+			const uint32_t* chunks = NULL;
+			const uint8_t* tail = NULL; // tail - last 8 bytes
+			int i = 0;
+			int l = len / 4; // chunk length
+
+			chunks = (const uint32_t*)(d + l * 4); // body
+			tail = (const uint8_t*)(d + l * 4); // last 8 byte chunk of `key'
+
+			// for each 4 byte chunk of `key'
+			for (i = -l; i != 0; ++i) {
+				// next 4 byte chunk of `key'
+				k = chunks[i];
+
+				// encode next 4 byte chunk of `key'
+				k *= c1;
+				k = (k << r1) | (k >> (32 - r1));
+				k *= c2;
+
+				// append to hash
+				h ^= k;
+				h = (h << r2) | (h >> (32 - r2));
+				h = h * m + n;
+			}
+
+			k = 0;
+
+			// remainder
+			switch (len & 3) { // `len % 4'
+			case 3: k ^= (tail[2] << 16);
+			case 2: k ^= (tail[1] << 8);
+
+			case 1:
+				k ^= tail[0];
+				k *= c1;
+				k = (k << r1) | (k >> (32 - r1));
+				k *= c2;
+				h ^= k;
+			}
+
+			h ^= len;
+
+			h ^= (h >> 16);
+			h *= 0x85ebca6b;
+			h ^= (h >> 13);
+			h *= 0xc2b2ae35;
+			h ^= (h >> 16);
+
+			return h;
+		}
+
+	public:
+		int32_t m_UsedCount;
+		int32_t m_CurrentSize;
+		int32_t m_CurrentMask;
+		int32_t m_GrowThreshold;
+		CHashMapElement<TKey, TValue>* m_Elements;
+		void(*m_DeleteValue)(TKey* Key, TValue* Value);
+		bool GetContainer(
+			TKey Key,
+
+			CHashMapElement<TKey, TValue>*& Value
+		)
+		{
+			CHashMapHash value_hash = CHashMapCalculateHash(Key);
+			int32_t ideal_position = static_cast<int>(value_hash & m_CurrentMask);
+			for (
+				// Start at the ideal element (the value is probably not here though)
+
+				CHashMapElement<TKey, TValue>& current_element = this->m_Elements[ideal_position];
+				// Continue looping while the hash isn't 0 (meaning we reached the end of the map)
+				current_element.m_Hash != 0;
+				// Go to the next position
+				current_element = this->m_Elements[(++ideal_position) & this->m_CurrentMask]
+				)
+			{
+				if (current_element.m_Key != Key)
+					continue;
+				Value = &current_element;
+				return true;
+
+			}
+			return false;
+		}
+
+		bool GetValue(
+			TKey Key,
+
+			TValue& Value
+		)
+		{
+			// Try to get the container
+			CHashMapElement<TKey, TValue>* object_container = nullptr;
+			if (!this->GetContainer(
+				Key,
+				object_container
+			))
+			{
+				return false;
+			}
+
+			Value = object_container->m_Value;
+			return true;
+		}
+		
+	};
+	struct VariableMap;
+	struct Trigger;
+	struct EventTrigger;
+	namespace Organik
+	{
+		namespace Actions
+		{
+			struct Action;	
+		}
+	}
+	using Action = Organik::Actions::Action;
+	using DoAction = std::function<bool(CInstance* self, CInstance* other, VariableMap *params, RValue* result)>;
+	void FREE_RValue(RValue* pRVal);
+	void COPY_RValue(RValue* dest, const RValue* src);
+}};
+
+struct GlobalPost {{
+	#define NAME_CHAR_LIMIT 32
+	#define DO_LIMIT_NAME(var) var[NAME_CHAR_LIMIT-1] = '\0'
+	namespace Organik 
+	{
+		struct Message;
+		namespace Utils {
+			struct Settings 
+			{
+				static bool g_EnableMultiplayerCompat; // Enable compatibility with 26.1 multiplayer;
+				static bool g_EnableInvincibility; // Enable invincibility in the game; 
+				#include "GuiSettingsInline.h"
+				
+				static bool g_SettingsLoaded;
+				static std::pair<std::unique_lock<std::mutex>, GUISettings*> GetUISettings();
+			};
+			void GetCurrentRoom(CRoom*& room);
+			std::string url_encode(const std::string &value);
+			void bugWebhook(const std::string &errorMessage);
+			std::string SendHTTPSPost(const std::string& _server, const std::string& _pae, const std::string& _params = "", const std::string& _body = "");
+			static ID3D11Device** const g_D3DDevice = (ID3D11Device**) (0x04267DF4);
+			static ID3D11DeviceContext** const g_D3DContext = (ID3D11DeviceContext**)(0x04267DF8);
+			bool isInitializationDone();
+			
+			static char playerNameBuffer[NAME_CHAR_LIMIT];
+			#define DEFAULT_NAME "Player"
+			void GetPlayerName(char outName[NAME_CHAR_LIMIT]);
+			static volatile bool g_needUpdateActiveInstances = false;
+			std::mt19937* getrng();
+			static inline std::unordered_map<int32_t, std::string> GetVariableMap(CInstance* inst)
+			{
+				// auto it = inst->m_YYVarsMap->ForEach([](int32_t key, RValue& val) -> void {
+					
+				// });
+			}
+		}
+		struct UIElement
+		{
+		protected:
+			std::string name = std::string("", 256);
+			int32_t hash;
+		public:
+			static int createCount;
+			UIElement() : name(std::to_string(++createCount)) {};
+			UIElement(const std::string& name) : name(name) {
+				hash = Code_Variable_FindAlloc_Slot_From_Name(nullptr, name.c_str());
+			};
+			UIElement(const char* name) : name(std::string(name)) {
+				++createCount;
+				hash = Code_Variable_FindAlloc_Slot_From_Name(nullptr, name);
+			};
+			UIElement(const std::string& name, int32_t instanceID) : name(std::string(name)) {
+				++createCount;
+				hash = Code_Variable_FindAlloc_Slot_From_Name(nullptr, name.c_str());
+			};
+			virtual void GetName(char* buf) {
+				if (!buf)
+				{
+					MessageBoxA(NULL, "UIElement::GetName was passed a null buffer!", "Error", MB_OK | MB_ICONERROR);
+					return;
+				}
+				size_t bufSize = max(static_cast<size_t>(256), name.size());
+				memset(buf, 0, bufSize);
+				strncpy(buf, name.c_str(), bufSize - 1);
+				buf[bufSize - 1] = '\0';
+			};
+			virtual int32_t GetHash() {
+				return Code_Variable_FindAlloc_Slot_From_Name(nullptr, name.c_str());
+			};
+			virtual ~UIElement() = default;
+			virtual void Draw(bool& out_mousedOver, bool* p_open = nullptr, const std::string &title = "") {};
+		};
+
+		class ChatTab;
+		class PartyChatTab;
+		class GlobalChatTab;
+		class UIManager;
+	};
+	using namespace Organik;
+
+	#include "Logging.h"
+
+	inline static CInstance *GetGlobalInstance() 
+	{
+		static CInstance* globalInstance = nullptr;
+		if (!globalInstance) {
+			if (!g_pGlobalInstance) {
+				return nullptr;
+			}
+			if (!(*g_pGlobalInstance)) {
+				return nullptr;
+			}
+			globalInstance = *g_pGlobalInstance;
+		}
+		return globalInstance;
+	}
+	inline static HWND GetWindowHandle()
+	{
+		static HWND windowHandle = nullptr;
+		if (!windowHandle) {
+			HWND temp = FindWindowA("YYGameMakerYY", NULL);
+			if (temp && IsWindow(temp) && IsWindowVisible(temp)) {
+				windowHandle = temp;
+			} else {
+				return nullptr;
+			}
+		}
+		return windowHandle;
+	}
+	typedef void (*PFN_Builtin)(RValue &Result,CInstance* Self,CInstance* Other,int ArgumentCount,RValue Arguments[]);
+
+	#ifndef DO_BUILTIN_H
+	#define DO_BUILTIN_H
+	template <typename T>
+	requires (std::is_pointer_v<T>)
+	RValue DoBuiltin(T fn, std::vector<RValue> args)
+	{
+		RValue result;
+		PFN_Builtin func = reinterpret_cast<PFN_Builtin>(fn);
+		if (!func || !GetGlobalInstance())
+		{
+			std::string errorTxt = Organik::GetLogger()->ParseFormatting("DoBuiltin (@ %p), GetGlobalInstance() or func is nullptr.\nGetGlobalInstance(): %p\nOriginal args: %p\nargs.data(): %p", 
+																				(void*)fn,                                              (void*)GetGlobalInstance(),  (void*)&args,   (void*)args.data());
+			
+			Error_Show_Action(errorTxt.c_str(), true, true);
+		} else {
+			func(result, GetGlobalInstance(), GetGlobalInstance(), static_cast<int>(args.size()), args.data());
+		}
+		
+		return std::move(result);
+	}
+	#endif // DO_BUILTIN_H
+	#ifndef DO_BUILTIN_REF_H
+	#define DO_BUILTIN_REF_H
+	template <typename T>
+	requires (std::is_pointer_v<T>)
+	static void DoBuiltinRef(T fn, RValue &out, std::vector<RValue> args)
+	{
+		PFN_Builtin func = reinterpret_cast<PFN_Builtin>((PVOID)fn);
+		if (!func || !GetGlobalInstance())
+		{
+			std::string errorTxt = Organik::GetLogger()->ParseFormatting("DoBuiltin (@ %p), GetGlobalInstance() or func is nullptr.\nGetGlobalInstance(): %p\nOriginal args: %p\nargs.data(): %p", 
+																				(void*)fn,                                              (void*)GetGlobalInstance(),  (void*)&args,   (void*)args.data());
+			
+			Error_Show_Action(errorTxt.c_str(), true, true);
+		} else {
+			func(out, GetGlobalInstance(), GetGlobalInstance(), static_cast<int>(args.size()), args.data());
+		}
+		
+		return;
+	}
+	#endif // DO_BUILTIN_REF_H
+
+	#include "DefinitionHelpers/InstanceHelper.h"
+	#include "DefinitionHelpers/VariableHelper.h"
+}};
