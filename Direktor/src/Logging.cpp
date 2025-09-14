@@ -140,7 +140,9 @@ namespace Organik
         {
             return false;
         }
-        outFile << message << std::endl;
+        outFile << message;
+        if (flushLine) 
+            outFile << std::endl;
         return true;
     }
 
@@ -149,9 +151,9 @@ namespace Organik
      * @param text The text message to log.
      * @return True if logging was successful, false otherwise.
      */
-    bool Logger::LogSimple(const char* text)
+    bool Logger::LogSimple(const char* text, bool flushLine)
     {
-        return WriteToLog(text);
+        return WriteToLog(text, flushLine);
     }
 
     /**

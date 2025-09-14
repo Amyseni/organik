@@ -5,7 +5,6 @@
 #include <string>
 #include <regex>
 #include "imgui/imgui.h"
-#include "DefinitionHelpers/BuiltinHelper.h"
 
 struct ItemFilter
 {
@@ -96,7 +95,7 @@ struct ItemFilter
                     }
                     continue;
                 }
-                Organik::GetLogger()->LogFormatted("%s:%d %s - %s", __FILE__, __LINE__, objectName.c_str(), __FUNCTION__);
+
                 switch(variableFilterMode)
                 {
                     case FILTER_MATCH_ANY:
@@ -129,7 +128,6 @@ struct ItemFilter
 
     void setVariableFilter(int32_t varSlot, bool state)
     {
-                Organik::GetLogger()->LogFormatted("%s:%d setVariableFilter %s", __FILE__, __LINE__, __FUNCTION__);
         if (varSlot < 0)
             return;
         if (state)

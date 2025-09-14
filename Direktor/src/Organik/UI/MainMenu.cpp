@@ -1,6 +1,6 @@
+#include "Synthetik.h"
 #include "MainMenu.h"
-#include "UIElement.h"
-#include "Utils.h"
+
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
@@ -9,8 +9,7 @@
 #include "DefinitionHelpers/InstanceHelper.h"
 #include <GameMaker_Defs.h>
 #include "VariableHelper.h"
-#include "DefinitionHelpers/BuiltinHelper.h"
-#include "ScriptHelper.h"
+#include "Globals.h"
 #include "room_list.h"
 
 using namespace Organik;
@@ -42,17 +41,23 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
         ImGui::EndMainMenuBar();
         return;
     }
-    #define VAR_HASH(var) Organik::Variables::Hashes[Organik::Variables::##var]
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+    {
+        out_mousedOver = true;
+    }
     #define OBJ_INDEX(obj) Organik::Objects::ObjIndexes[Organik::Objects::##obj]
     CInstance* allgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_allgame); });
     CInstance* outgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(outgame); });
     CInstance* localPlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_localPlayer); });
     CInstance* remotePlayerObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_remotePlayer); });
     bool isMultiplayer = remotePlayerObj != nullptr;
+    
     CInstance* objRoomCtrl = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_room_ctrl); });
+    CInstance* objControl = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ObjectIndex == OBJ_INDEX(obj_control); });
     bool gamestarted = allgameObj ? allgameObj->InternalReadYYVar(VAR_HASH(gamestarted))->ToBoolean() : false;
     if (ImGui::BeginMenu("Godmode"))
     {
+        out_mousedOver = true;
         if (ImGui::MenuItem("Non-Beta Multiplayer (26.1)", "Alt+F2", Settings::g_EnableMultiplayerCompat, outgameObj != nullptr))
         {
             Settings::g_EnableMultiplayerCompat = !Settings::g_EnableMultiplayerCompat;
@@ -72,63 +77,9 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
         {
             (*outgameObj->InternalReadYYVar(VAR_HASH(developmentdisplay))) = !(outgameObj->InternalReadYYVar(VAR_HASH(developmentdisplay))->ToBoolean());
         }
-        if (ImGui::BeginMenu("Uh oh... (Stinky poopy)", true))
-        {
-            if (ImGui::InputTextWithHint("Victim", "127.0.0.1", &g_cursedBoxInput, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
-            {
-                int bufferIndex = DoBuiltin(&gml_buffer_create, {
-                    RValue(1 << 24), // size
-                    RValue(eBuffer_Fixed), // type
-                    RValue(1) // flags
-                }).ToInt32();
-
-                RValue buf = DoBuiltin(&gml_buffer_fill, {
-                    RValue(bufferIndex), 
-                    RValue(0), 
-                    RValue(eBuffer_U8), 
-                    RValue(43), 
-                    RValue(1<<24)
-                });
-                CInstance* networkParentObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool { return ci->m_ID == OBJ_INDEX(obj_networking_parent); });
-                int socketUDP = networkParentObj->operator[]("socketUDP")->m_i32;
-                // int32_t networkTime = networkParentObj->operator[]("networkTime")->m_i32;
-                // RValue result;
-                // std::vector<RValue*> args = {
-                //     &RValue(socketUDP), 
-                //     &RValue(g_cursedBoxInput), 
-                    
-                // ScriptFromId(GETSCR(scr_send_packet))->m_Functions->m_Function.m_ScriptFunction(
-                //     GetGlobalInstance(),
-                //     GetGlobalInstance(),
-                //     &result, // result
-                    
-                //     {
-                //         &RValue(socketUDP), 
-                //         &RValue(g_cursedBoxInput), 
-                //         &RValue(eBuffer_U8), 
-                //         &RValue(43), 
-                //         &RValue(1<<24)
-                //     }
-                // );
-                // DoBuiltin(&gml_script)
-
-                
-                
-                // g_ModuleInterface->CallBuiltin("buffer_fill", 
-                //     {
-                //         RValue(socketUDP), 
-                //         RValue(g_cursedBoxInput.c_str()),
-                        
-                //         RValue(YYTK::eBuffer_U8), 
-                //         RValue(43), 
-                //         RValue(1<<24)
-                //     }
-                // );
-            }
-            ImGui::EndMenu();
-        }
         if (ImGui::BeginMenu("Player"))
         {
+            out_mousedOver = true;
             if (ImGui::MenuItem("Invincible", "Ctrl+Shift+I", Settings::g_EnableInvincibility, gamestarted))
             {
                 Settings::g_EnableInvincibility = !Settings::g_EnableInvincibility;
@@ -140,6 +91,70 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                 else
                 {
                     (*localPlayerObj->InternalReadYYVar(VAR_HASH(invincibletimer))) = RValue(0.00000);
+                }
+            }
+            if (ImGui::MenuItem("Roll Me (Randomize Class)", "Ctrl+Shift+I", Settings::g_EnableInvincibility, !gamestarted))
+            {
+                std::vector<RValue*> classPerks = outgameObj->InternalReadYYVar(VAR_HASH(perkslots))->ToRefVector();
+                if (classPerks.size() > 0)
+                {
+                    std::vector<RValue*> subclassPerks = classPerks[outgameObj->InternalReadYYVar(VAR_HASH(selectedclass))->ToInt32()]->ToRefVector();
+                    std::vector<RValue*> subclassPerkSet = subclassPerks[outgameObj->InternalReadYYVar(VAR_HASH(selectedsubclass))->ToInt32()]->ToRefVector();
+                    std::vector<RValue*> perkGroups = outgameObj->InternalReadYYVar(VAR_HASH(perk_group))->ToRefVector();
+                    std::vector<RValue*> perkClasses = outgameObj->InternalReadYYVar(VAR_HASH(perk_class))->ToRefVector();
+                    auto mt = Utils::getrng();
+                    // 2 = Pistol, 4 = Core Class Perk
+
+                    std::vector<RValue> pistolPerks;
+                    std::vector<RValue> corePerks;
+                    std::vector<RValue> otherPerks;
+                    for (uint i=0; i<perkGroups.size(); i++)
+                    {
+                        RValue* perkGroup = perkGroups[i];
+                        if (perkGroup->ToDouble() == 2.0) {
+                            pistolPerks.push_back(RValue(static_cast<double>(i)));
+                            continue;
+                        }
+
+                        if (perkGroup->ToDouble() == 4.0) {
+                            corePerks.push_back(RValue(static_cast<double>(i)));
+                            continue;
+                        }
+                        double classId = perkClasses[i]->ToDouble();
+                        if (classId > 0.0 && classId < 5.0)
+                        {
+                            otherPerks.push_back(RValue(static_cast<double>(i)));
+                        }
+                    };
+                    
+                    for(uint i=0;i<subclassPerkSet.size(); i++)
+                    {
+                        RValue* perk = subclassPerkSet[i];
+                        if (perk->ToDouble() == 0.0)
+                            continue;
+                        if (i == 0)
+                        {
+                            double newPerk = corePerks[(*mt)() % corePerks.size()].ToDouble();
+//                             Organik::GetLogger()->LogFormatted("Setting core perk slot %d to %f", i, newPerk);
+                            *perk = RValue(newPerk);
+                            continue;
+                        }
+                        if (i == subclassPerkSet.size() - 1)
+                        {
+                            double newPerk = pistolPerks[(*mt)() % pistolPerks.size()].ToDouble();
+//                             Organik::GetLogger()->LogFormatted("Setting pistol perk slot %d to %f", i, newPerk);
+                            *perk = RValue(newPerk);
+                            continue;
+                        }
+                        
+                        if (i == 1 || i == 2)
+                        {
+                            continue;
+                        }
+                        double newPerk = otherPerks[(*mt)() % otherPerks.size()].ToDouble();
+//                         Organik::GetLogger()->LogFormatted("Setting other perk slot %d to %f", i, newPerk);
+                        *perk = RValue(newPerk);
+                    }
                 }
             }
             bool amIDead = (isMultiplayer)  //since single player doesn't allow respawning, only enable in mulit.
@@ -161,103 +176,72 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
     }
     if (ImGui::BeginMenu("Objects"))
     {
+        out_mousedOver = true;
         if (ImGui::BeginMenu("Spawn"))
         {
-            ImGui::Checkbox("Filter Items", &spawnMode_items);
-            ImGui::SameLine();
-            ImGui::Checkbox("Assume obj_[name]", &assumeObjectPrefix);
-            static ImGuiTextFilter filter;
-            ImGui::Text("Item search: \n"
-                "  Type to filter objects by name (ignore obj_)\n"
-                "  Use the checkboxes to filter object types.\n"
-                "  \"^enm_\" - display objects starting with obj_enm_\"\n"
-                "  \"grenade,missile\" display objects containing \"grenade\" or \"missile\"\n"
-                "  \"-boss\" exclude objects containing \"beam\"\n"
-                "Click on an object to spawn it at your position.\n"
-                "Should work in multiplayer (best results as host)."
-            );
-            filter.Draw("Filter");
-            if (ImGui::BeginChild("##itemList", ImVec2(0.0, 250), ImGuiChildFlags_Border))
-            {
-                for (uint32_t i = 0; i < Organik::Objects::ObjIndexes.size(); i++)
-                {
-                    const char* objName = Organik::Objects::ObjectNamesArr[i];
-                    const int32_t objIndex = Organik::Objects::ObjIndexes[i];
-                    const uint32_t objNameLen = strlen(objName);
-                    // c4 is 1 char longer, but sizeof counts the null terminator
-                    if (assumeObjectPrefix)
-                    {
-                        ImGuiTextFilter filter2("obj_");
-                        if (!filter2.PassFilter(objName))
-                            continue;
-                    }
-                    if (strlen(filter.InputBuf))
-                    {
-                        if (filter.InputBuf[0] == '^')
-                        {
-                            const char* input = (assumeObjectPrefix ? std::string("obj_") + filter.InputBuf : filter.InputBuf).c_str();
-                            size_t inputLen = strlen(input);
-                            if (objNameLen < (inputLen <= 5 ? (5+inputLen) : inputLen))
-                                continue;
-                            for (uint32_t j = 0; j < strlen(filter.InputBuf) - 1; j++)
-                            {
-                                if (objName[j] != input[j])
-                                    continue;
-                            }
-                        }
-                        else
-                        {
-                            if (assumeObjectPrefix)
-                            {
-                                ImGuiTextFilter filter2("obj_");
-                                if (!filter2.PassFilter(objName))
-                                    continue;
-                                if (!filter.PassFilter(objName))
-                                    continue;
-                            }
-                            else
-                            {
-                                if (!filter.PassFilter(objName))
-                                    continue;
-                            }
-                        }
-                    }
-                    if (ImGui::Selectable(objName, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
-                    {
-                        using scr = Organik::Scripts;
-                        if (scr::gml_Script_scr_instance_create < 0)
-                        {
-                            MessageBoxA(nullptr, "Script gml_Script_scr_instance_create not found", "Error", MB_OK | MB_ICONERROR);
-                            continue;
-                        }
-                        RValue result;
+            // static ImGuiTextFilter filter;
+            // ImGui::Text("Object search: \n"
+            //     "  Type to filter objects by name (ignore obj_)\n"
+            //     "  \"^enm_\" - display objects starting with obj_enm_\"\n"
+            //     "  \"grenade,missile\" display objects containing \"grenade\" or \"missile\"\n"
+            //     "  \"-boss\" exclude objects containing \"beam\"\n"
+            //     "Click on an object to select it.\n"
+            // );
+            // filter.Draw("Filter");
+            // if (ImGui::BeginChild("##itemList", ImVec2(0.0, 250), ImGuiChildFlags_Border))
+            // {
+            //     for (uint32_t i = 0; i < Organik::Objects::ObjIndexes.size(); i++)
+            //     {
+            //         const char* objName = Organik::Objects::ObjectNamesArr[i];
+            //         const int32_t objIndex = Organik::Objects::ObjIndexes[i];
+            //         const uint32_t objNameLen = strlen(objName);
+            //         if (strlen(filter.InputBuf))
+            //         {
+            //             if (!filter.PassFilter(objName))
+            //                 continue;
+            //         }
+                    auto fn = [&] (int32_t objIndex) {
+                        RValue result = RValue(-5);
+//                         Organik::GetLogger()->LogFormatted("Calling instance_create (%p) for object index %d", &gml_Script_instance_create, objIndex);
                         RValue posX = RValue(localPlayerObj->m_X);
                         RValue posY = RValue(localPlayerObj->m_Y);
                         RValue objIndexR = RValue(objIndex);
-                        std::vector<RValue> args = 
+                        std::vector<RValue*> args = 
                         {
-                            posX,
-                            posY,
-                            objIndexR
+                            &posX,
+                            &posY,
+                            &objIndexR
                         };
-                        Script_Perform(scr::Indexes[scr::gml_Script_scr_instance_create], GetGlobalInstance(), GetGlobalInstance(), args.size(), &result, args.data());
-                        // createScript->m_Functions->m_Function.m_ScriptFunction(
-                        //     GetGlobalInstance(),
-                        //     GetGlobalInstance(),
-                        //     &result,
-                        //     args.size(),
-                        //     args.data()
-                        // );
-                    }
-                }
-            }
-            ImGui::EndChild();
+                        gml_Script_instance_create(
+                            GetGlobalInstance(),
+                            GetGlobalInstance(),
+                            &result,
+                            args.size(),
+                            args.data()
+                        );
+                    };
+                    DrawObjectSelector(fn);
+            //     }
+            // }
+            
             ImGui::EndMenu(); // Items
+        }
+        if (ImGui::BeginMenu("Replace Bullets"))
+        {
+            ImGui::Text("Replace all Bullets with:");
+            ImGui::NewLine();
+            ImGui::Text(*getReplaceBulletIndex() ? DoBuiltin(&gml_object_get_name, {RValue(*getReplaceBulletIndex())}).ToCString() : "None");
+            auto fn = [&] (int32_t objIndex) {
+                *getReplaceBulletIndex() = static_cast<double>(objIndex);
+            };
+            DrawObjectSelector(fn);
+            ImGui::EndMenu();
         }
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Rooms"))
     {
+        out_mousedOver = true;
         if (ImGui::BeginMenu("Goto Room"))
         {
             static ImGuiTextFilter filter;
@@ -278,10 +262,77 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                     {
                         if (ImGui::Selectable(Organik::Rooms::RoomNamesArr[i], false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
                         {
-                            int scriptIndex = Organik::Scripts::gml_Script_scr_goto_room;
                             
+                            int32_t roomSeed = (*Utils::getrng())();
+                            (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomSeed))) = RValue(roomSeed);
                             (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionTarget))) = Organik::Rooms::AssetIndexes[i];
-                            (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionRunning))) = RValue((const int32_t)1l);
+                            (*objRoomCtrl->InternalReadYYVar(VAR_HASH(roomTransitionRunning))) = RValue(true);
+
+                            if (objControl == nullptr)
+                            {
+//                                 GetLogger()->LogFormatted("obj_control instance not found.");
+                                continue;
+                            }
+                            if (!isMultiplayer)
+                            {
+//                                 GetLogger()->LogFormatted("%d not multiplayer", __LINE__);
+                                return;
+
+                            }
+                            RValue buffer = DoBuiltin(&gml_buffer_create, {
+                                RValue(16), // size
+                                RValue(eBuffer_Grow), // type
+                                RValue(1) 
+                            });
+                            IBuffer* p_Buffer = reinterpret_cast<IBuffer*>(buffer.ToPointer());
+                            RValue rBuffIndex = RValue(buffer.ToInt32());  // buffer of packet data
+                            RValue ret_DoesntMatter = RValue(-5);
+                            short packetID = 37;
+                            short roomID = (short) Organik::Rooms::AssetIndexes[i];
+                            int32_t roomClearedAmount = objRoomCtrl->InternalReadYYVar(VAR_HASH(roomclearedamount))->ToInt32();
+                            RValue godRoom = RValue(0);
+
+                            DoBuiltin(&gml_buffer_write, { rBuffIndex,
+                                RValue(eBuffer_U16),
+                                RValue(packetID)
+                            });
+                            DoBuiltin(&gml_buffer_write, { rBuffIndex,
+                                RValue(eBuffer_S16),
+                                RValue(roomID)
+                            });
+                            int32_t currentFloor = objRoomCtrl->InternalReadYYVar(VAR_HASH(currentfloor))->ToInt32();
+
+                            DoBuiltin(&gml_buffer_write, { rBuffIndex,
+                                RValue(eBuffer_S32),
+                                RValue(roomID)
+                            });
+                            DoBuiltin(&gml_buffer_write, { rBuffIndex,
+                                RValue(eBuffer_S32),
+                                RValue(roomSeed)
+                            });
+                            DoBuiltin(&gml_buffer_write, { rBuffIndex,
+                                RValue(eBuffer_S32),
+                                RValue(roomClearedAmount)
+                            });
+                            DoBuiltin(&gml_buffer_write, { rBuffIndex,
+                                RValue(eBuffer_Bool),
+                                godRoom
+                            });
+                            RValue rReliable = RValue(1ll);           // 1 = reliable packet
+                            RValue ret = RValue(0);
+                            
+                            std::vector<RValue*> args = 
+                            {
+                                &rBuffIndex, // the buffer
+                                &rReliable   // u can also just lie
+                            };
+                            gml_Script_scr_send_packet(
+                                GetGlobalInstance(),
+                                GetGlobalInstance(),
+                                &ret,
+                                args.size(),
+                                args.data()
+                            );
                         }
                     }
                 }
@@ -293,6 +344,7 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
     }
     if (ImGui::BeginMenu("Windows"))
     {
+        out_mousedOver = true;
         for (const auto& [name, info] : UIManager::windowTypes)
         {
             if (ImGui::MenuItem(name.c_str(), std::get<0>(info).c_str(), std::get<2>(info)() != nullptr)) 
@@ -302,16 +354,13 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
         }
         ImGui::EndMenu(); // Windows
     }
-    if (ImGui::BeginMenu("Instances"))
-    {
-        ImGui::EndMenu(); // Instances
-    }
     if (ImGui::BeginMenu("Options/Bugfixes"))
     {
+        out_mousedOver = true;
         if (ImGui::MenuItem("HG Slowdown Fix/Unstuck", "", false, gamestarted))
             *localPlayerObj->InternalReadYYVar(VAR_HASH(mod_movespeed)) = RValue(1.00000);
         ImGui::EndMenu(); // Options/Bugfixes
-
+        ImGui::MenuItem("Enable Bug Reporting", "", Settings::GetEnableBugWebhook());
     }
     ImGui::EndMainMenuBar();
 }

@@ -9,10 +9,15 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <io.h> 
 #include <cstdarg>
 #include "PALMemoryProtection.h"
 #include "Logging.h"
 #include <inttypes.h>
+#include <filesystem>
+#include <Windows.h>
+
 
 #define OUR_OWN_FUNCTIONS_CALLEE_DOES_CLEANUP 1
 #define PTR_PRINT_F "0x%08" PRIxPTR
@@ -27,7 +32,7 @@ void ZHL::Init()
 {
 	static bool initialized = false;
 	if(initialized) return;
-
+	
 	std::cout << "ZHL::Init called, initializing ZHL..." << std::endl;
 	if(!Definition::Init())
 	{
@@ -52,7 +57,7 @@ void Log(const char *format, ...)
 {
 	va_list va;
 	va_start(va, format);
-	printf_s(format, va);
+	// printf_s(format, va);
 	va_end(va);
 }
 
@@ -339,7 +344,7 @@ int FunctionHook_private::Init()
 		if(!it->second->Install()) return 0;
 		++c;
 	}
-	std::cout << "FunctionHook_private::Init: Installed " << std::to_string(c) << " hooks." << std::endl;
+	std::cout << "FunctionHook_private::Init: Installed " << std::to_string(c).c_str() << " hooks." << std::endl;
 	return 1;
 }
 
@@ -350,7 +355,7 @@ void FunctionHook_private::Add(FunctionHook_private *hook)
 		std::cerr << "FunctionHook_private::Add called with NULL hook or hook->_hook" << std::endl;
 		ExitProcess(1);
 	}
-	std::cout << "FunctionHook_private::Add: Adding hook for " << hook->_name << "hSize: " << std::to_string(hook->_hSize) << std::endl;
+	std::cout << "FunctionHook_private::Add: Adding hook for " << &hook->_name[0] << "hSize: " << std::to_string(hook->_hSize).c_str() << std::endl;
 	FuncHooks().insert(std::pair<int, FunctionHook_private*>(hook->_priority, hook));
 }
 
@@ -369,7 +374,7 @@ int FunctionHook_private::Install()
 	FunctionDefinition *def = dynamic_cast<FunctionDefinition*>(Definition::Find(_name)); // function definition
 	if(!def)
 	{
-		std::cerr << "Failed to install hook for " << _name << ": Function not found."<< std::endl;
+		std::cerr << "Failed to install hook for " << &_name[0] << ": Function not found."<< std::endl;
 		return 0;
 	}
 
@@ -545,7 +550,7 @@ int FunctionHook_private::Install()
 	}
 	catch(MologieDetours::DetourException &e)
 	{
-		std::cerr <<"Failed to install hook for" << _name << ": " << e.what() << std::endl;
+		std::cerr <<"Failed to install hook for" << &_name[0] << ": " << e.what() << std::endl;
 		return 0;
 	}
 	void *original = ((MologieDetours::Detour<void*>*)_detour)->GetOriginalFunction();
@@ -716,18 +721,17 @@ Log("HookAddress: " PTR_PRINT_F ", SuperAddress: " PTR_PRINT_F "\n\n", (uintptr_
 #ifdef __i386__
 #define DEBUG 1
 #ifdef DEBUG
-	Log("Successfully hooked function %s\n", _name);
-    Log("InternalHookAddress: " PTR_PRINT_F "\n", (uintptr_t)&_internalHook);
-	Log("%s\ninternalHook:\n", _name);
+	Log("Successfully hooked function %s\n", &_name[0]);
+    Log("InternalHookAddress: %p\n", (PVOID)&_internalHook[0]);
+	Log("%s - internalHook:\n", &_name[0]);
     
 	for(unsigned int i=0 ; i<_hSize ; ++i)
-		Log("%02x ", _internalHook[i]);
+		Log("%02x ", static_cast<char>(_internalHook[i]));
     Log("\n");
 #endif // DEBUG
 
 #ifdef DEBUG
-    Log("InternalSuperAddress: " PTR_PRINT_F "\n", (uintptr_t)&_internalSuper);
-	Log("\ninternalSuper:\n", _name);
+    Log("InternalSuperAddress: %p\n", &_internalSuper[0]);
 #endif // DEBUG
 
 	// for(unsigned int i=0 ; i<_sSize ; ++i)

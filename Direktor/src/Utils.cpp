@@ -1,10 +1,10 @@
 #include "Synthetik.h"
 #include "zhl_internal.h"
-#include "Utils.h"
 #include "Organik/UI/UIManager.h"
 #include "windows.h"
-#include "Logging.h"
+
 #include "wininet.h"
+#include "DefinitionHelpers/VariableHelper.h"
 #pragma comment(lib, "wininet.lib")
 using namespace Organik;
 bool Organik::Utils::Settings::g_EnableMultiplayerCompat = false;
@@ -34,6 +34,67 @@ std::string Organik::Utils::url_encode(const std::string &value) {
     return escaped.str();
 }
 
+std::mt19937 gen( std::chrono::system_clock::now().time_since_epoch().count() ); // Standard mersenne_twister_engine
+std::mt19937* Organik::Utils::getrng()
+{
+    return &gen;
+} 
+void Organik::Utils::GetCurrentRoom(CRoom*& room)
+{
+    if (Run_Room && *Run_Room)
+    {
+        room = *Run_Room;
+    }
+    else
+    {
+        room = nullptr;
+    }
+}
+
+std::mutex g_SettingsMutex;
+std::pair<std::unique_lock<std::mutex>, Utils::Settings::GUISettings*> Utils::Settings::GetUISettings()
+{
+    std::unique_lock<std::mutex> lock(g_SettingsMutex);
+    GUISettings *ret = nullptr;
+    if (!(ret = g_UISettings)){
+        ret = (
+            UIManager::isImGuiInitialized() && ImGui::GetIO().UserData
+        ) ? static_cast<GUISettings*>(ImGui::GetIO().UserData) 
+          : new GUISettings();
+        g_UISettings = ret;
+    }
+    return std::make_pair(std::move(lock), g_UISettings);
+
+}
+
+void Utils::GetPlayerName(char outName[NAME_CHAR_LIMIT])
+{
+    if (outName == nullptr)
+    {
+        Error_Show_Action("Player name buffer is null", true, true);
+        return; // line above terminates the process, so this return is just for clarity
+    }
+    
+    memset(outName, 0, NAME_CHAR_LIMIT);
+    auto copyPNameSafe = [&outName](const char* name) -> void {
+        if (!name) {
+            Error_Show_Action("Player name buffer is null", true, true);
+            return; // line above terminates the process, so this return is just for clarity
+        }
+        const char* ptr = &name[0];
+        int index = 0;
+        do {
+            outName[index++] = *ptr;
+        } while (*ptr && index < NAME_CHAR_LIMIT && ++ptr);
+        DO_LIMIT_NAME(outName);
+    };
+    CInstance *global;
+    if (!(global = GetGlobalInstance())) {
+        copyPNameSafe(DEFAULT_NAME);
+        return;
+    }
+}
+int Organik::UIElement::createCount = 0;
 std::string Organik::Utils::SendHTTPSPost(
     const std::string& _server, 
     const std::string& _page, 
@@ -51,7 +112,7 @@ std::string Organik::Utils::SendHTTPSPost(
         if (hConnect != NULL) 
         {
             std::string request = _page + 
-                    (_params.empty() ? "" : ("?" + _params));
+                (_params.empty() ? "" : ("?" + _params));
 
             // open request with HTTPS flags
             HINTERNET hRequest = ::HttpOpenRequestA(hConnect, "POST", request.c_str(), NULL, NULL, NULL, 
@@ -64,21 +125,19 @@ std::string Organik::Utils::SendHTTPSPost(
                 
                 // send request
                 BOOL isSent = ::HttpSendRequestA(hRequest, headers.c_str(), headers.length(), 
-                    const_cast<char*>(_body.c_str()), _body.length()); // Fix 3: Don't subtract 1 from length
+                    const_cast<char*>(_body.c_str()), _body.length());
                 
                 if (isSent)
                 {
-                    // Check HTTP status code first
                     char statusCode[10];
                     DWORD statusCodeSize = sizeof(statusCode);
                     DWORD index = 0;
                     
                     if (HttpQueryInfoA(hRequest, HTTP_QUERY_STATUS_CODE, statusCode, &statusCodeSize, &index))
                     {
-                        GetLogger()->LogFormatted("HTTP Status: %s", statusCode);
+//                         GetLogger()->LogFormatted("HTTP Status: %s", statusCode);
                     }
                     
-                    // Read response in chunks and accumulate
                     char szData[1024];
                     DWORD dwByteRead;
                     
@@ -92,12 +151,12 @@ std::string Organik::Utils::SendHTTPSPost(
                         szData[dwByteRead] = '\0';
                         responseStr += std::string(szData, dwByteRead);
                     }
-                    GetLogger()->LogFormatted("Response length: %d", responseStr.length());
+//                     GetLogger()->LogFormatted("Response length: %d", responseStr.length());
                 }
                 else
                 {
                     DWORD error = GetLastError();
-                    GetLogger()->LogFormatted("HttpSendRequestA failed with error: %d", error);
+//                     GetLogger()->LogFormatted("HttpSendRequestA failed with error: %d", error);
                 }
                 
                 ::InternetCloseHandle(hRequest);
@@ -125,17 +184,19 @@ void Organik::Utils::bugWebhook(const std::string& errorMsg)
 
     std::cerr << GetLogger()->ParseFormatting("Response: %s", response.c_str());
 }
+#define DO_WEBHOOK false
 HOOK_GLOBAL(Error_Show_Action, (char* message, bool mustCrash, bool manualError) -> void)
 {
-    Organik::GetLogger()->LogFormatted("Error_Show_Action called with message: %s, mustCrash: %s, manualError: %s", message, mustCrash, manualError);
     std::string formattedMessage = GetLogger()->ParseFormatting("Oops! All Exceptions!\nMustCrash? %s\nManualError? %s\nMessage: %s",
         mustCrash ? "yes" : "no",
         manualError ? "yes" : "no",
         message
     );
-    Organik::Utils::bugWebhook(
-        formattedMessage
-    );
+    if ((*Settings::GetEnableBugWebhook())) { 
+        Organik::Utils::bugWebhook(
+            formattedMessage
+        );
+    }
     MessageBoxA(NULL, formattedMessage.c_str(), manualError ? "Organik Error" : "Synthetik Error", MB_ICONERROR | MB_OK);
     if (mustCrash)
     {
@@ -144,4 +205,9 @@ HOOK_GLOBAL(Error_Show_Action, (char* message, bool mustCrash, bool manualError)
         ExitProcess(1);
     }
     super(message, mustCrash, manualError);
+}
+
+bool Utils::isInitializationDone()
+{
+    return ImGui::GetCurrentContext() != nullptr;
 }

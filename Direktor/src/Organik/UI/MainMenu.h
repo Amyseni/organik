@@ -1,6 +1,6 @@
-#include "UIElement.h"
 
 
+#pragma once
 namespace Organik
 {
     struct MainMenu : public UIElement

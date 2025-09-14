@@ -1,6 +1,7 @@
-#include <vector>
-#include "Utils.h"
 #pragma once
+#include <vector>
+#include "sprite_list.h"
+#include "sound_list.h"
 using namespace Organik;
 using namespace Utils;
 
@@ -1252,6 +1253,7 @@ namespace Organik
     THING(obj_chest_spwn) \
     THING(obj_chest_parent) \
     THING(obj_chest_weapon_wood) \
+    THING(obj_chest_weapon_wood_arena) \
     THING(obj_chest_weapon_metal) \
     THING(obj_chest_weapon_boss) \
     THING(obj_chest_weapon_metal_cost) \
@@ -2478,6 +2480,24 @@ namespace Organik
         };
         static const char* const ObjectNamesArr[];
         static std::vector<int32_t> ObjIndexes;
+    };
+    struct Sprites
+    {
+        enum : int32_t
+        {
+            SPRITES_DO(MAKE_ENUM)
+        };
+        static const char* const SpriteNamesArr[];
+        static std::vector<int32_t> SpriteIndexes;
+    };
+    struct Sounds
+    {
+        enum : int32_t
+        {
+            SOUNDS_DO(MAKE_ENUM)
+        };
+        static const char* const SoundNamesArr[];
+        static std::vector<int32_t> SoundIndexes;
     };
 }
 #endif

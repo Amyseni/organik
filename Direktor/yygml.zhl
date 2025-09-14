@@ -2924,7 +2924,7 @@ cleanup void Timing_Sleep(int64 slp, bool precise);
 cleanup int64 Timing_Time();
 // ?Signature length: 3
 ".8B4424??8B5424":
-static cleanup int HashTable::compare_keys(char * cStr, int length, int unk);
+static cleanup int HashTable::compare_keys(const char * cStr, int length, int unk);
 // ?Signature length: 7
 ".83EC08":
 void RenderStateManager::Force(RenderStateManager * this);
@@ -2963,7 +2963,7 @@ cleanup void InitGraphics();
 int RenderStateManager::WriteStatesToBuffer(RenderStateManager *this);
 // ?Signature length: 2
 ".8B5424":
-cleanup int calculate_string_hash(char * param_1);
+cleanup int calculate_string_hash(const char * param_1);
 // ?Signature length: 3
 ".8B4C24":
 cleanup byte wide_AreStringsEqualUnrolled(byte * s1, byte * s2);

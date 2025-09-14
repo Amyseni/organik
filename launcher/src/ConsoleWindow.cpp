@@ -28,5 +28,8 @@ void ConsoleWindow::Init()
     freopen((std::filesystem::current_path() / "info.log").generic_string().c_str(), "w", stdout);
     freopen((std::filesystem::current_path() / "error.log").generic_string().c_str(), "w", stderr);
 
+    // make sure cout and cerr are going to the files as well? I hope?
+    std::ios::sync_with_stdio(true);
+
     std::cerr << "test message please ignore" << std::endl;
 }

@@ -4,7 +4,6 @@
 #include "zhl_internal.h"
 #include "zhl.h"
 #include "imgui/imgui.h"
-#include "UIElement.h"
 #include <vector>
 #include <string>
 #include <sstream>
@@ -22,6 +21,17 @@ namespace Organik
         InstanceVariableViewer(std::string name = "Instance Variable Viewer") : UIElement(name) {};
         ~InstanceVariableViewer() = default;
         void Draw(bool& out_mousedOver, bool* p_open = NULL, const std::string &title = "");
+        int32_t GetHash() override {
+            static int32_t hash = typeid(InstanceVariableViewer).hash_code();
+            return hash;
+        }
+        void GetName(char* buf) override
+        {
+            sprintf(buf, "Instance Variable Viewer (%p)", reinterpret_cast<void*>(VisibleInstance));
+        }
+        void DrawObjectParentsFilterList();
+        void DrawObjectList();
+        void DisplayVarTableEntry(CInstance* instance, const std::string& memberName, RValue* memberValue);
 
     private:
         void DrawInner();

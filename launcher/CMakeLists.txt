@@ -28,7 +28,7 @@ endif()
 message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
 
 if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
-     OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
+	OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
     message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
 endif()
 
@@ -84,12 +84,12 @@ include(CMake/Utils.cmake)
 # Source groups
 ################################################################################
 set(Header_Files
-    "src/ConsoleWindow.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
-    "src/ConsoleWindow.cpp"
+	"src/ConsoleWindow.cpp"
+	"src/ConsoleWindow.h"
     "src/dllmain.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})

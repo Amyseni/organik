@@ -5,6 +5,12 @@
 		},
 		{
 			"path": "launcher"
+		},
+		{
+			"path": "../../Synthetik/Mods/Variants"
+		},
+		{
+			"path": ".git"
 		}
 	],
 	"settings": {
@@ -98,6 +104,7 @@
 			"bitset": "cpp",
 			"regex": "cpp",
 			"stack": "cpp"
-		}
+		},
+		"git.openRepositoryInParentFolders": "always"
 	}
 }

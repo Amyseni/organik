@@ -15,7 +15,7 @@ namespace Organik
         bool Init(const std::string& filename);
         void Cleanup(void);
         
-        bool LogSimple(const char* text);
+        bool LogSimple(const char* text, bool flushLine = true);
         bool LogFormatted(const char* fmt, ...);
         std::string ParseFormatting(const char* fmt, ...);
         std::string ParseFormatting(const char* fmt, va_list args);

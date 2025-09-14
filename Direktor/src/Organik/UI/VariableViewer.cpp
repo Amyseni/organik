@@ -10,12 +10,15 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
+<<<<<<< Updated upstream
 <<<<<<< HEAD
 =======
 #include "Logging.h"
 #include "DefinitionHelpers/BuiltinHelper.h"
 #include "Utils.h"
 >>>>>>> 073bc0d (std::launder for squeaky clean RValues)
+=======
+>>>>>>> Stashed changes
 #include "imgui/imgui_impl_dx11.h"
 
 bool InstanceVariableViewer::showPopup = false;
@@ -43,6 +46,7 @@ bool InstanceVariableViewer::matchAny = true;
 static auto instanceFilter = ItemFilter();
 
 int32_t BeginVariablesChildAndTree(CInstance* instance)
+<<<<<<< Updated upstream
 {
     int32_t ret = 0 + ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders);
     if (!ret) {
@@ -220,10 +224,226 @@ std::unordered_map<int32_t, CObjectGM*> *GetTrackedObjects()
     return &trackedObjects;
 }
 static std::string objNameFilterBuf;
+=======
+{
+    int32_t ret = 0 + ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders);
+    if (!ret) {
+        ImGui::EndChild();
+        return ret;
+    }
+
+    ImGui::Text("Variables for: %s (ID: %d)", 
+        instance->m_Object->m_Name,
+        instance->m_ID);
+
+    bool beginTable = false;
+    // Display all variables in a table
+    beginTable = ImGui::BeginTable("Variables", 3, 
+            ImGuiTableFlags_Borders | 
+            ImGuiTableFlags_RowBg | 
+            ImGuiTableFlags_Resizable |
+            ImGuiTableFlags_ScrollY);
+    if (beginTable)
+    {
+        ret++;
+        // Setup columns
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableHeadersRow();
+    }
+    return ret;
+}
+#define GLOBALS_DO(make) \
+    make(outgame) \
+    make(obj_stats) \
+    make(obj_control) \
+    make(obj_allgame) \
+    make(obj_ingame_ctrl) \
+    make(obj_room_ctrl) \
+    make(obj_enemy_ctrl) \
+    make(obj_weaponstats) \
+    make(obj_itemstats) \
+    make(obj_statistics) \
+    make(obj_color) \
+    make(obj_terrorlevel) \
+    make(obj_console) \
+    make(obj_player) \
+    make(WeaponSystem) \
+    make(obj_all_bullets) \
+    make(obj_bullet_lists) \
+    make(obj_player_bullets) \
+    make(bulletSystem) \
+    make(itemSystem) \
+    make(perkSystem) \
+
+
+#define PARENTS_DO(make) \
+    make(obj_enm_parent_all) \
+    make(obj_enm_base_parent) \
+    make(obj_perk_parent) \
+    make(obj_artefact_parent) \
+    make(obj_enm_turret_parent) \
+    make(obj_boss_parent) \
+    make(obj_enm_bossweapon_parent) \
+    make(obj_drone_parent) \
+    make(obj_headshot_collision_parent) \
+    make(obj_moving_entity_PARENT) \
+    make(obj_weapon_PARENT) \
+    make(obj_weapon_uber_parent) \
+    make(obj_weapon_item_parent) \
+    make(obj_weapon_buff_parent) \
+    make(obj_bullet_rocket_parent) \
+    make(obj_bullet_beam_parent) \
+    make(obj_bullet_laser_parent) \
+    make(obj_chest_parent) \
+    make(obj_trap_mine_parent) \
+    make(obj_trap_parent) \
+    make(obj_props_solid_parent) \
+    make(obj_props_notsolid_parent) \
+    make(obj_pickup_parent) \
+    make(obj_questcontrol_parent) \
+    make(obj_item_parent) \
+    make(obj_orb_parent) \
+    make(obj_effect_parent) \
+    make(obj_explosion_parent) \
+    make(obj_enm_budget_parent) \
+    make(obj_chunk_parent) \
+    make(obj_networking_parent) \
+    make(obj_chat_parent) \
+    make(obj_patchpage_parent) \
+    make(obj_patchlog_parent) \
+    make(obj_patchbutton_parent) \
+    make(obj_enm_custom_parent) \
+    make(obj_enm_headhunter_arena_parent) \
+    make(obj_enm_building_parent) \
+    make(obj_sawbig_parent) \
+    make(obj_bullet_mortar_parent) \
+    make(obj_arena_parent) \
+    make(T_perk_Riotguard_PARENT) \
+    make(T_perk_Breacher_PARENT) \
+    make(T_perk_SWAT_PARENT) \
+    make(obj_research_button_PARENT) \
+    make(T_PARENT_ALL_BONI) \
+    make(T_Path_PARENT) \
+    make(T_Path_start_PARENT) \
+    make(T_path_god_start_PARENT) \
+    make(T_item_PARENT) \
+    make(T_slot_PARENT) \
+    make(T_stat_PARENT) \
+    make(T_weapon_PARENT) \
+    make(T_perk_PARENT) \
+    make(T_perk_general_PARENT) \
+    make(T_perk_elite_PARENT) \
+    make(T_perk_psyonic_PARENT) \
+    make(T_perk_support_PARENT) \
+    make(T_perk_alchemist_PARENT) \
+    make(T_perk_rogue_PARENT) \
+    make(T_perk_tank_PARENT) \
+    make(obj_chip_parent) \
+    make(obj_questlog_parent) \
+    make(obj_turret_boss_spawn_parent) \
+    make(obj_firingrange_dummy_parent) \
+    make(obj_helicopterBoss_parent) \
+    make(obj_noncombat_ground_Parent) \
+    make(obj_enm_hover_parent) \
+    make(obj_enm_tank_parent) \
+    make(obj_shell_parentOLD) \
+    make(obj_trap_mine_stealthparent) \
+    make(obj_movingwall_parent) \
+    make(obj_explosion_beam_parent) \
+    make(obj_smoke_parent) \
+    make(obj_particle_gravity_parent) \
+    make(obj_followunit_parent) \
+    make(obj_voidzone_parent) \
+    make(obj_particle_parent) \
+    make(obj_mortarshot_parent) \
+    make(obj_lightemitter_parent) \
+    make(obj_ground_text_parent) \
+    make(obj_wall_parent) \
+    make(obj_door_parent) \
+    make(obj_pipe_center_parent) \
+    make(obj_concback_parent) \
+    make(obj_mm_menu_parent) \
+    make(obj_mm_acc_input_parent) \
+    make(obj_railing_parent) \
+    make(obj_collision_blockout_parent) \
+    make(obj_floor_blockout_parent) \
+    make(obj_field_parent) \
+    make(obj_fields_parent) \
+    
+#define OBJINDEX(name) Organik::Objects::ObjIndexes[Organik::Objects::##name]
+#define MAPOBJ(name) {OBJINDEX(name), Object_Data(OBJINDEX(name))},
+std::unordered_map<int32_t, CObjectGM*> *GetParentObjects()
+{
+    static std::unordered_map<int32_t, CObjectGM*> parentObjects;
+    if (parentObjects.size() == 0)
+    {
+        parentObjects = {
+            PARENTS_DO(MAPOBJ)
+        };
+    }
+    return &parentObjects;
+}
+std::unordered_map<int32_t, CObjectGM*> *GetGlobalObjects()
+{
+    static std::unordered_map<int32_t, CObjectGM*> globalObjects;
+    if (globalObjects.size() == 0)
+    {
+        globalObjects = {
+            GLOBALS_DO(MAPOBJ)
+        };
+    }
+    return &globalObjects;
+}
+std::unordered_map<int32_t, CObjectGM*> *GetTrackedObjects()
+{
+    static std::unordered_map<int32_t, CObjectGM*> trackedObjects;
+    return &trackedObjects;
+}
+// std::unordered_map<CObjectGM*, std::vector<CInstance*>>* GetGroupedInstances()
+// {
+//     auto trackedObjects = GetTrackedObjects();
+//     static std::unordered_map<CObjectGM*, std::vector<CInstance*>> groupedInstances;
+    
+    
+//     groupedInstances.clear();
+//     for (auto instance = (*Run_Room)->m_Active.m_First; instance != nullptr; instance = instance->m_Next) // pair = {objectID, vector<CInstance*>}
+//     {
+//         int32_t objectID = instance->m_ObjectIndex;
+//         RValue objectNameRVal = RValue(instance->m_Object->m_Name);
+//         if (strlen(objectNameFilter.InputBuf))
+//         {
+//             if (!objectNameFilter.PassFilter(*std::launder(&objectNameRVal.m_RefString->m_String)))
+//                 continue;
+//         }
+//         //DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectID)});
+//         std::string objectName = objectNameRVal.ToString();
+
+//         if (objectNameFilter.IsActive() && !objectNameFilter.PassFilter(objectName.c_str()))
+//             continue;
+
+//         // Track outgame as a default parent category
+//         CObjectGM* parentDisplay = Object_Data(Organik::Objects::ObjIndexes[Organik::Objects::outgame]);
+
+//         // our own object if it exists (it should)
+//         if (parentDisplay = instance->m_Object)
+//             parentDisplay = parentDisplay->m_ParentObject ? parentDisplay->m_ParentObject : parentDisplay;// or its parent object if it has one
+        
+//         groupedInstances[
+//             instance->m_Object->m_ParentObject 
+//             ? instance->m_Object->m_ParentObject 
+//             : instance->m_Object
+//         ].push_back(instance);
+//     }
+//     return &groupedInstances;
+// }
+>>>>>>> Stashed changes
 void InstanceVariableViewer::DrawObjectParentsFilterList()
 {
     static ImGuiTextFilter objNameFilter;
     static bool filterObjects = false;
+<<<<<<< Updated upstream
     Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
     auto trackedObjects = GetTrackedObjects();
     if (ImGui::InputTextWithHint("##obj_name_filter", "Search Parent Object Name.", &objNameFilterBuf))
@@ -239,15 +459,33 @@ void InstanceVariableViewer::DrawObjectParentsFilterList()
             Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
             objNameFilter.Clear();
             filterObjects = false;
+=======
+    auto trackedObjects = GetTrackedObjects();
+    if (ImGui::InputTextWithHint("##obj_name_filter", "Search Parent Object Name.", objNameFilter.InputBuf, sizeof(objNameFilter.InputBuf), ImGuiInputTextFlags_CallbackAlways))
+    {
+        if (strlen(objNameFilter.InputBuf) != 0){
+            filterObjects = true;
+            objNameFilter.Build();
+        }
+        else
+        {
+            filterObjects = false;
+            objNameFilter.Clear();
+>>>>>>> Stashed changes
         }
     }
     ImGui::NewLine();
     if (ImGui::CollapsingHeader("Object Filters"))
     {
+<<<<<<< Updated upstream
         Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
         if (ImGui::BeginChild("##trackedobj_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
         {
             Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
+=======
+        if (ImGui::BeginChild("##trackedobj_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
+        {
+>>>>>>> Stashed changes
             for (auto& pair : (*GetTrackedObjects()))
             {
                 if (filterObjects && !objNameFilter.PassFilter(pair.second->m_Name))
@@ -260,11 +498,17 @@ void InstanceVariableViewer::DrawObjectParentsFilterList()
                     }
                 }
             }
+<<<<<<< Updated upstream
             Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
         }
         ImGui::EndChild();
         ImGui::SameLine();
         Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
+=======
+        }
+        ImGui::EndChild();
+        ImGui::SameLine();
+>>>>>>> Stashed changes
         if (ImGui::BeginChild("##objparents_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
         {
             for (auto& pair : (*GetParentObjects()))
@@ -277,12 +521,33 @@ void InstanceVariableViewer::DrawObjectParentsFilterList()
                     if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                     {
                         (*trackedObjects)[pair.first] = pair.second;
+<<<<<<< Updated upstream
+=======
                     }
                 }
             }
-            ImGui::EndChild();
         }
         ImGui::EndChild();
+        ImGui::SameLine();
+        if (ImGui::BeginChild("##objglobals_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
+        {
+            for (auto& pair : (*GetGlobalObjects()))
+            {
+                if ((filterObjects && !objNameFilter.PassFilter(pair.second->m_Name))
+                    || trackedObjects->contains(pair.first))
+                    continue;
+                if (ImGui::Selectable(pair.second->m_Name, false, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_Highlight))
+                {
+                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                    {
+                        (*trackedObjects)[pair.first] = pair.second;
+>>>>>>> Stashed changes
+                    }
+                }
+            }
+        }
+        ImGui::EndChild();
+<<<<<<< Updated upstream
         ImGui::SameLine();
         Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
         if (ImGui::BeginChild("##objglobals_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
@@ -304,6 +569,9 @@ void InstanceVariableViewer::DrawObjectParentsFilterList()
         ImGui::EndChild();
         ImGui::NewLine();
         Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
+=======
+        ImGui::NewLine();
+>>>>>>> Stashed changes
         ImGui::Text("Double click to add/remove from tracked objects.");
     }
 }
@@ -312,6 +580,7 @@ void InstanceVariableViewer::DrawObjectList()
     auto trackedObjects = GetTrackedObjects();
     if (ImGui::BeginChild("##tree", ImVec2(300, 0), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders | ImGuiChildFlags_NavFlattened))
     {
+<<<<<<< Updated upstream
 <<<<<<< HEAD
         Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
         for (auto& pair : (*trackedObjects)) // pair = {objectID, vector<CInstance*>}
@@ -328,6 +597,15 @@ void InstanceVariableViewer::DrawObjectList()
             if (ImGui::TreeNodeEx((void*)pair.second, node_flags, "%s (%d)", pair.second->m_Name, pair.second->m_Instances.m_Count))
             {
                 CInstance* inst = pair.second->m_Instances.m_First;
+=======
+        for (auto& pair : (*trackedObjects)) // pair = {objectID, vector<CInstance*>}
+        {
+            ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanFullWidth;
+
+            if (ImGui::TreeNodeEx((void*)pair.second, node_flags, "%s (%d)", pair.second->m_Name, pair.second->m_InstancesRecursive.m_Count))
+            {
+                CInstance* inst = pair.second->m_InstancesRecursive.m_First;
+>>>>>>> Stashed changes
 
                 while (inst)
                 {
@@ -344,11 +622,15 @@ void InstanceVariableViewer::DrawObjectList()
                     ImGui::SameLine(0,0);
                     ImGui::Text("#%d (%d vars)", 
                         ID, 
+<<<<<<< Updated upstream
 <<<<<<< HEAD
                         inst->m_YYVarsMap->m_CurrentSize
 =======
                         instance->m_YYVarsMap->m_CurrentSize
 >>>>>>> 073bc0d (std::launder for squeaky clean RValues)
+=======
+                        inst->m_YYVarsMap->m_CurrentSize
+>>>>>>> Stashed changes
                     );
                     ImGui::Separator();
                     ImGui::PopID();
@@ -360,7 +642,10 @@ void InstanceVariableViewer::DrawObjectList()
                 ImGui::TreePop();
             }
         }
+<<<<<<< Updated upstream
         Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
+=======
+>>>>>>> Stashed changes
     }
     ImGui::EndChild();
 }
@@ -377,10 +662,15 @@ void InstanceVariableViewer::DrawInner()
     DrawObjectParentsFilterList();
     ImGui::Separator();
     
+<<<<<<< Updated upstream
     Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
 
     DrawObjectList();
     Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
+=======
+        
+    DrawObjectList();
+>>>>>>> Stashed changes
     
     ImGui::SameLine();
     CInstance* instance;
@@ -401,6 +691,7 @@ void InstanceVariableViewer::DrawInner()
         bool rowClicked = false;
         if (ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders))
         {
+<<<<<<< Updated upstream
 <<<<<<< HEAD
 =======
             // Get object name for header
@@ -410,10 +701,13 @@ void InstanceVariableViewer::DrawInner()
 	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
             std::string objectName = objectNameRVal.ToString();
 >>>>>>> 073bc0d (std::launder for squeaky clean RValues)
+=======
+>>>>>>> Stashed changes
             ImGui::Text("Variables for: %s (ID: %d)", 
                        objectName.c_str(), 
                        id);
             ImGui::Separator();
+<<<<<<< Updated upstream
 <<<<<<< HEAD
 =======
             
@@ -478,6 +772,8 @@ void InstanceVariableViewer::DrawInner()
             }
             
 >>>>>>> 073bc0d (std::launder for squeaky clean RValues)
+=======
+>>>>>>> Stashed changes
             // Display all variables in a table
             if (ImGui::BeginTable("Variables", 3, 
                         ImGuiTableFlags_Borders | 
@@ -518,6 +814,7 @@ void InstanceVariableViewer::DrawInner()
                             member->m_Kind == VALUE_UNDEFINED || 
                             member->m_Kind == VALUE_UNSET ||
                             member->m_Kind >= VALUE_PARAMS))
+<<<<<<< Updated upstream
                         {
                             // If member is null, skip it
                             continue;
@@ -543,20 +840,13 @@ void InstanceVariableViewer::DrawInner()
                         DisplayVariableValue(memberName, memberValue);
                         // Handle row click - open edit popup
                         if (rowClicked && !showPopup)
+=======
+>>>>>>> Stashed changes
                         {
-                            editingVariable = memberName;
-                            editingValue = memberValue;
-                            editingInstanceId = instance->m_ID;
-                            
-                            if (memberValue->m_Kind != VALUE_ARRAY)
-                            {
-                                editingInstanceId = instance->m_ID;
-                                editingValue = memberValue;
-                                editingVariable = memberName;
-                                showPopup = true;
-                                PrepareEditValue(memberValue);
-                            }
+                            // If member is null, skip it
+                            continue;
                         }
+<<<<<<< Updated upstream
 	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
                         if (rowClicked && showPopup)
                         {
@@ -565,6 +855,13 @@ void InstanceVariableViewer::DrawInner()
                         DisplayEditPopup();
                         ImGui::PopID();
 >>>>>>> 073bc0d (std::launder for squeaky clean RValues)
+=======
+                        DisplayVarTableEntry(
+                            instance,
+                            name,
+                            member
+                        );
+>>>>>>> Stashed changes
                     }
                 }
             }

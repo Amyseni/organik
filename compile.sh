@@ -10,9 +10,14 @@ moveOutput() {
 	#move output from "$1/x86/Release to $STEAMAPPS/common/Synthetik" for further processing
 	if test -d "$1/x86/Release"; then
 		cd "$1/x86/Release"
-		if test -f *.dll; then 
-			cp *.dll "$STEAMAPPS/common/Synthetik/NativeMods/"; 
-			echo "Copied dlls from $1"
+		if test -f Direktor.dll; then
+			cp Direktor.dll "$STEAMAPPS/common/Synthetik/NativeMods/"
+			echo "Copied Direktor.dll from $1";
+		else
+			if test -f *.dll; then 
+				cp *.dll "$STEAMAPPS/common/Synthetik/NativeMods/"; 
+				echo "Copied dlls from $1"
+			fi
 		fi
 	fi
 	cd "$orgDir"

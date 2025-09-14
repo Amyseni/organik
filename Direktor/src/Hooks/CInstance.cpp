@@ -1,8 +1,9 @@
 #include "Synthetik.h"
 #include "zhl_internal.h"
 #include "zhl.h"
-#include "Utils.h"
+
 #include <unordered_map>
+#include "DefinitionHelpers/InstanceHelper.h"
 
 
 // HOOK_METHOD(CInstance, Activate, (void) -> void)
@@ -21,11 +22,32 @@
 //     std::cout << "Activate didn't crash, yay!" << std::endl;
 //     return;
 // }
+// HOOK_METHOD(CInstance, constructor, (float _x, float _y, int _id, int _objectIndex, bool _hasObjectParent) -> void)
+// {
+//     super(_x, _y, _id, _objectIndex, _hasObjectParent);
+//     if (_objectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_net_global_chat])
+//     {
+//         Organik::GetLogger()->LogFormatted("GlobalChat Instance created with ID: %d", m_ID);
+//     }
+//     if (!this)
+//     {
+//         Organik::GetLogger()->LogSimple("CInstance constructor returned null instance.");
+//         return;
+//     }
+    
+// }
+
 
 RValue* CInstance::operator[](const char* name) {
-    return InternalReadYYVar(Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(name)));
+    return InternalReadYYVar(Code_Variable_FindAlloc_Slot_From_Name(nullptr, const_cast<char*>(name)));
 }
 RValue* CInstance::operator[](int32_t index) {
+    return InternalReadYYVar(index);
+}
+RValue* YYObjectBase::operator[](const char* name) {
+    return InternalReadYYVar(Code_Variable_FindAlloc_Slot_From_Name(nullptr, const_cast<char*>(name)));
+}
+RValue* YYObjectBase::operator[](int32_t index) {
     return InternalReadYYVar(index);
 }
 std::vector<CInstance*> CInstance::Where(std::function<bool(CInstance*)> func)

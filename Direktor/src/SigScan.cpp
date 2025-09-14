@@ -155,7 +155,7 @@ bool SigScan::Scan(Callback callback)
 	{
 		if (m_fnEntryAlignment && m_matches.size() < 1) // unless we are matching variables...
 			if ((uintptr_t) pStart % m_fnEntryAlignment != 0)
-				continue; // align to g_SigscanAlign (all functions are aligned to 16 bytes)
+				continue; // align to m_fnEntryAlignment (default 16 bytes)
 		
 		const unsigned char *p = pStart;
 		const unsigned char *s = usig;

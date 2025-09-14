@@ -58,6 +58,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 add_library(${PROJ_NAME} SHARED 
 	"src/Logging.h"
 	"src/Logging.cpp"
+	"src/Synthetik.h"
 	"include/GameMaker_Defs.h"
 	"include/imgui/imconfig.h"
 	"include/imgui/imgui_internal.h"
@@ -77,39 +78,56 @@ add_library(${PROJ_NAME} SHARED
 	"src/zhl_internal.h"
 	"src/zhl_private.h"
 	"src/hde.h"
-	"src/Synthetik.h"
 	"include/imgui/imgui_demo.cpp"
 	"include/imgui/imgui_draw.cpp"
 	"include/imgui/imgui_tables.cpp"
 	"include/imgui/imgui_widgets.cpp"
 	"include/imgui/imgui_impl_dx11.cpp"
 	"include/imgui/imgui_stdlib.cpp"
-	"src/DefinitionHelpers/BuiltinHelper.cpp"
-	"src/DefinitionHelpers/BuiltinHelper.h"
 	"src/DefinitionHelpers/InstanceHelper.cpp"
 	"src/DefinitionHelpers/InstanceHelper.h"
 	"src/DefinitionHelpers/room_list.h"
-	"src/DefinitionHelpers/script_list.h"
-	"src/DefinitionHelpers/ScriptHelper.h"
+	"src/DefinitionHelpers/sprite_list.h"
 	"src/DefinitionHelpers/var_list.h"
 	"src/Hooks/CInstance.cpp"
+	"src/Hooks/ScriptHooks.cpp"
+	"src/Hooks/EventHooks.cpp"
+	"src/Hooks/ChatHooks.cpp"
 	"src/Hooks/CRoom.cpp"
-	"src/Utils.h"
 	"src/Utils.cpp"
-	"src/ConsoleWindow.cpp"
-	"src/ConsoleWindow.h"
 	"src/DefinitionHelpers/VariableHelper.h"
 	"include/imgui/imgui_impl_win32.cpp"
 	"include/imgui/imgui.cpp"
 	"src/Organik/UI/ItemFilter.h"
-	"src/Organik/CustomInstances/InstanceClone.h"
 	"src/Organik/UI/VariableViewer.h"
 	"src/Organik/UI/VariableViewer.cpp"
-	"src/Organik/UI/UIElement.h"
+#	"src/Organik/UI/IRCChannelTab.cpp"
+#	"src/Organik/UI/IRCChannelTab.h"
+	"src/Organik/UI/ChatBox.cpp"
+	"src/Organik/UI/ChatBox.h"
+	"src/Organik/UI/ChatTab.h"
+#	"src/Chat/IRCClient.cpp"
+#	"src/Chat/IRCClient.h"
+#	"src/Chat/IRCHandler.cpp"
+#	"src/Chat/IRCHandler.h"
+#	"src/Chat/IRCSocket.cpp"
+#	"src/Chat/IRCSocket.h"
+	"src/Organik/UI/PartyChatTab.h"
+	"src/Organik/UI/GlobalChatTab.h"
+	"src/Organik/UI/PartyChatTab.cpp"
+	"src/Organik/UI/GlobalChatTab.cpp"
+	"src/Organik/UI/ChatBox.cpp"
+	"src/Organik/UI/ChatTab.cpp"
 	"src/Organik/UI/MainMenu.h"
 	"src/Organik/UI/MainMenu.cpp"
 	"src/Organik/UI/UIManager.cpp"
 	"src/SigScan.cpp"
+	"src/Globals.h"
+	"src/Globals.cpp"
+	"src/Action.cpp"
+	"src/Action.h"
+	"src/Variant.h"
+	"src/Variant.cpp"
 	"src/RValue.cpp"
 	"src/Synthetik.cpp"
 	"src/hde.cpp"
@@ -223,7 +241,9 @@ elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
 			"NDEBUG;"
 		">"
 		"_CRT_SECURE_NO_WARNINGS;"
+		"_CRT_NONSTDC_NO_DEPRECATE;"
 		"LIBZHL_EXPORTS;"
+		"SECURITY_WIN32;"
 		"__i386__;"
 		"_WIN32;"
 		"WIN32;"
@@ -245,35 +265,33 @@ target_compile_options(${PROJ_NAME} PRIVATE
 	#! DEFINE the broken behavior and the reason a flag you are changing defines the behavior, otherwise LEAVE THESE ALONE
     
     /permissive-;           #! prevent non-conformance to the C++ standard
-    /GS-;                   #! disable security checks (could mess with ZHL, so we disable it)
     /Zc:rvalueCast;         #* msvc docs: the compiler follows section 5.4 of the C++11 standard and treats only cast expressions that result in non-reference types 
 							#* and cast expressions that result in rvalue references to non-function types as rvalue types.
 							#* by default: the compiler is non-conforming, and treats all cast expressions that result in rvalue references as rvalues.
-    /analyze-;              #! disable static code analysis (this is a performance optimization that can cause issues with certain code patterns, so we disable it)
-    /W3;                    #* warning level 3
+    /Zc:referenceBinding;   #! doesn't allow expressions that bind a user-defined type temporary to a non-const lvalue reference. 
+							#! By default, or if /Zc:referenceBinding- is specified, the compiler allows such expressions as a Microsoft extension
+	/W3;                    #* warning level 3
     /Zc:wchar_t;            #* enable wchar_t as a built-in type (default, no other options disable this, listed for the sake of completeness of implied flag usage)
 	/Z7;					#? generate full debug PDB info
-    /Gm-;                   #! disable minimal rebuild (this is a performance optimization that can cause issues with certain code patterns, so we disable it)
+    #/Gm-;                   #! disable minimal rebuild (this is a performance optimization that can cause issues with certain code patterns, so we disable it)
 	/Ox;					#* tend to optimize for speed
-    /Ob1;                   #* enable inline function expansion only for functions labelled __inline
-    /fp:precise;            #* enable precise floating-point model (default, no other options disable this, listed for the sake of completeness of implied flag usage)
-    /GF-;                   #! disable string pooling (string literals are not pooled, each instance is a separate copy)
-    /WX-;                   #! disable warnings as errors
-    /Zc:forScope;           #! force conformance: loop constructor MUST remain valid for the lifetime of the entire loop block (across all iterations)
 	/GR;					#? enable RTTI (default, no other options disable this, listed for the sake of compleness of implied flag usage). 
     /arch:IA32;             #! use the x86 instruction set (IA-32) for the target architecture
-    /Gz;                    
+    /Gz;                    #! use __stdcall for all functions except member functions
 	/Oy-;					#! don't omit frame pointers
 	/Oi-;					#! never automatically create intrinsic copies of functions for optimization
     /MD;                    #* use the multithreaded DLL version of the C runtime library (msvcrt.dll)
     /std:c++23preview;      #* use latest (preview) C++ std 23
     /FC;                    
 	/Zc:inline-;			#! do not remove unreferenced data or functions
-    /sdl-;					#* disable additional generation of assumed security related runtime errors
-    /FAcs;                  #* generate assembly code output in a file with the .asm extension
     /Ot;                    #* optimize for speed
+	/Zc:nrvo-;				#! disable optional elision (skipping) of copy / move operations on returning newly instantiated variables from functions.
+    /Zc:tlsGuards;			#! enables checks for initialization of thread-local variables in DLLs. Previously, thread-local variables in DLLs weren't correctly initialized. 
+							#! Other than on the thread that loaded the DLL, they weren't initialized before first use on threads that existed before the DLL was loaded.
 	
-    #/Qsafe_fp_loads;		#* forces the compiler to use integer move instructions instead of floating-point move instructions to move data between memory and MMX registers. 
+	#/W3;					#* warning level 3
+
+#/Qsafe_fp_loads;		#* forces the compiler to use integer move instructions instead of floating-point move instructions to move data between memory and MMX registers. 
 							#* This option also disables register load optimization for floating-point values that can be loaded in multiple control paths 
 							#* when the value may cause an exception on load--for example, a NaN value.
 							#* this matches with what I see the actual synthetik binary doing: loading 64-bit values only ever with separate instructions for the upper and lower 4-bytes.
@@ -295,7 +313,6 @@ target_compile_options(${PROJ_NAME} PRIVATE
 	#/Zc:tlsGuards;			#! enables checks for initialization of thread-local variables in DLLs. Previously, thread-local variables in DLLs weren't correctly initialized. 
 							#! Other than on the thread that loaded the DLL, they weren't initialized before first use on threads that existed before the DLL was loaded.
 	
-	#/Zc:forScope;			#! force conformance(?): loop constructor MUST remain valid for the lifetime of the entire loop block (across all iterations)
 	#/W3;					#* warning level 3
 	#/vd2;					#* create vtordisp (virtual constructor/destructor) displacement fields for any class with a virtual base and virtual functions
 							#* from msvc docs: /vd1 should be sufficient. 
@@ -313,6 +330,5 @@ target_link_options(${PROJ_NAME} PRIVATE
 	#/LTCG:OFF;				#! NO link-time code generation optimizations. if you aren't sure why this matters DO NOT TOUCH IT
 	#/ASSEMBLYDEBUG; 		#? emits the DebuggableAttribute attribute with debug information tracking and 
 							#! disables JIT optimizations
-	/VERBOSE;				#? give the linker a megaphone
 	/SUBSYSTEM:CONSOLE
 )

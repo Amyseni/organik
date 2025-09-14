@@ -1,9 +1,25 @@
 #include "Synthetik.h"
 #include "zhl_internal.h"
 #include "zhl.h"
-#include "Logging.h"
+#include "Globals.h"
+#include "Action.h"
 #include "DefinitionHelpers/VariableHelper.h"
-#include "DefinitionHelpers/BuiltinHelper.h"
+
+
+// RValue::operator Action*()
+// {
+// 	if (this->GetKind() == VALUE_ACTION) {
+// 		return reinterpret_cast<Action*>(this);
+// 	}
+// 	return nullptr;
+// }
+// RValue::operator Action&()
+// {
+// 	if (this->GetKind() == VALUE_ACTION) {
+// 		return *reinterpret_cast<Action*>(this);
+// 	}
+// 	throw std::bad_cast();
+// }
 
 #define ARRAY_OFFSET 0x6c
 const char* RValue::GetKindName() const
@@ -28,7 +44,14 @@ const char* RValue::GetKindName() const
 			return "method";
 		}
 		else {
-			return "struct";
+			if (m_Flags == FLAG_MAP)
+				return "map";
+			else if (m_Flags == FLAG_TRIGGER)
+				return "trigger";
+			else if (m_Flags == FLAG_ACTION)
+				return "action";
+			else
+				return "struct";
 		}
 	case 7:
 		return "int32";
@@ -58,33 +81,133 @@ const char* RValue::GetKindName() const
 //     return (((m_Kind & MASK_KIND_RVALUE) == VALUE_STRING) && m_String) ? *m_String : "";
 // }
 
+uint32_t RValue::GetKind(const RValue& rv)
+{
+	return rv.GetKind();
+}
+
+uint32_t RValue::GetKind() const
+{
+	switch (this->m_Kind & MASK_KIND_RVALUE) {
+	case 0:
+		return VALUE_REAL;
+	case 1:
+		return VALUE_STRING;
+	case 2:
+		return (m_Flags == 1) ? VALUE_VECTOR : VALUE_ARRAY;
+	case 3:
+		return VALUE_PTR;
+	case 4:
+		return VALUE_VEC3;
+	case 5:
+		return VALUE_UNDEFINED;
+	case 6:
+		if (*((int*)this + 0x58) == 3) {
+			return VALUE_OBJECT;
+		}
+		else {
+			if (m_Flags == 1<<0)
+				return VALUE_MAP;
+			else if (m_Flags == 1<<1)
+				return VALUE_TRIGGER;
+			else if (m_Flags == 1<<2)
+				return VALUE_ACTION;
+			else
+				return VALUE_OBJECT;
+		}
+	case 7:
+		return VALUE_INT32;
+	case 8:
+		return VALUE_VEC4;
+	case 9:
+		return VALUE_VEC44;
+	case 0xa:
+		return VALUE_INT64;
+	case 0xb:
+		if ((m_Flags) == 1)
+			return VALUE_REF;
+		else if ((m_Flags) == 2)
+			return VALUE_FUNCTION;
+		else
+			return VALUE_ACCESSOR;	
+	case 0xc:
+		return VALUE_NULL;
+	case 0xd:
+		return VALUE_BOOL;
+	case 0xe:
+		return VALUE_ITERATOR;
+	case ((VALUE_ARRAY << 16) | VALUE_FUNCTION):
+		return VALUE_ACTIONARRAY;
+	default:
+		return VALUE_UNDEFINED;
+	}
+}
+// EventMap* RValue::ToEventMap()
+// {
+// 	if (GetKind() == VALUE_OBJECT) {
+// 		return *reinterpret_cast<EventMap**>(std::launder(&this->m_Pointer));
+// 	}
+// 	Error_Show_Action(
+// 		GetLogger()->ParseFormatting("Expected MAP, got %s", GetKindName()).c_str(), 
+// 		true, true
+// 	);
+// 	return nullptr;
+// }
+// EventMap* RValue::ToEventMap()
+// {
+// 	if (GetKind() == VALUE_OBJECT) {
+// 		return *reinterpret_cast<EventMap**>(std::launder(&this->m_EventMap));
+// 	}
+// 	Error_Show_Action(
+// 		GetLogger()->ParseFormatting("Expected OBJECT, got %s", GetKindName()).c_str(), 
+// 		true, true
+// 	);
+// 	return nullptr;
+// }
+
 RValue::RValue(const char* Value)
 {
-//Organik::GetLogger()->LogFormatted("RValue::RValue(const char* Value) called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::RValue: Value=%s", Value);
-
-	*reinterpret_cast<RValue*>(std::launder(&this->m_i32)) = RValue();
-	////Organik::GetLogger()->LogFormatted("%s", Value);
-	YYCreateString(this, const_cast<char*>(Value));
+	*this = RValue();
+	YYCreateString(this, Value);
 }
 
 bool RValue::ContainsValue(std::string_view _name) const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ContainsValue called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ContainsValue: _name=%s", _name.data());
 	if ((m_Kind & MASK_KIND_RVALUE) == VALUE_OBJECT) {
-		YYObjectBase* ptr_Obj = reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
-
+		YYObjectBase* pObj = reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
 		return (
-			ptr_Obj->InternalReadYYVar(
+			pObj->InternalReadYYVar(
 				Code_Variable_FindAlloc_Slot_From_Name(
-					ptr_Obj,
+					pObj,
 					const_cast<char*>(_name.data())
 				)
-			)
-			) != nullptr;
+			) != nullptr
+		);
 	}
-	// //Organik::GetLogger()->LogFormatted("_name: %s", (_name.size() ?  _name.data() : "empty string"));
+	else if ((m_Kind & MASK_KIND_RVALUE) == VALUE_ARRAY) {
+		RefDynamicArrayOfRValue* pObj = reinterpret_cast<RefDynamicArrayOfRValue*>(
+			*(std::launder(&this->m_Pointer)));
+
+		return pObj->m_Length > std::stoi(std::string(_name));
+	}
+	return false;
+}
+bool RValue::ContainsValue(int32_t idx) const
+{
+	if ((m_Kind & MASK_KIND_RVALUE) == VALUE_OBJECT) {
+		YYObjectBase* pObj = reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
+
+		return (
+			pObj->InternalReadYYVar(idx)
+		) != nullptr;
+	}
+	else if ((m_Kind & MASK_KIND_RVALUE) == VALUE_ARRAY) {
+		RefDynamicArrayOfRValue* pObj = *reinterpret_cast<RefDynamicArrayOfRValue* const*>(
+			std::launder(&this->m_Pointer)
+		);
+
+		return pObj->m_Length > idx;
+	}
 	return false;
 }
 
@@ -115,8 +238,6 @@ int32_t RValue::ToInt32() const
 
 int64_t RValue::ToInt64() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToInt64 called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToInt64: m_i64=%lld", this->m_i64);
 	if (m_Kind == VALUE_INT64 || m_Kind == VALUE_INT32 || m_Kind == VALUE_REAL)
 	{
 		const int64_t* d_i64 = reinterpret_cast<const int64_t*>(std::launder(&this->m_i64));
@@ -127,40 +248,27 @@ int64_t RValue::ToInt64() const
 
 bool RValue::ToBoolean() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToBoolean called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToBoolean: m_Kind=%d", this->m_Kind);
-	const bool* b_Bool = (reinterpret_cast<const bool*>(std::launder(&this->m_i32)));
-	return *b_Bool;
+	return (
+		(*reinterpret_cast<const double*>(std::launder(&this->m_Real))) != 0) 
+		|| ((*reinterpret_cast<const int*>(std::launder(&this->m_i32))) != 0);
 }
 
 YYObjectBase* RValue::ToObject() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToObject called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToObject: m_Pointer=%p", this->m_Pointer);
-
 	return reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
 }
 
 CInstance* RValue::ToInstance() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToInstance called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToInstance: m_Pointer=%p", this->m_Pointer);
-
 	return reinterpret_cast<CInstance*>(*(std::launder(&this->m_Pointer)));
 }
 
 const char* RValue::ToCString() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToCString called for RValue at %p", this);
-
-
 	return YYGetString(reinterpret_cast<const RValue*>(std::launder(&this->m_i32)), 0);
 }
 RValue::~RValue()
 {
-//Organik::GetLogger()->LogFormatted("RValue::~RValue called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::~RValue: m_Kind=%d", this->m_Kind);
-
 	if (!this) {
 		return;
 	}
@@ -169,79 +277,48 @@ RValue::~RValue()
 }
 std::string RValue::ToString() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToString called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToString: this->ToCString=%s", this->ToCString());
-
 	return std::string(ToCString());
 }
 
 std::u8string RValue::ToUTF8String() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToUTF8String called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToUTF8String: this->ToCString=%s", this->ToCString());
-
 	return reinterpret_cast<const char8_t*>(YYGetString(const_cast<RValue*>(this), 0));
 }
 
-std::vector<RValue> RValue::ToVector() const
-{
-//Organik::GetLogger()->LogFormatted("RValue::ToVector called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToVector: m_Kind=%d", this->m_Kind);
-	if ((this->m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY)
-		return {};
-
-	std::vector<RValue> result;
-	int len = (*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->length;
-	result.reserve(len);
-
-	for (int i = 0; i < len; i++)
-	{
-		// this feels like a sin
-		// nobody tell archie
-		result.push_back(((*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->m_Array)[i]);
-	}
-
-	return result;
-}
 
 std::vector<RValue*> RValue::ToRefVector()
 {
-	//Organik::GetLogger()->LogFormatted("RValue::ToRefVector called for RValue at %p", this);
-	//Organik::GetLogger()->LogFormatted("RValue::ToRefVector: m_Kind=%d", this->m_Kind);
-	if ((this->m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY)
-		return {};
+    if ((this->m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY)
+        return {};
 
-	std::vector<RValue*> result;
-	int len = (*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->length;
-	result.reserve(len);
-
-	for (int i = 0; i < len; i++)
-	{
-
-		// this one... I feel like uh
-		// this is bad, right?
-		// this is the one where archie said I would meet god in what's left of the heap
-		// this next line is fucked
-		// TODO:fix
-		result.push_back(&((*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->m_Array)[i]);
+    std::vector<RValue*> result;
+    
+	RefDynamicArrayOfRValue* arrayRef = 
+		*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray));
+	
+	if (!arrayRef || !arrayRef->m_Array) return {};
+	
+	int len = arrayRef->m_Length;
+	
+	for (int i = 0; i < len; i++) {
+		result.push_back(&(arrayRef->m_Array[i]));
 	}
 
-	return result;
+    return result;
 }
 
 int32_t RValue::GetArrayLength() const
 {
 	// Organik::GetLogger()->LogFormatted("RValue::GetArrayLength called for RValue at %p", this);
 	// Organik::GetLogger()->LogFormatted("RValue::GetArrayLength: m_RefArray->length=%d", this->m_RefArray->length);
-	int len = (*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->length;
-	RValue length;
 	if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) {
 		Error_Show_Action(
-			const_cast<char*>(GetLogger()->ParseFormatting("RValue::GetArrayLength: Expected VALUE_ARRAY, got %s", GetKindName()).c_str()),
+			GetLogger()->ParseFormatting("RValue::GetArrayLength: Expected VALUE_ARRAY, got %s", GetKindName()).c_str(), 
 			true, true
 		);
 		return 0;
 	}
+	int len = (*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->m_Length;
 	return len;
 }
 
@@ -249,15 +326,14 @@ int32_t RValue::GetArrayLength()
 {
 	//Organik::GetLogger()->LogFormatted("RValue::GetArrayLength called for RValue at %p", this);
 	//Organik::GetLogger()->LogFormatted("RValue::GetArrayLength: m_RefArray->length=%d", this->m_RefArray->length);
-	int len = (*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->length;
-	RValue length;
 	if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) {
 		Error_Show_Action(
-			const_cast<char*>(GetLogger()->ParseFormatting("RValue::GetArrayLength: Expected VALUE_ARRAY, got %s", GetKindName()).c_str()),
+			GetLogger()->ParseFormatting("RValue::GetArrayLength: Expected VALUE_ARRAY, got %s", GetKindName()).c_str(), 
 			true, true
 		);
 		return 0;
 	}
+	int len = (*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray)))->m_Length;
 	return len;
 	// DoBuiltinRef(&gml_array_length, length, {*this});
 	// if (length.m_Kind == VALUE_INT32) {
@@ -275,27 +351,60 @@ int32_t RValue::GetArrayLength()
 
 RValue* RValue::ToArray()
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToArray called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToArray: m_Pointer=%p", this->m_Pointer);
-	Error_Show_Action(
-		const_cast<char*>("RValue::ToArray called. Heap corruption imminent. Peace out."),
-		true, true
-	);
 	return &(*reinterpret_cast<RValue**>(
 		(&reinterpret_cast<char*>(*std::launder(&this->m_Pointer))[ARRAY_OFFSET])
-		)[0]);
+	)[0]);
 }
 
 void* RValue::ToPointer() const
 {
-	//Organik::GetLogger()->LogFormatted("RValue::ToPointer called for RValue at %p", this);
-	//Organik::GetLogger()->LogFormatted("RValue::ToPointer: m_Pointer=%p", this->m_Pointer);
-	if (m_Kind == VALUE_PTR || m_Kind == VALUE_OBJECT)
-	{
-		const PVOID* d_Ptr = reinterpret_cast<const PVOID*>(std::launder(&this->m_Pointer));
-		return *d_Ptr;
+	// Organik::GetLogger()->LogFormatted("RValue::ToPointer called for RValue at %p", this);
+	// Organik::GetLogger()->LogFormatted("RValue::ToPointer: m_Pointer=%p", this->m_Pointer);
+	const PVOID* d_Ptr = reinterpret_cast<const PVOID*>(std::launder(&this->m_Pointer));
+	return *d_Ptr;
+}
+
+RValue& RValue::push_back(const RValue& value)
+{
+	if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) {
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("RValue::push_back: Expected VALUE_ARRAY, got %s", GetKindName()).c_str(), 
+			true, true
+		);
+		return *this;
 	}
-	return PTR_RValue(this);
+	RefDynamicArrayOfRValue* arrayRef = 
+		*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray));
+
+	arrayRef->m_Length += 1;
+	YYArrayResize(&arrayRef->m_Array, (arrayRef->m_Length) << 4, __FILE__, 0x4a7);
+
+	COPY_RValue(
+		&arrayRef->m_Array[arrayRef->m_Length - 1],
+		&value
+	);
+	return (*this)[(size_t) GetArrayLength() - 1];
+}
+
+std::vector<RValue> RValue::ToVector()
+{
+	if ((this->m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY)
+		return {};
+
+	std::vector<RValue> result;
+	RefDynamicArrayOfRValue* arrayRef = 
+		*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray));
+
+
+	if (!arrayRef || !arrayRef->m_Array) return {};
+
+	int len = GetArrayLength();
+
+	for (int i = 0; i < len; i++) {
+		result.push_back((arrayRef->m_Array[i]));
+	}
+
+    return result;
 }
 
 RValue::RValue()
@@ -307,15 +416,12 @@ RValue::RValue()
 	this->m_Kind = VALUE_UNDEFINED;
 }
 
-//RValue::~RValue()
-//{
-//	this->__Free();
-//}
+
 
 RValue::RValue(const std::vector<RValue>& Values)
 {
-//Organik::GetLogger()->LogFormatted("RValue::RValue(const std::vector<RValue>& Values) called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::RValue: Values.size()=%zu", Values.size());
+// 	Organik::GetLogger()->LogFormatted("RValue::RValue(const std::vector<RValue>& Values) called for RValue at %p", this);
+// 	Organik::GetLogger()->LogFormatted("RValue::RValue: Values.size()=%zu", Values.size());
 	// Initialize to undefined
 	*reinterpret_cast<RValue*>(std::launder(this)) = RValue();
 
@@ -352,12 +458,12 @@ RValue::RValue(std::string_view Value)
 
 	// We can ignore this, because if it fails, we're just initialized to UNSET
 
-	YYCreateString(this, const_cast<char*>(Value.data()));
+	YYCreateString(this, Value.data());
 }
 
 RValue::RValue(bool Value)
 {
-Organik::GetLogger()->LogFormatted("RValue::RValue(bool Value) called for RValue at %p", this);
+//Organik::GetLogger()->LogFormatted("RValue::RValue(bool Value) called for RValue at %p", this);
 //Organik::GetLogger()->LogFormatted("RValue::RValue: Value=%d", Value);
 
 	*reinterpret_cast<double*>(std::launder(&this->m_Real)) = static_cast<double>(Value);
@@ -374,61 +480,236 @@ RValue::RValue(const RValue& Other)
 
 	COPY_RValue(
 		this,
-		const_cast<RValue*>(&Other)
+		&Other
 	);
 }
-
-RValue& RValue::operator=(const RValue& Other)
+bool RValue::operator()(RValue* in, RValue* out)
 {
-//Organik::GetLogger()->LogFormatted("RValue::operator= called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::operator=: Other.m_Kind=%d", Other.m_Kind);
+	if (this->m_Kind != VALUE_ACTION) {
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("RValue::operator(): Expected VALUE_ACTION, got %s with flag %d", GetKindName(), m_Flags).c_str(), 
+			true, true
+		);
+	}
+	return false;
+}
+RValue::RValue(RValue&& Other) noexcept
+{
 	FREE_RValue(this);
 	////Organik::GetLogger()->LogFormatted("setting value of %p to %s: %lld", this, GetKindName(), Other.ToInt64());
 
 	COPY_RValue(
 		this,
-		const_cast<RValue*>(&Other)
+		&Other
 	);
 
+	FREE_RValue(&Other);
+}
+
+RValue& RValue::operator=(const std::vector<RValue>& Values)
+{
+//Organik::GetLogger()->LogFormatted("RValue::operator= called for RValue at %p", this);
+//Organik::GetLogger()->LogFormatted("RValue::operator=: Other.m_Kind=%d", Other.m_Kind);
+	FREE_RValue(this);
+	std::vector<double> dummy_array(Values.size(), 0.0);
+
+	YYCreateArray(
+		this,
+		static_cast<int>(Values.size()),
+		dummy_array.data()
+	);
+
+	for (size_t index = 0; index < Values.size(); index++)
+	{
+		COPY_RValue(
+			&(*this)[index],
+			&Values[index]
+		);
+	}
+	return *this;
+
+}
+RValue& RValue::back()
+{
+	if ((this->m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY)
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("RValue::back: Expected VALUE_ARRAY, got %s with flag %d", GetKindName(), m_Flags).c_str(), 
+			true, true
+		);
+	return (*this)[GetArrayLength() - 1];
+}
+// RValue& RValue::operator=(Action* actionPointer)
+// {
+// //Organik::GetLogger()->LogFormatted("RValue::operator= called for RValue at %p", this);
+// //Organik::GetLogger()->LogFormatted("RValue::operator=: Other.m_Kind=%d", Other.m_Kind);
+// 	FREE_RValue(this);
+// 	////Organik::GetLogger()->LogFormatted("setting value of %p to %s: %lld", this, GetKindName(), Other.ToInt64());
+// 	memcpy(this, actionPointer, sizeof(RValue));
+// 	this->m_Kind = static_cast<RValueType>(VALUE_ACTION);
+// 	return *this;
+// }
+
+RValue& RValue::operator=(const RValue& Other)
+{
+	FREE_RValue(this);
+
+	COPY_RValue(
+		this,
+		&Other
+	);
+
+	return *this;
+}
+RValue& RValue::operator=(RValue&& Other) noexcept
+{
+	FREE_RValue(this);
+
+	COPY_RValue(
+		this,
+		&Other
+	);
+
+	FREE_RValue(&Other);
 	return *this;
 }
 
 RValue::RValue(const std::map<std::string, RValue>& Values)
 {
-//Organik::GetLogger()->LogFormatted("RValue::RValue(const std::map<std::string, RValue>& Values) called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::RValue: Values.size()=%zu", Values.size());
-	// Initialize this RValue to unset.
 	*this = RValue();
 
-
-//Organik::GetLogger()->LogFormatted("StructCreate called for RValue at %p", this);
 	StructCreate(
 		this
 	);
-
-//Organik::GetLogger()->LogFormatted("Iterating over Values");
+	YYObjectBase* pObj = reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
 	for (auto [key, value] : Values)
 	{
-//Organik::GetLogger()->LogFormatted("StructAddRValue called with key=%s, value=%p", key.c_str(), &value);
-		StructAddRValue(
-			this,
-			key.c_str(),
-			&value
-		);
+		*pObj->InternalGetYYVarRef(
+			Code_Variable_FindAlloc_Slot_From_Name(
+				pObj,
+				key.c_str()
+			)
+		) = value;
+	}
+}
+RValue::RValue(const std::unordered_map<int32_t, RValue>& Values)
+{
+	*this = RValue();
+
+	StructCreate(
+		this
+	);
+	
+	YYObjectBase* pObj = reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
+
+	for (auto [key, value] : Values)
+	{
+		*pObj->InternalGetYYVarRef(
+			key
+		) = value;
 	}
 }
 
-RValue& RValue::operator[](IN size_t Index)
+RValue& RValue::operator[](size_t Index)
 {
-//Organik::GetLogger()->LogFormatted("RValue::operator[] called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::operator[]: Index=%zu", Index);
+// 	Organik::GetLogger()->LogFormatted("RValue::operator[] called for RValue at %p, Index=%zu", this, Index);
+	
+	if (!((this->m_Kind & MASK_KIND_RVALUE) == VALUE_ARRAY))
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("RValue::operator[]: Expected VALUE_ARRAY, got %s with flag %d", GetKindName(), m_Flags).c_str(), 
+			true, true
+		);
 
-	return *this->ToRefVector().at(Index);
+	RefDynamicArrayOfRValue* arrayRef = 
+            *reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray));
+        
+	if (!arrayRef || !arrayRef->m_Array)
+		Error_Show_Action(
+			"RValue::operator[]: Array is null", 
+			true, true
+		);
+
+	if (Index < 0 || Index >= static_cast<size_t>(arrayRef->m_Length))
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("RValue::operator[]: Index %zu out of bounds for array of length %d", Index, arrayRef->m_Length).c_str(), 
+			true, true
+		);
+
+	return arrayRef->m_Array[Index];
 }
+RValue& RValue::operator[](RValue Index)
+{
+// 	Organik::GetLogger()->LogFormatted("RValue::operator[] called for RValue at %p, Index=%d", this, idx);
+	size_t idx = parseRValueNumber<size_t>(Index);
+	switch(Index.m_Kind & MASK_KIND_RVALUE) {
+		case VALUE_ARRAY:
+			
+			return ((*this)[(idx)]);
+		case VALUE_OBJECT:
+			
+			return *this->ToObject()->InternalGetYYVarRef(int32_t(idx));
+		default:
+			Error_Show_Action(
+				GetLogger()->ParseFormatting("RValue::operator[]: Expected VALUE_ARRAY or VALUE_OBJECT, got %s with flag %d", GetKindName(), m_Flags).c_str(), 
+				true, true
+			);
+			break;
+	}
+	return *this;
+}
+// RValue RValue::operator[](RValue Index) const
+// {
+// 	int32_t idx = parseRValueNumber<int32_t>(Index);
+// // 	Organik::GetLogger()->LogFormatted("RValue::operator[] called for RValue at %p, Index=%d", this, idx);
 
+// 	switch(m_Kind & MASK_KIND_RVALUE) {
+// 		case VALUE_ARRAY:
+// 			return (*this)[static_cast<size_t>(idx)];
+// 		case VALUE_OBJECT:
+// 			return *this->ToObject()->InternalGetYYVarRef(idx);
+// 		default:
+// 			Error_Show_Action(
+// 				GetLogger()->ParseFormatting("RValue::operator[]: Expected VALUE_ARRAY or VALUE_OBJECT, got %s with flag %d", GetKindName(), m_Flags).c_str(), 
+// 				true, true
+// 			);
+// 			break;
+// 	}
+// 	return *this;
+// }
+RValue& ReadStructValue(RValue* p_Struct, RValue index)
+{
+	int32_t hash = 0;
+	if (index.GetKind() == VALUE_STRING) {
+		hash = Code_Variable_FindAlloc_Slot_From_Name(nullptr, index.ToCString());
+	} else if (index.GetKind() == VALUE_INT32 || index.GetKind() == VALUE_REAL) {
+		hash = parseRValueNumber<int32_t>(index);
+	} else {
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("ReadStructValue: Expected string or int32 for member name, got %s", index.GetKindName()).c_str(), 
+			true, true
+		);
+		return *p_Struct;
+	}
+	if ((p_Struct->m_Kind & MASK_KIND_RVALUE) != VALUE_OBJECT) {
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("ReadStructValue: Expected VALUE_OBJECT, got %s", p_Struct->GetKindName()).c_str(), 
+			true, true
+		);
+		return *p_Struct;
+	}
+	YYObjectBase* pObj = reinterpret_cast<YYObjectBase*>(*(std::launder(&p_Struct->m_Pointer)));
+
+	RValue* pVal = pObj->InternalReadYYVar(hash);
+	if (!pVal) {
+		Error_Show_Action(
+			GetLogger()->ParseFormatting("ReadStructValue: Object does not contain member with hash 0x%X", hash).c_str(), 
+			true, true
+		);
+		return *p_Struct;
+	}
+	return *pVal;
+}
 RValue::operator bool()
 {
-Organik::GetLogger()->LogFormatted("RValue::operator bool() called for RValue at %p", this);
 //Organik::GetLogger()->LogFormatted("RValue::operator bool: m_Kind=%d", this->m_Kind);
 
 	return this->ToBoolean();
@@ -444,9 +725,6 @@ RValue::operator double()
 
 RValue::operator std::string()
 {
-//Organik::GetLogger()->LogFormatted("RValue::operator std::string() called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::operator std::string: this->ToCString=%s", this->ToCString());
-
 	return this->ToCString();
 }
 

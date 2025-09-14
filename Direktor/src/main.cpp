@@ -18,16 +18,20 @@
 #endif
 
 #include "Synthetik.h"
-#include "Utils.h"
-#include <iostream>
+
+
 #include <string>
 #include <thread>
+#include <iostream>
 #include <fstream>
+#include <io.h> 
+#include <filesystem>
+
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "zhl_private.h"
-#include "ConsoleWindow.h"
+#include <chrono>
 
 using namespace Organik;
 using namespace ZHL;
@@ -52,6 +56,13 @@ ID3D11DeviceContext** gD3DContext;
 //     // }
 //     return ((PFN_D3D11_CREATE_DEVICE)d3d11CreateDevice_Super)(_adapter, _driverType, _software, _flags, p_featureLevels, _featureLevels, _sdkVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 // }
+
+
+
+
+
+
+
 
 /*
  *#Define CreateDevice's original function type/calling convention and tell ZHL how to hook it (basically)
@@ -97,6 +108,7 @@ _flags |= D3D11_CREATE_DEVICE_DEBUG;
     }
     return realRet;
 }
+FILE *infoLog, *errorLog = nullptr; 
 
 static void *org_CreateDeviceOut = nullptr;
 static auto fnDef = FunctionDefinition("D3D11CreateDevice", typeid(PFN_D3D11_CREATE_DEVICE), (PFN_D3D11_CREATE_DEVICE)0x03865822, d3d11CreateDevice_argdata, 10, 0, &org_CreateDeviceOut);
@@ -115,8 +127,7 @@ void gamerD3DetourThread()
     std::cout << "Gamer D3D11 hook installed @ " << std::hex << hookObj._hook << std::dec << std::endl;  
     std::cout << "GetProcAddress says the function is at." << std::hex << GetProcAddress(GetModuleHandleA("d3d11.dll"), "D3D11CreateDevice") << std::dec << std::endl;
 
-    std::thread t(ZHL::Init);
-    t.detach();
+    ZHL::Init();
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
@@ -127,13 +138,33 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 		{
 			// Prevents the module from being unloaded by the game (or, tries to anyways)
             GetModuleHandleEx(NULL, L"Direktor.dll", &hModule_Dupe);
+            AllocConsole();
+            FILE* infoTmp;
+            FILE* errorTmp;
+            HANDLE input_stream = GetStdHandle(STD_INPUT_HANDLE);
+            HANDLE output_stream = GetStdHandle(STD_OUTPUT_HANDLE);
+            DWORD console_mode;
+            GetConsoleMode(input_stream, &console_mode);
+            SetConsoleMode(input_stream, ENABLE_EXTENDED_FLAGS | (console_mode & ~ENABLE_QUICK_EDIT_MODE));
+            
+            std::string output((std::filesystem::current_path() / "info.log").generic_string().c_str());
+            std::string error((std::filesystem::current_path() / "error.log").generic_string().c_str());
+
+
+            
+
+            freopen_s(&infoTmp, output.c_str(), "w", stdout);
+            freopen_s(&errorTmp, error.c_str(), "w", stderr);
+            
+            std::cout << "Test 1 2 3 4" << std::endl;
+            std::cerr << "Test 1 2 3 4" << std::endl;
             std::cout << "Direktor DLL loaded: " << std::to_string((unsigned int) hModule_Dupe) << std::endl;
             
             // gamer multithreading. way too early to initialize imgui
-			std::thread t(gamerD3DetourThread);
-            ConsoleWindow::Init();
-			std::cout << "Created thread with ID: " << t.get_id() << std::endl;
+            
+            std::thread t(ZHL::Init);
 			t.detach();
+			std::cout << "Created thread with ID: " << t.get_id() << std::endl;
 		}
 	}
     else if (ul_reason_for_call == DLL_PROCESS_DETACH)

@@ -2,82 +2,114 @@
 
 
 /* 
- * Basically, this file is 99% credit to YYToolkit/Archie, 0.75% yoyo.lib and the gamemaker runtime headers, and 0.25% random shit Amy had to do
- * Because Synthetik is built on some weirdly compiled gamemaker version with an extra debug flag? IDK I have structs that don't line up to 
- * anything you can get on an official build of gamemaker compiling a YYC binary, and yet they are there for sure, and I also get logs from
- * DebugConsoleOutput just by allocating the console. Much of it makes no sense, all I can tell you is that the following structs are at least
- * all sized correctly, and they don't break in any of the ways I try to use them
+ * Basically, this file is 98% credit to YYToolkit/Archie, 2% me disassembling/reversing yoyo.lib and synthetik.exe
 */
-
+#define FLAG_MAP 1<<0
+#define FLAG_TRIGGER 1<<1
+#define FLAG_ACTION 1<<2
 #define YEXTERN 
 #define YYCEXPORT 
 #define VMExec void*
-#define  EVENT_CREATE                    0
-#define  EVENT_DESTROY                   1
-#define  EVENT_ALARM                     2
-#define  EVENT_STEP                      3
-#define  EVENT_COLLISION                 4
-#define  EVENT_KEYBOARD                  5
-#define  EVENT_MOUSE                     6
-#define  EVENT_OTHER                     7
-#define  EVENT_DRAW                      8
-#define  EVENT_KEYPRESS                  9
-#define  EVENT_KEYRELEASE                10
-#define  EVENT_TRIGGER	                 11
-#define  EVENT_CLEAN_UP	                 12
-#define  EVENT_GESTURE		             13
-#define  EVENT_PRE_CREATE                14
+#define EVENT_HASH(EV,SUBEV) ((int32_t)(EV) << 16 | (int32_t)(SUBEV & 0xFFFF))
+#define EVENT_CREATE                     0
+#define EVENT_DESTROY                    1
+#define EVENT_ALARM                      2
+#define EVENT_STEP                       3
+#define EVENT_COLLISION                  4
+#define EVENT_KEYBOARD                   5
+#define EVENT_MOUSE                      6
+#define EVENT_OTHER                      7
+#define EVENT_DRAW                       8
+#define EVENT_KEYPRESS                   9
+#define EVENT_KEYRELEASE                10
+#define EVENT_CLEAN_UP	                12
+#define EVENT_PRE_CREATE                14
 
-#define  EVENT_STEP_NORMAL                0
-#define  EVENT_STEP_BEGIN                 1
-#define  EVENT_STEP_END                   2
-#define  EVENT_OTHER_OUTSIDE              0
-#define  EVENT_OTHER_BOUNDARY             1
-#define  EVENT_OTHER_STARTGAME            2
-#define  EVENT_OTHER_ENDGAME              3
-#define  EVENT_OTHER_STARTROOM            4
-#define  EVENT_OTHER_ENDROOM              5
-#define  EVENT_OTHER_NOLIVES              6
-#define  EVENT_OTHER_ANIMATIONEND         7
-#define  EVENT_OTHER_ENDOFPATH            8
-#define  EVENT_OTHER_NOHEALTH             9
-#define  EVENT_OTHER_USER0			     10
-#define  EVENT_OTHER_CLOSEBUTTON         30
-#define  EVENT_OTHER_OUTSIDE_VIEW0       40
-#define  EVENT_OTHER_BOUNDARY_VIEW0      50
-#define  EVENT_OTHER_ANIMATION_UPDATE    58
-#define  EVENT_OTHER_ANIMATION_EVENT     59
+#define SUBEV_STEP_NORMAL                0
+#define SUBEV_STEP_BEGIN                 1
+#define SUBEV_STEP_END                   2
+#define SUBEV_ROOM_START                 4
+#define SUBEV_ROOM_END                   5
+#define SUBEV_USER0                     10
+#define SUBEV_USER1                     11
+#define SUBEV_USER2                     12
+#define SUBEV_USER3                     13
+#define SUBEV_USER4                     14
+#define SUBEV_USER5                     15
+#define SUBEV_USER6                     16
+#define SUBEV_USER7                     17
+#define SUBEV_USER8                     18
+#define SUBEV_USER9                     19
+#define SUBEV_USER10                    20
+#define SUBEV_USER11                    21
+#define SUBEV_ALARM0                     0
+#define SUBEV_ALARM1                     1
+#define SUBEV_ALARM2                     2
+#define SUBEV_ALARM3                     3
+#define SUBEV_ALARM4                     4
+#define SUBEV_ALARM5                     5
+#define SUBEV_ALARM6                     6
+#define SUBEV_ALARM7                     7
+#define SUBEV_ALARM8                     8
+#define SUBEV_ALARM9                     9
+#define SUBEV_ALARM10                   10
+#define SUBEV_ALARM11                   11
+#define SUBEV_USER12                    22
+#define SUBEV_USER13                    23
+#define SUBEV_USER14                    24
+#define SUBEV_USER15                    25
+#ifndef CONCATENATE
+#define CONCATENATE(s1, s2) s1##s2
+#define EXPAND_THEN_CONCATENATE(s1, s2) CONCATENATE(s1, s2)
+#endif
+#define USER(EVT)                       EXPAND_THEN_CONCATENATE(SUBEV_USER, EVT)
+#define STEP(EVT)                       EXPAND_THEN_CONCATENATE(SUBEV_STEP_, EVT)
+#define ROOM(EVT)                       EXPAND_THEN_CONCATENATE(SUBEV_ROOM_, EVT)
+#define EVENT(EVT)                      EXPAND_THEN_CONCATENATE(EVENT_, EVT)
+#define SUBEVENT(EVT)                   EXPAND_THEN_CONCATENATE(SUBEV_, EVT)
+#define MAKECODE(EVT, SUBEVT)           ((int32_t)(EVT & 0xFFFF) << 16 | (int32_t)(SUBEVT & 0xFFFF))
+#define STEP_MAIN                       MAKECODE(EVENT(STEP), SUBEVENT(STEP_NORMAL))
+#define STEP_BEGIN                      MAKECODE(EVENT(STEP), SUBEVENT(STEP_BEGIN))
+#define STEP_END                        MAKECODE(EVENT(STEP), SUBEVENT(STEP_END))
+#define ROOM_START                      MAKECODE(EVENT(STEP), SUBEVENT(ROOM_START))
+#define ROOM_END                        MAKECODE(EVENT(STEP), SUBEVENT(ROOM_END))
+#define UPDATE                          MAKECODE(EVENT(OTHER), USER(0))
+#define PACKETRCV                       MAKECODE(EVENT(OTHER), USER(12))
+#define ENEMY_STATE0                    MAKECODE(EVENT(OTHER), USER(0))
+#define WEAP_SYNCSTATS                  MAKECODE(EVENT(OTHER), USER(1))
+#define SHOT_HIT                        MAKECODE(EVENT(OTHER), USER(15))
+#define WEAP_PICKUP                     MAKECODE(EVENT(OTHER), USER(3))
+#define WEAP_UPDATE_ATTACH              MAKECODE(EVENT(OTHER), USER(4))
+#define WEAP_SET_VARIANT                MAKECODE(EVENT(OTHER), USER(5))
+#define DESTROY                         MAKECODE(EVENT(DESTROY), 0)
+#define SUBEV_APPEXIT                   30
+#define SUBEV_POSITION                  40
 
-#define  EVENT_OTHER_WEB_IMAGE_LOAD      60
-#define  EVENT_OTHER_WEB_SOUND_LOAD      61
-#define  EVENT_OTHER_WEB_ASYNC           62
+#define SUBEV_WEB_IMAGE_LOAD            60
+#define SUBEV_WEB_SOUND_LOAD            61
+#define SUBEV_WEB_ASYNC                 62
 
-#define  EVENT_OTHER_DIALOG_ASYNC        63
-#define  EVENT_OTHER_WEB_IAP             66
-#define  EVENT_OTHER_WEB_CLOUD           67
-#define  EVENT_OTHER_WEB_NETWORKING      68
-#define  EVENT_OTHER_WEB_STEAM           69
-#define  EVENT_OTHER_SOCIAL              70
+#define SUBEV_DIALOG_ASYNC              63
+#define SUBEV_WEB_NETWORKING            68
+#define SUBEV_WEB_STEAM                 69
 
-#define  EVENT_OTHER_PUSH_NOTIFICATION   71
+#define SUBEV_DRAW_GUI                  64
+#define SUBEV_DRAW_RESIZE               65
 
-#define  EVENT_OTHER_ASYNC_SAVE_LOAD     72
-#define  EVENT_OTHER_AUDIO_RECORDING     73
-#define  EVENT_OTHER_AUDIO_PLAYBACK      74
-#define  EVENT_OTHER_SYSTEM_EVENT        75
-
-
-#define  EVENT_OTHER_MESSAGE_EVENT       76
-
-#define  EVENT_DRAW_GUI                  64
-#define  EVENT_DRAW_RESIZE               65
-
-#define  EVENT_DRAW_BEGIN                72
-#define  EVENT_DRAW_END                  73
-#define  EVENT_DRAW_GUI_BEGIN            74
-#define  EVENT_DRAW_GUI_END              75
-#define  EVENT_DRAW_PRE                  76
-#define  EVENT_DRAW_POST                 77
+#define SUBEV_DRAW_BEGIN                72
+#define SUBEV_DRAW_END                  73
+#define SUBEV_DRAW_GUI_BEGIN            74
+#define SUBEV_DRAW_GUI_END              75
+#define SUBEV_DRAW_PRE                  76
+#define SUBEV_DRAW_POST                 77
+#define DRAW_GUI                        SUBEV_DRAW_GUI
+#define DRAW_RESIZE                     SUBEV_DRAW_RESIZE
+#define DRAW_BEGIN                      SUBEV_DRAW_BEGIN
+#define DRAW_END                        SUBEV_DRAW_END
+#define DRAW_GUI_BEGIN                  SUBEV_DRAW_GUI_BEGIN
+#define DRAW_GUI_END                    SUBEV_DRAW_GUI_END
+#define DRAW_PRE                        SUBEV_DRAW_PRE
+#define DRAW_POST                       SUBEV_DRAW_POST
 
 typedef unsigned char   undefined;
 typedef unsigned char    byte;
@@ -103,44 +135,44 @@ typedef int             int32;
 typedef long long       int64_t;
 typedef long long       int64;
 typedef unsigned short    word;
-    struct CBackGM;
-    struct CCode;
-    struct CEvent;
-    template <typename TKey, typename TValue, int TInitialSize>
-    struct CHashMap;
-    struct CInstance;
-    struct CInstanceBase;
-    struct CLayer;
-    struct CLayerEffectInfo;
-    struct CLayerElementBase;
-    struct CLayerInstanceElement;
-    struct CLayerSpriteElement;
-    struct CObjectGM;
-    struct CPhysicsDataGM;
-    struct CPhysicsObject;
-    struct CPhysicsWorld;
-    struct CRoom;
-    struct CScript;
-    struct CScriptRef;
-    struct CSkeletonInstance;
-    struct CViewGM;
-    struct CWeakRef;
-    struct DLL_RFunction;
-    enum eBuffer_Format : int32_t;
-    struct GCObjectContainer;
-    struct IBuffer;
-    struct RTile;
-    struct RToken;
-    struct RValue;
-    struct RValue;
-    struct RVariableRoutine;
-    struct YYGMLFuncs;
-    struct YYObjectBase;
-    struct YYRECT;
-    struct YYRoom;
-    struct YYRoomInstances;
-    struct YYRoomTiles;
-    struct YYRunnerInterface;
+struct CBackGM;
+struct CCode;
+struct CEvent;
+template <typename TKey, typename TValue, int TInitialSize>
+struct CHashMap;
+struct CInstance;
+struct CInstanceBase;
+struct CLayer;
+struct CLayerEffectInfo;
+struct CLayerElementBase;
+struct CLayerInstanceElement;
+struct CLayerSpriteElement;
+struct CObjectGM;
+struct CPhysicsDataGM;
+struct CPhysicsObject;
+struct CPhysicsWorld;
+struct CRoom;
+struct CScript;
+struct CScriptRef;
+struct CSkeletonInstance;
+struct CViewGM;
+struct CWeakRef;
+struct DLL_RFunction;
+enum eBuffer_Format : int32_t;
+struct GCObjectContainer;
+struct IBuffer;
+struct RTile;
+struct RToken;
+struct RValue;
+struct RValue;
+struct RVariableRoutine;
+struct YYGMLFuncs;
+struct YYObjectBase;
+struct YYRECT;
+struct YYRoom;
+struct YYRoomInstances;
+struct YYRoomTiles;
+struct YYRunnerInterface;
 
 #define yymax(a,b)            (((a) > (b)) ? (a) : (b))
 #define yymin(a,b)            (((a) < (b)) ? (a) : (b))
@@ -168,6 +200,10 @@ typedef bool (*FNSetVariable)(CInstance* self, int ind, RValue *val);
 #ifndef HASH_EMPTY
 #define HASH_EMPTY 0
 #endif // HASH_EMPTY
+
+#define VARIANT_DESC_MAX_LENGTH 512
+
+
 
 typedef void* HYYMUTEX;
 typedef void* HSPRITEASYNC;
@@ -236,24 +272,37 @@ concept CGameMakerObject = requires(T Param)
 };
 template <typename T>
 concept NumberCompatible = requires(T Param)
-{   
+{std::string_view("a").at(0);
     requires std::_Is_any_of_v<T, 
         int, long, long long, float, double, 
         short, char, unsigned char, 
         unsigned int, unsigned long, 
         unsigned long long, unsigned short>;
 };
+
 typedef void(*PFUNC_YYGML)(CInstance* Self,CInstance* Other);
 
 using PFUNC_RAW = void(*)();
 
-typedef RValue* (*PFUNC_YYGMLScript)(CInstance* Self,CInstance* Other,RValue* Result,int ArgumentCount,RValue* Arguments[]);
+using PFUNC_YYGMLScript = RValue & (__cdecl*)(
+		CInstance* Self,
+		CInstance* Other,
+		RValue* Result,
+		int ArgumentCount,
+		RValue* Arguments[]
+);
+
+typedef int64_t* PQWORD;
+#define HIDWORD(ll) ((DWORD)((*((PQWORD)(ll)) >> 32) & 0xffffffff))
+#define PTR_HIDWORD(p_LL) ((PDWORD)&(((char*)(p_LL))[0]))
+#define LODWORD(ll) ((DWORD)((*((PQWORD)(ll)) & 0xffffffff)))
+#define PTR_LODWORD(p_LL) ((PDWORD)&(((char*)(p_LL) + 4)[0]))
 
 using PFN_YYObjectBaseAdd = void(__thiscall*)(YYObjectBase* This, const char* Name, RValue* Value, int Flags);
 
 typedef int (*FNGetOwnProperty)(struct YYObjectBase *, struct RValue *, char *);
 
-typedef int (*FNDeleteProperty)(struct YYObjectBase *, struct RValue *, char *, bool);
+typedef void (*FNDeleteOwnProperty)(struct YYObjectBase *obj, struct RValue *result, const char *name, bool unk);
 
 typedef int (*FNDefineOwnProperty)(struct YYObjectBase *, char *, struct RValue *, bool);
 
@@ -329,26 +378,43 @@ enum YYObjectKind {
     OBJECT_KIND_AUDIOEFFECT=25,
     OBJECT_KIND_MAX=26
 };
+struct RefDynamicArrayOfRValue;
+struct ListCInstance {
+	
+};
+typedef CHashMap<int, RValue*, 3> CHashMapIntRValuePtr;
+// typedef CHashMapElement<int, RValue*> CHashMapElementRValuePtr;
+typedef CHashMap<int64_t, CEvent*, 3> CHashMapuint64CEventPtr;
+typedef CHashMap<int, CLayerInstanceElement*, 7> CHashMapintCLayerInstanceElementPtr;
+
 #define MASK_KIND_RVALUE 0x0ffffff
-enum RValueType : uint
+enum RValueType : uint32_t
 {
-    VALUE_REAL = 0,				// Real value
-    VALUE_STRING = 1,			// String value
-    VALUE_ARRAY = 2,			// Array value
-    VALUE_PTR = 3,				// Ptr value
-    VALUE_VEC3 = 4,				// Vec3 (x,y,z) value (within the RValue)
-    VALUE_UNDEFINED = 5,		// Undefined value
-    VALUE_OBJECT = 6,			// YYObjectBase* value 
-    VALUE_INT32 = 7,			// Int32 value
-    VALUE_VEC4 = 8,				// vec4* value 
-    VALUE_VEC44 = 9,			// matrix44* value
-    VALUE_INT64 = 10,			// Int64 value
-    VALUE_ACCESSOR = 11,		// Actually an accessor
-    VALUE_NULL = 12,			// JS Null
-    VALUE_BOOL = 13,			// Bool value
-    VALUE_ITERATOR = 14,     // JS For-in Iterator
-    VALUE_REF = 15,          // Reference value
-    VALUE_UNSET = 0x0ffffff  // Unset value (never initialized)
+    VALUE_REAL = 0U,			
+    VALUE_STRING = 1U,		
+    VALUE_ARRAY = 2U,		
+    VALUE_PTR = 3U,			
+    VALUE_VEC3 = 4U,			
+    VALUE_UNDEFINED = 5U,	
+    VALUE_OBJECT = 6U,		
+    VALUE_INT32 = 7U,		
+    VALUE_VEC4 = 8U,			
+    VALUE_VEC44 = 9U,		
+    VALUE_INT64 = 10U,		
+    VALUE_ACCESSOR = 11U,	
+    VALUE_NULL = 12U,		
+    VALUE_BOOL = 13U,		
+    VALUE_ITERATOR = 14U,    
+    VALUE_REF = 15U,
+    VALUE_MAP = 16U,
+    VALUE_VECTOR = 17U,
+    VALUE_FUNCTION = 18U,
+    VALUE_TRIGGER = 19U,
+    VALUE_ACTION = 20U,
+    VALUE_PARAMS = 21U,
+    VALUE_VARREF = 22U,
+    VALUE_ACTIONARRAY = (uint32_t) ((VALUE_ARRAY << 16) | VALUE_FUNCTION),
+    VALUE_UNSET = 0x0ffffff 
 };
 enum eVM_Type
 {
@@ -396,13 +462,8 @@ enum eBuffer_Seek : int32_t
     eBuffer_Relative = 0x1,
     eBuffer_End = 0x2,
 };
+#define VAR_HASH(var) Organik::Variables::Hashes[Organik::Variables::##var]
 
-union FunctionUnion
-{
-    PFUNC_YYGMLScript m_ScriptFunction;
-    PFUNC_YYGML m_CodeFunction;
-    PFUNC_RAW m_RawFunction;
-};
 union Objects {
     struct YYObjectBase* m_Object;
     struct CInstance* m_Instance;
@@ -431,3 +492,5 @@ union LayerElementBlink
     CLayerSpriteElement* m_SpriteBlink;
     CLayerElementBase* m_Blink;
 };
+    
+

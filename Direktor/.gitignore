@@ -9,4 +9,8 @@ README.md
 libzhlgen/**
 vertexai.json
 polydiv*.json
+<<<<<<< Updated upstream
 .github/**
+=======
+src/Chat/IRC*
+>>>>>>> Stashed changes

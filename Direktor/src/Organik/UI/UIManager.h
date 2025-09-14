@@ -3,6 +3,8 @@
 #include "zhl_internal.h"
 #include <vector>
 #include <unordered_map>
+#include "imgui/imgui.h"
+#include "imgui/imgui_stdlib.h"
 #include <functional>
 #include <typeinfo>
 #include <string>
@@ -19,7 +21,7 @@
             } \
         ) \
     }
-
+static int g_chatOpenCloseDelay = 0;
 namespace Organik
 {
     struct UIElement;
@@ -30,6 +32,8 @@ namespace Organik
     
     class UIManager
     {
+    private:
+        ImFont* consoleFont = nullptr;
     public:
         template<typename T>
         requires std::is_base_of_v<UIElement, T>
@@ -77,6 +81,10 @@ namespace Organik
         void DrawEvent();
         void StepEvent();
         bool isAnyItemHovered();
+        void setHovered()
+        {
+            m_wasItemHoveredLastFrame = true;
+        }
         static void Initialize();
         static void Shutdown();
         static size_t GetHash(const std::type_info& typeinfo)
@@ -84,6 +92,17 @@ namespace Organik
             return typeinfo.hash_code();
         }
         UIElement* GetElement(bool create = true, const std::string& name = "");
+        ImFont* GetConsoleFont()
+        {
+            return consoleFont;
+        }
+        void SetConsoleFont(ImFont* font)
+        {
+            if (font)
+            {
+                consoleFont = font;
+            }
+        }
         
         template<typename T>
         requires std::is_base_of_v<UIElement, T>
