@@ -6,13 +6,14 @@ Organik is free, open source, and will always be. I have a goal to make a tool w
 
 ### Features?
 This mod is ultimately mostly focused on being a tool to enable others to make mods (well, a tool for me to make a mod, but why not share?) Currently, it is the only way you can:
- - add custom variants to synthetik
+ - add custom variants to SYNTHETIK: Legion Rising
  - spawn items/weapons/enemies/bosses and edit game objects at will
  - use the room teleporter to travel to various unused, beta, and test maps (that you can't even get to with devmode!)
-     - such as MOBA Test or the secret Mars base (both real. don't believe me? Download the mod and find out.
+     - E.G. [MOBA_TEST](https://youtu.be/hjq89etbm0U) or the secret Mars base (both real. don't believe me? Come find out!
  - Play synthetik without existing issues in the base game (Heavy Gunner slowdown bug anyone?)
+ - [Turn all the bullets into rockets!](https://youtu.be/MMm5oXy9WLw)
  - Use a custom chat box to talk in party chat AND global chat at the same time! For maximum questionable conversation topics at 3am.
- - Lots more on the way! Including custom Weaons very soon!
+ - Lots more on the way! Including custom Weapons very soon!
 
 # Credits
 So many people to thank... I really hope I got everyone, but **please** if your name is missing, reach out and let me know. 
