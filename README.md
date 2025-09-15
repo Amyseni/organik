@@ -52,21 +52,12 @@ Other Projects / Libraries / Art & Audio / Special Thanks
   - @omnx - ADHD Squirrel/DistractionFactory::Create()/"I bet you could train an LLM to do this" incarnate. Also saved me countless hours of spinning in circles/weeks of potential dev time<br>
 
 ### Projects
-  - Aurie/YYToolkit (links above) - The rock solid foundation upon which I constructed this rickety 100ft ladder. The basis I've used for all gamemaker structs/types/YYC binary format (this cut at least a year of dev time, probably more).<br>
+  - LibZHL/LibZHLGen - Created by [Kilburn (@FixItVinh)](https://x.com/FixItVinh/). This is the "Magic Sauce" that sisgscans the game binary in memory and binds and hooks each function as if they existed in my own code.
+  - [Aurie](https://github.com/AurieFramework/Aurie)/[YYToolkit](https://github.com/AurieFramework/YYToolkit) - The rock solid foundation upon which I constructed this rickety 100ft ladder. The basis I've used for all gamemaker structs/types/YYC binary format (this cut at least a year of dev time, probably more).<br>
   - [ImGui](https://github.com/ocornut) -- Does what it says on the tin. I don't even want to think about the reality where I kept on with my own GUI "solution" (read: problem)<br>
   - [Tiny Mod Injector](https://github.com/YAL-Game-Tools/TinyModInjector)<br> -- Freed me from the peril of trying to support a launcher .exe / installer package for both Proton AND Windows itself. (effectively saving me from writing TinyModInjector)
   - [CallbackManagerMod - hooking/callbacks library.](https://github.com/PippleCultist/CallbackManagerMod) -- **The** "it just works" callbacks/hooking package for YYToolkit. Seriously, it just does the thing and that is magical all by itself.<br>
       - (and other [PippleCultist](https://github.com/PippleCultist) works (incl. HolocureMultiplayerMod): inspiration and code references.)<br>
-
-# Licensing
-  - Aurie/YYToolkit (links above) - The rock solid foundation upon which I constructed this rickety 100ft ladder to nowhere. The GOAT libraries that got me started understanding GameMaker/YYC to where I am now (aka--still clueless). The OG source for all gamemaker structs/types/the YYC binary format used in all my code here. (This saved at least a year of dev time, probably a lot more).<br>
-  - [ImGui](https://github.com/ocornut) -- Does what it says on the tin. I don't even want to think about the reality where I kept on with my own GUI "solution" (read: problem)<br>
-  - [Tiny Mod Injector](https://github.com/YAL-Game-Tools/TinyModInjector)<br> -- Freed me from the peril of trying to support a launcher .exe / installer package for both Proton AND Windows itself. (effectively saving me from writing TinyModInjector)
-  - [CallbackManagerMod - hooking/callbacks library.](https://github.com/PippleCultist/CallbackManagerMod) -- **The** "it just works" callbacks/hooking package for YYToolkit and GameMaker games. Seriously, it just does the thing and that is magical all by itself.<br>
-      - (and other [PippleCultist](https://github.com/PippleCultist) works (incl. HolocureMultiplayerMod): inspiration and code references.)<br>
-  - LibZHL/LibZHLGen (now Direktor and Komposer) - The "Magic Sauce" that defines, locates, and creates hooks / definitions for detouring or even just calling ANY function. Does raw assembly and/or typedef function trampoline hax to allow defined functions to be called the same way they were originally defined, as well as hooks executing under their *original* context (including `thiscall`, `fastcall`, even `userpurge`).
-     - Created by [Kilburn (@FixItVinh)](https://x.com/FixItVinh/) (see above) for his mod Antibirth (later Repentance). Modified briefly by myself and TheSwiftTiger, then by the [FTL Hyperspace](https://github.com/FTL-Hyperspace/FTL-Hyperspace) team, then back to me as I combined bits from across all of these iterations, with a goal to support all those gamemaker versions left behind by YYToolkit as it moves toward GameMaker Next.
-    - ORGANIK is and always will be GPL3 licensed and free for anyone to use!
       
 # Licensing
 [Organik - GPL3](https://github.com/Amyseni/organik/blob/master/LICENSE)<br>
