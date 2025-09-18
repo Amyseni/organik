@@ -903,4 +903,4 @@
     THING(sound_intro) \
     THING(sound_rpg7_shot) \
     THING(sound_ModWeaponReload1) \
-    THING(sound_ModWeaponFire1) \
+    THING(sound_ModWeaponFire1)

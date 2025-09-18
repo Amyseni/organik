@@ -96,14 +96,12 @@ namespace Organik
     )
     {
         constexpr size_t max_length = 4096;
-        size_t length = strlen(Format);
+        size_t length = strnlen_s(Format, max_length);
 
         if (length >= max_length)
             return "<string too long to print>";
 
         char buffer[max_length] = { 0 };
-
-        // strncpy_s is not needed here as vsprintf_s will write the formatted string.
         vsprintf_s(buffer, Format, Arguments);
 
         return buffer;

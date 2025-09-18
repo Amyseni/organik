@@ -523,8 +523,8 @@ struct CObjectGM {
     CHashMap_21int___CObjectGMZ1___2* m_ChildrenMap;
     CHashMap_18int___CEventZ1___3* m_EventsMap;
     CPhysicsDataGM m_PhysicsData;
-    LinkedList_9CInstance m_Instances;
-    LinkedList_9CInstance m_InstancesRecursive;
+    SLinkedList_9CInstance m_Instances;
+    SLinkedList_9CInstance m_InstancesRecursive;
     uint32_t m_Flags;
     int32_t m_SpriteIndex;
     int32_t m_Depth;

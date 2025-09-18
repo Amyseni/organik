@@ -53,6 +53,7 @@ set(PROJ_NAME ${PROJ_NAME})
 include_directories("include")
 include_directories("src")
 include_directories("src/DefinitionHelpers")
+include_directories("src/Organik/JSON")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 add_library(${PROJ_NAME} SHARED 
@@ -124,10 +125,10 @@ add_library(${PROJ_NAME} SHARED
 	"src/SigScan.cpp"
 	"src/Globals.h"
 	"src/Globals.cpp"
-	"src/Action.cpp"
-	"src/Action.h"
-	"src/Variant.h"
-	"src/Variant.cpp"
+	"src/Organik/JSON/Action.cpp"
+	"src/Organik/JSON/Action.h"
+	"src/Organik/JSON/Variant.h"
+	"src/Organik/JSON/Variant.cpp"
 	"src/RValue.cpp"
 	"src/Synthetik.cpp"
 	"src/hde.cpp"

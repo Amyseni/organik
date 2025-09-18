@@ -174,16 +174,10 @@ struct YYRoomInstances;
 struct YYRoomTiles;
 struct YYRunnerInterface;
 
-#define yymax(a,b)            (((a) > (b)) ? (a) : (b))
-#define yymin(a,b)            (((a) < (b)) ? (a) : (b))
 #define	DEG(_ang)			((Pi/180.0f)*(_ang))
 #define	RAD(_ang)			((180.0f/Pi)*(_ang))
-#define	Ord(c)			    ((Byte)(c))
-#define	Chr(c)			    ((char)(c))
-#define Round(x)            (yylrint(x))
-#define Ceil(x)		        (int)ceil(x)
-#define Floor(x)	        (int)floor(x)
-#define Sqr(x)		        ((x)*(x))
+#define	ORD(c)			    ((Byte)(c))
+#define	CHR(c)			    ((char)(c))
 
 #ifndef UTEXT
 #define UTEXT(x) ((const unsigned char*)(x))
@@ -197,9 +191,9 @@ typedef bool (*FNSetVariable)(CInstance* self, int ind, RValue *val);
 #ifndef HASH_DELETED
 #define HASH_DELETED 0x80000000
 #endif // HASH_DELETED
-#ifndef HASH_EMPTY
-#define HASH_EMPTY 0
-#endif // HASH_EMPTY
+#ifndef HASH_NULL
+#define HASH_NULL 0
+#endif // HASH_NULL
 
 #define VARIANT_DESC_MAX_LENGTH 512
 
@@ -382,11 +376,7 @@ struct RefDynamicArrayOfRValue;
 struct ListCInstance {
 	
 };
-typedef CHashMap<int, RValue*, 3> CHashMapIntRValuePtr;
 // typedef CHashMapElement<int, RValue*> CHashMapElementRValuePtr;
-typedef CHashMap<int64_t, CEvent*, 3> CHashMapuint64CEventPtr;
-typedef CHashMap<int, CLayerInstanceElement*, 7> CHashMapintCLayerInstanceElementPtr;
-
 #define MASK_KIND_RVALUE 0x0ffffff
 enum RValueType : uint32_t
 {
@@ -493,4 +483,5 @@ union LayerElementBlink
     CLayerElementBase* m_Blink;
 };
     
+typedef bool(*PFN_ACTIONHANDLER)(CInstance* self, CInstance* other, YYObjectBase* context);
 

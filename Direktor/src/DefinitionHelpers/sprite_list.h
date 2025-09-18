@@ -2424,4 +2424,4 @@
     THING(path0) \
     THING(path1) \
     THING(demo_exp_curve) \
-    THING(BlurFade) \
+    THING(BlurFade)

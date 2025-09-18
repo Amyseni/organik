@@ -363,6 +363,32 @@ void* RValue::ToPointer() const
 	const PVOID* d_Ptr = reinterpret_cast<const PVOID*>(std::launder(&this->m_Pointer));
 	return *d_Ptr;
 }
+RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> RValue::ToActionPair() const
+{
+	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, ((char*)&this->m_Pointer) + 4);
+	const PFN_ACTIONHANDLER* d_Ptr = reinterpret_cast<const PFN_ACTIONHANDLER*>(std::launder(&this->m_Pointer));
+	const YYObjectBase* d_Ptr2 = reinterpret_cast<const YYObjectBase*>(std::launder(((char*)&this->m_Pointer) + 4));
+	return RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>{*d_Ptr, const_cast<YYObjectBase*>(d_Ptr2)};
+}
+RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> RValue::ToActionPair()
+{
+	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, ((char*)&this->m_Pointer) + 4);
+	PFN_ACTIONHANDLER const* d_Ptr = reinterpret_cast<PFN_ACTIONHANDLER const*>(std::launder(&this->m_Pointer));
+	YYObjectBase* const* d_Ptr2 = reinterpret_cast<YYObjectBase* const*>(std::launder(((char*)&this->m_Pointer) + 4));
+	return RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>{*d_Ptr, const_cast<YYObjectBase*>(*d_Ptr2)};
+}
+const RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& RValue::ToRefActionPair() const
+{
+	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, &this->m_i64);
+	const RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& d_Ptr = *reinterpret_cast<const RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>*>(std::launder(&this->m_i64));
+	return d_Ptr;
+}
+RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& RValue::ToRefActionPair()
+{
+	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, &this->m_i64);
+	RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& d_Ptr = *reinterpret_cast<RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>*>(std::launder(&this->m_i64));
+	return d_Ptr;
+}
 
 RValue& RValue::push_back(const RValue& value)
 {
@@ -483,7 +509,7 @@ RValue::RValue(const RValue& Other)
 		&Other
 	);
 }
-bool RValue::operator()(RValue* in, RValue* out)
+void RValue::operator()(CInstance* self, CInstance* other)
 {
 	if (this->m_Kind != VALUE_ACTION) {
 		Error_Show_Action(
@@ -491,7 +517,23 @@ bool RValue::operator()(RValue* in, RValue* out)
 			true, true
 		);
 	}
-	return false;
+	if (!this->ToPointer())
+	{
+		Error_Show_Action(
+			"RValue::operator(): Action pointer is null", 
+			true, true
+		);
+	}
+
+	Action* tmp = nullptr;
+	Action* me = reinterpret_cast<Action*>(this->ToPointer());
+	if (*CurrentActionGlobal())
+		tmp = (*CurrentActionGlobal());
+	(*CurrentActionGlobal()) = me;
+	me->GetEventFunction()(self, other);
+	(*CurrentActionGlobal()) = tmp;
+	
+	return;
 }
 RValue::RValue(RValue&& Other) noexcept
 {

@@ -52,7 +52,7 @@ void Organik::Utils::GetCurrentRoom(CRoom*& room)
 }
 
 std::mutex g_SettingsMutex;
-std::pair<std::unique_lock<std::mutex>, Utils::Settings::GUISettings*> Utils::Settings::GetUISettings()
+std::pair<std::unique_lock<std::mutex>, Utils::Settings::GUISettings*&> Utils::Settings::GetUISettings()
 {
     std::unique_lock<std::mutex> lock(g_SettingsMutex);
     GUISettings *ret = nullptr;
@@ -63,7 +63,7 @@ std::pair<std::unique_lock<std::mutex>, Utils::Settings::GUISettings*> Utils::Se
           : new GUISettings();
         g_UISettings = ret;
     }
-    return std::make_pair(std::move(lock), g_UISettings);
+    return std::pair<std::unique_lock<std::mutex>, Utils::Settings::GUISettings*&>(std::move(lock), std::forward<Utils::Settings::GUISettings*&>(g_UISettings));
 
 }
 
@@ -168,9 +168,22 @@ std::string Organik::Utils::SendHTTPSPost(
     
     return responseStr;
 }
+CInstance* getOutgame() {
+    static CInstance* outgame = nullptr;
+    if (!outgame) {
+        outgame = CInstance::FirstOrDefault([](CInstance* inst) -> bool {
+            return inst && inst->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::outgame];
+        });
+    }
+    return outgame;
+}
 void Organik::Utils::bugWebhook(const std::string& errorMsg)
 {
     const std::string& playerName = "Unknown Player";
+    if (UIManager::isImGuiInitialized()) //this means engine init has finished, safe to look at outgame now
+    {
+        
+    }
     const std::string& formattedErrorMsg = GetLogger()->ParseFormatting("Bug Report - %s\n\n%s", playerName.c_str(), errorMsg.c_str());
     std::cerr << GetLogger()->ParseFormatting("Report Message: %s -> %s", errorMsg.c_str(), formattedErrorMsg.c_str());
     const std::string& body = "content=" + Utils::url_encode(formattedErrorMsg);
@@ -206,7 +219,22 @@ HOOK_GLOBAL(Error_Show_Action, (char* message, bool mustCrash, bool manualError)
     }
     super(message, mustCrash, manualError);
 }
+void Error_Show_Action(bool mustCrash, bool manualError, const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    constexpr size_t max_length = 4096;
+    char buffer[max_length] = { 0 };
+    size_t length = strnlen_s(fmt, max_length);
 
+    if (length >= max_length)
+        strncpy_s(buffer, "<string too long to print>", max_length);
+    else
+        vsprintf_s(buffer, fmt, args);
+
+    va_end(args);
+    Error_Show_Action(&buffer[0], mustCrash, manualError);
+}
 bool Utils::isInitializationDone()
 {
     return ImGui::GetCurrentContext() != nullptr;

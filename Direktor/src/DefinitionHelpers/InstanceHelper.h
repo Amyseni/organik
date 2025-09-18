@@ -2,6 +2,9 @@
 #include <vector>
 #include "sprite_list.h"
 #include "sound_list.h"
+#include "room_list.h"
+
+
 using namespace Organik;
 using namespace Utils;
 
@@ -2474,7 +2477,7 @@ namespace Organik
 {
     struct Objects 
     {
-        enum
+        enum : int32_t
         {
             OBJECTS_DO(MAKE_ENUM)
         };
@@ -2499,5 +2502,15 @@ namespace Organik
         static const char* const SoundNamesArr[];
         static std::vector<int32_t> SoundIndexes;
     };
+    struct Rooms
+    {
+        enum : int32_t
+        {
+            ROOMS_DO(MAKE_ENUM)
+        };
+        static const char* const RoomNamesArr[];
+        static std::vector<int32_t> AssetIndexes;
+    };
 }
+#define ROOM_ID(RNAME) Organik::Rooms::AssetIndexes[Organik::Rooms::##RNAME]
 #endif

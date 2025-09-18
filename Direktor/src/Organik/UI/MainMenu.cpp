@@ -359,8 +359,15 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
         out_mousedOver = true;
         if (ImGui::MenuItem("HG Slowdown Fix/Unstuck", "", false, gamestarted))
             *localPlayerObj->InternalReadYYVar(VAR_HASH(mod_movespeed)) = RValue(1.00000);
-        ImGui::EndMenu(); // Options/Bugfixes
         ImGui::MenuItem("Enable Bug Reporting", "", Settings::GetEnableBugWebhook());
+        ImGui::EndMenu(); // Options/Bugfixes
+    }
+    if (ImGui::MenuItem("Join us on Discord!"))
+    {   
+        RValue out;
+        RValue args;
+        YYCreateString(&args, "https://discord.gg/KrTA2QkyCx ");
+        gml_YoYo_OpenURL(&out, GetGlobalInstance(), GetGlobalInstance(), 1, &args);
     }
     ImGui::EndMainMenuBar();
 }

@@ -85,8 +85,11 @@ void Organik::DoHelperSetup()
 
     for (int i=0;i<roomCount;i++)
     {
+        RValue r = DoBuiltin(&gml_asset_get_index, {RValue(Organik::Rooms::RoomNamesArr[i])}).ToInt32();
+        
+        int32_t iVal = r.ToInt32();
         Organik::Rooms::AssetIndexes.push_back(
-            DoBuiltin(&gml_asset_get_index, {RValue(Organik::Rooms::RoomNamesArr[i])}).ToInt32()
+            iVal
         );
     }
     Organik::GetLogger()->LogSimple("Room indexes initialized.");

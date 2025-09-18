@@ -6,76 +6,30 @@
 #include "VariableViewer.h"
 #include "ItemFilter.h"
 #include "Globals.h"
+#include "Action.h"
 #include "UIManager.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
-<<<<<<< Updated upstream
-<<<<<<< HEAD
-=======
+#include "imgui/imgui_internal.h"
 #include "Logging.h"
-#include "DefinitionHelpers/BuiltinHelper.h"
-#include "Utils.h"
->>>>>>> 073bc0d (std::launder for squeaky clean RValues)
-=======
->>>>>>> Stashed changes
 #include "imgui/imgui_impl_dx11.h"
 
 bool InstanceVariableViewer::showPopup = false;
 bool InstanceVariableViewer::showArrayPopup = false;
 bool matchAllVariables = false; // false = ay, true = all
-
+#define OBJ_TREE_INDENT 18.0f
 std::map<int32_t, bool> variablesToMatchMap = std::map<int32_t, bool>();
-std::map<int32_t, std::unordered_map<int32_t, std::string>> varMapCache;
+std::map<int32_t, std::unordered_map<int32_t, const char*>> varMapCache;
 std::string objectHasVariableFilter;
 std::string variableNameFitler;
 std::string variableTypeFilter;
 #define VARHASH_FROMNAME(name) Organik::Variables::Hashes[Organik::Variables::##name]
 #define VARNAME_FROMHASH(hash) Organik::Variables::HashToVariableMap[hash]
-static bool dummyDoTheTHING = []() -> bool {
-    // Initialize the variablesToMatchMap with all variables
-    for (const auto& hash : Organik::Variables::Hashes) {
-        variablesToMatchMap[hash] = false; // Default to not matching
-    }
-    return true;
-}();
-bool InstanceVariableViewer::matchAll = false;
-bool InstanceVariableViewer::matchNone = false;
-bool InstanceVariableViewer::matchAny = true;
+
 
 static auto instanceFilter = ItemFilter();
 
-int32_t BeginVariablesChildAndTree(CInstance* instance)
-<<<<<<< Updated upstream
-{
-    int32_t ret = 0 + ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders);
-    if (!ret) {
-        ImGui::EndChild();
-        return ret;
-    }
-
-    ImGui::Text("Variables for: %s (ID: %d)", 
-        instance->m_Object->m_Name,
-        instance->m_ID);
-
-    bool beginTable = false;
-    // Display all variables in a table
-    beginTable = ImGui::BeginTable("Variables", 3, 
-            ImGuiTableFlags_Borders | 
-            ImGuiTableFlags_RowBg | 
-            ImGuiTableFlags_Resizable |
-            ImGuiTableFlags_ScrollY);
-    if (beginTable)
-    {
-        ret++;
-        // Setup columns
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150.0f);
-        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableHeadersRow();
-    }
-    return ret;
-}
 #define GLOBALS_DO(make) \
     make(outgame) \
     make(obj_stats) \
@@ -89,590 +43,656 @@ int32_t BeginVariablesChildAndTree(CInstance* instance)
     make(obj_statistics) \
     make(obj_color) \
     make(obj_terrorlevel) \
-    make(obj_console) \
     make(obj_player) \
-    make(WeaponSystem) \
-    make(obj_all_bullets) \
-    make(obj_bullet_lists) \
-    make(obj_player_bullets) \
-    make(bulletSystem) \
-    make(itemSystem) \
-    make(perkSystem) \
 
 
 #define PARENTS_DO(make) \
-    make(obj_enm_parent_all) \
-    make(obj_enm_base_parent) \
-    make(obj_perk_parent) \
-    make(obj_artefact_parent) \
-    make(obj_enm_turret_parent) \
-    make(obj_boss_parent) \
-    make(obj_enm_bossweapon_parent) \
-    make(obj_drone_parent) \
-    make(obj_headshot_collision_parent) \
-    make(obj_moving_entity_PARENT) \
     make(obj_weapon_PARENT) \
-    make(obj_weapon_uber_parent) \
-    make(obj_weapon_item_parent) \
-    make(obj_weapon_buff_parent) \
-    make(obj_bullet_rocket_parent) \
-    make(obj_bullet_beam_parent) \
-    make(obj_bullet_laser_parent) \
-    make(obj_chest_parent) \
-    make(obj_trap_mine_parent) \
+    make(obj_enm_parent_all) \
+    make(obj_all_solid) \
+    make(obj_mainmenu) \
+    make(obj_cursor) \
+    make(obj_cursor_mainmenu) \
+    make(obj_perk_parent) \
+    make(obj_shell_parentOLD) \
+    make(obj_lightemitter_parent) \
+    make(obj_buffs_debuffs) \
+    make(obj_moving_entity_PARENT) \
+    make(obj_headshot_collision_parent) \
+    make(obj_all_bullets) \
+    make(obj_all_solid) \
     make(obj_trap_parent) \
-    make(obj_props_solid_parent) \
+    make(obj_trap_mine_parent) \
+    make(obj_trap_mine_stealthparent) \
     make(obj_props_notsolid_parent) \
     make(obj_pickup_parent) \
     make(obj_questcontrol_parent) \
     make(obj_item_parent) \
-    make(obj_orb_parent) \
+    make(obj_moving_entity_PARENT) \
     make(obj_effect_parent) \
-    make(obj_explosion_parent) \
     make(obj_enm_budget_parent) \
     make(obj_chunk_parent) \
     make(obj_networking_parent) \
     make(obj_chat_parent) \
     make(obj_patchpage_parent) \
-    make(obj_patchlog_parent) \
-    make(obj_patchbutton_parent) \
-    make(obj_enm_custom_parent) \
-    make(obj_enm_headhunter_arena_parent) \
-    make(obj_enm_building_parent) \
-    make(obj_sawbig_parent) \
     make(obj_bullet_mortar_parent) \
     make(obj_arena_parent) \
-    make(T_perk_Riotguard_PARENT) \
-    make(T_perk_Breacher_PARENT) \
-    make(T_perk_SWAT_PARENT) \
     make(obj_research_button_PARENT) \
     make(T_PARENT_ALL_BONI) \
-    make(T_Path_PARENT) \
-    make(T_Path_start_PARENT) \
-    make(T_path_god_start_PARENT) \
-    make(T_item_PARENT) \
-    make(T_slot_PARENT) \
-    make(T_stat_PARENT) \
-    make(T_weapon_PARENT) \
-    make(T_perk_PARENT) \
-    make(T_perk_general_PARENT) \
-    make(T_perk_elite_PARENT) \
-    make(T_perk_psyonic_PARENT) \
-    make(T_perk_support_PARENT) \
-    make(T_perk_alchemist_PARENT) \
-    make(T_perk_rogue_PARENT) \
-    make(T_perk_tank_PARENT) \
     make(obj_chip_parent) \
-    make(obj_questlog_parent) \
     make(obj_turret_boss_spawn_parent) \
-    make(obj_firingrange_dummy_parent) \
-    make(obj_helicopterBoss_parent) \
-    make(obj_noncombat_ground_Parent) \
-    make(obj_enm_hover_parent) \
-    make(obj_enm_tank_parent) \
-    make(obj_shell_parentOLD) \
-    make(obj_trap_mine_stealthparent) \
-    make(obj_movingwall_parent) \
-    make(obj_explosion_beam_parent) \
-    make(obj_smoke_parent) \
-    make(obj_particle_gravity_parent) \
     make(obj_followunit_parent) \
     make(obj_voidzone_parent) \
-    make(obj_particle_parent) \
     make(obj_mortarshot_parent) \
-    make(obj_lightemitter_parent) \
     make(obj_ground_text_parent) \
-    make(obj_wall_parent) \
     make(obj_door_parent) \
-    make(obj_pipe_center_parent) \
     make(obj_concback_parent) \
     make(obj_mm_menu_parent) \
     make(obj_mm_acc_input_parent) \
     make(obj_railing_parent) \
-    make(obj_collision_blockout_parent) \
     make(obj_floor_blockout_parent) \
     make(obj_field_parent) \
     make(obj_fields_parent) \
     
 #define OBJINDEX(name) Organik::Objects::ObjIndexes[Organik::Objects::##name]
-#define MAPOBJ(name) {OBJINDEX(name), Object_Data(OBJINDEX(name))},
-std::unordered_map<int32_t, CObjectGM*> *GetParentObjects()
+#define TMAPOBJ(name) {Object_Data(OBJINDEX(name)), true},
+#define FMAPOBJ(name) {Object_Data(OBJINDEX(name)), false},
+std::unordered_map<CObjectGM*, bool> *GetParentObjects()
 {
-    static std::unordered_map<int32_t, CObjectGM*> parentObjects;
+    static std::unordered_map<CObjectGM*, bool> parentObjects;
     if (parentObjects.size() == 0)
     {
         parentObjects = {
-            PARENTS_DO(MAPOBJ)
+            PARENTS_DO(FMAPOBJ)
         };
     }
     return &parentObjects;
 }
-std::unordered_map<int32_t, CObjectGM*> *GetGlobalObjects()
+std::unordered_map<CObjectGM*, bool> *GetGlobalObjects()
 {
-    static std::unordered_map<int32_t, CObjectGM*> globalObjects;
+    static std::unordered_map<CObjectGM*, bool> globalObjects;
     if (globalObjects.size() == 0)
     {
         globalObjects = {
-            GLOBALS_DO(MAPOBJ)
+            GLOBALS_DO(TMAPOBJ)
         };
     }
     return &globalObjects;
 }
-std::unordered_map<int32_t, CObjectGM*> *GetTrackedObjects()
+std::unordered_map<CObjectGM*, bool> *GetTrackedObjects()
 {
-    static std::unordered_map<int32_t, CObjectGM*> trackedObjects;
+    static std::unordered_map<CObjectGM*, bool> trackedObjects;
+    if (!trackedObjects.size())
+    {
+        trackedObjects.merge(*GetGlobalObjects());
+        trackedObjects.merge(*GetParentObjects());
+    }
     return &trackedObjects;
 }
+void recurse(CObjectGM* obj, std::function<void(CObjectGM*)> pred) {
+    if (obj)
+        pred(obj);
+    if (obj->m_ChildrenMap && obj->m_ChildrenMap->m_UsedCount)
+    {
+        obj->m_ChildrenMap->ForEach([&](const int32_t& key, const CHashMapHash& hash, CObjectGM* elem) {
+            recurse(elem, pred);
+        });
+    }
+}
+auto GetObjectsForTabs() -> std::unordered_map<CObjectGM*, bool>*
+{
+    static std::unordered_map<CObjectGM*, bool> objectsForTabs;
+    if (!objectsForTabs.size()) objectsForTabs = {
+        GLOBALS_DO(FMAPOBJ)
+        PARENTS_DO(FMAPOBJ)
+    };
+    return &objectsForTabs;
+}
+static bool toggleObjectOnClick;
+static bool openTreeNodeOnClick;
+static bool closeTreeNodeOnClick;
+static std::tuple<bool*, bool*, bool*> GetObjectTreeClickOptions()
+{
+    static bool loadedFromSettings = false;
+    static CInstance* globalInstance = nullptr;
+    if (!loadedFromSettings)
+    {
+        globalInstance = GetGlobalInstance();
+        if (std::filesystem::exists("%AppDataLocal%/Organik.Settings.dat"))
+        {
+            RValue bufferV;
+            RValue decompBuffV;
+            RValue bufferFnRV;
+            YYCreateString(&bufferFnRV, "Organik.Settings.dat");
+            gml_buffer_load(&bufferV, globalInstance, globalInstance, 1, &bufferFnRV);
+            gml_buffer_decompress(&decompBuffV, globalInstance, globalInstance, 1, &bufferV);
+            BYTE* settingsFileData = reinterpret_cast<BYTE*>(DoBuiltin(&gml_buffer_get_address,
+                {parseRValueNumber<int32_t>(decompBuffV)}
+            ).ToPointer());
+            uint32_t settingsFileSize = parseRValueNumber<uint32_t>(DoBuiltin(&gml_buffer_get_size,
+                {parseRValueNumber<int32_t>(decompBuffV)}
+            ));
+            memcpy(ImGui::GetIO().UserData, settingsFileData, settingsFileSize);
+            auto [lock, settings] = Settings::GetUISettings();
+            settings = reinterpret_cast<Utils::Settings::GUISettings*>(ImGui::GetIO().UserData);
+        }
+    }
+} 
+std::unordered_map<CObjectGM*, bool> *GetTreeNodeOpen()
+{
+    static std::unordered_map<CObjectGM*, bool> treeNodeOpen;
+    if (!treeNodeOpen.size())
+    {
+        treeNodeOpen = {
+            GLOBALS_DO(FMAPOBJ)
+            PARENTS_DO(FMAPOBJ)
+        };
+    }
+    return &treeNodeOpen;
+}
+typedef void (*objectPred)(CObjectGM*, std::function<void(CObjectGM*)>);
 static std::string objNameFilterBuf;
-=======
-{
-    int32_t ret = 0 + ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders);
-    if (!ret) {
-        ImGui::EndChild();
-        return ret;
-    }
-
-    ImGui::Text("Variables for: %s (ID: %d)", 
-        instance->m_Object->m_Name,
-        instance->m_ID);
-
-    bool beginTable = false;
-    // Display all variables in a table
-    beginTable = ImGui::BeginTable("Variables", 3, 
-            ImGuiTableFlags_Borders | 
-            ImGuiTableFlags_RowBg | 
-            ImGuiTableFlags_Resizable |
-            ImGuiTableFlags_ScrollY);
-    if (beginTable)
+void InstanceVariableViewer::displayFunc(CObjectGM* child, bool& tracked){
+    if (!child) return;
+    ImGui::PushID(child);
+    static int32_t tabIndex = 1;
+    bool actuallyOpen = ImGui::TreeNodeEx("##objectTree##node", 
+        ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DrawLinesFull
+        | (tracked ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None)
+        | ImGuiTreeNodeFlags_AllowItemOverlap
+        | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_NavLeftJumpsToParent,
+        " ");
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        { ImGui::OpenPopup("ObjectContextMenu"); }
+    ImGui::SameLine((tabIndex * OBJ_TREE_INDENT) + 10.0f, -1.0f);
+    ImGui::Text("%s (#%d, %d children)", child->m_Name ? child->m_Name : "<no_name>",
+        child->m_ID, child->m_ChildrenMap ? child->m_ChildrenMap->m_UsedCount : 0);
+    if (actuallyOpen)
     {
-        ret++;
-        // Setup columns
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150.0f);
-        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableHeadersRow();
+        if (child->m_ChildrenMap && child->m_ChildrenMap->m_UsedCount)
+        {
+            ImGui::TreePush(child);
+            tabIndex++;
+            child->m_ChildrenMap->ForEach([&](int key, CHashMapHash hash, CObjectGM* obj) {
+                displayFunc(obj, ((*GetTrackedObjects())[obj]));
+            });
+            tabIndex--;
+            ImGui::TreePop();
+        }
     }
-    return ret;
-}
-#define GLOBALS_DO(make) \
-    make(outgame) \
-    make(obj_stats) \
-    make(obj_control) \
-    make(obj_allgame) \
-    make(obj_ingame_ctrl) \
-    make(obj_room_ctrl) \
-    make(obj_enemy_ctrl) \
-    make(obj_weaponstats) \
-    make(obj_itemstats) \
-    make(obj_statistics) \
-    make(obj_color) \
-    make(obj_terrorlevel) \
-    make(obj_console) \
-    make(obj_player) \
-    make(WeaponSystem) \
-    make(obj_all_bullets) \
-    make(obj_bullet_lists) \
-    make(obj_player_bullets) \
-    make(bulletSystem) \
-    make(itemSystem) \
-    make(perkSystem) \
-
-
-#define PARENTS_DO(make) \
-    make(obj_enm_parent_all) \
-    make(obj_enm_base_parent) \
-    make(obj_perk_parent) \
-    make(obj_artefact_parent) \
-    make(obj_enm_turret_parent) \
-    make(obj_boss_parent) \
-    make(obj_enm_bossweapon_parent) \
-    make(obj_drone_parent) \
-    make(obj_headshot_collision_parent) \
-    make(obj_moving_entity_PARENT) \
-    make(obj_weapon_PARENT) \
-    make(obj_weapon_uber_parent) \
-    make(obj_weapon_item_parent) \
-    make(obj_weapon_buff_parent) \
-    make(obj_bullet_rocket_parent) \
-    make(obj_bullet_beam_parent) \
-    make(obj_bullet_laser_parent) \
-    make(obj_chest_parent) \
-    make(obj_trap_mine_parent) \
-    make(obj_trap_parent) \
-    make(obj_props_solid_parent) \
-    make(obj_props_notsolid_parent) \
-    make(obj_pickup_parent) \
-    make(obj_questcontrol_parent) \
-    make(obj_item_parent) \
-    make(obj_orb_parent) \
-    make(obj_effect_parent) \
-    make(obj_explosion_parent) \
-    make(obj_enm_budget_parent) \
-    make(obj_chunk_parent) \
-    make(obj_networking_parent) \
-    make(obj_chat_parent) \
-    make(obj_patchpage_parent) \
-    make(obj_patchlog_parent) \
-    make(obj_patchbutton_parent) \
-    make(obj_enm_custom_parent) \
-    make(obj_enm_headhunter_arena_parent) \
-    make(obj_enm_building_parent) \
-    make(obj_sawbig_parent) \
-    make(obj_bullet_mortar_parent) \
-    make(obj_arena_parent) \
-    make(T_perk_Riotguard_PARENT) \
-    make(T_perk_Breacher_PARENT) \
-    make(T_perk_SWAT_PARENT) \
-    make(obj_research_button_PARENT) \
-    make(T_PARENT_ALL_BONI) \
-    make(T_Path_PARENT) \
-    make(T_Path_start_PARENT) \
-    make(T_path_god_start_PARENT) \
-    make(T_item_PARENT) \
-    make(T_slot_PARENT) \
-    make(T_stat_PARENT) \
-    make(T_weapon_PARENT) \
-    make(T_perk_PARENT) \
-    make(T_perk_general_PARENT) \
-    make(T_perk_elite_PARENT) \
-    make(T_perk_psyonic_PARENT) \
-    make(T_perk_support_PARENT) \
-    make(T_perk_alchemist_PARENT) \
-    make(T_perk_rogue_PARENT) \
-    make(T_perk_tank_PARENT) \
-    make(obj_chip_parent) \
-    make(obj_questlog_parent) \
-    make(obj_turret_boss_spawn_parent) \
-    make(obj_firingrange_dummy_parent) \
-    make(obj_helicopterBoss_parent) \
-    make(obj_noncombat_ground_Parent) \
-    make(obj_enm_hover_parent) \
-    make(obj_enm_tank_parent) \
-    make(obj_shell_parentOLD) \
-    make(obj_trap_mine_stealthparent) \
-    make(obj_movingwall_parent) \
-    make(obj_explosion_beam_parent) \
-    make(obj_smoke_parent) \
-    make(obj_particle_gravity_parent) \
-    make(obj_followunit_parent) \
-    make(obj_voidzone_parent) \
-    make(obj_particle_parent) \
-    make(obj_mortarshot_parent) \
-    make(obj_lightemitter_parent) \
-    make(obj_ground_text_parent) \
-    make(obj_wall_parent) \
-    make(obj_door_parent) \
-    make(obj_pipe_center_parent) \
-    make(obj_concback_parent) \
-    make(obj_mm_menu_parent) \
-    make(obj_mm_acc_input_parent) \
-    make(obj_railing_parent) \
-    make(obj_collision_blockout_parent) \
-    make(obj_floor_blockout_parent) \
-    make(obj_field_parent) \
-    make(obj_fields_parent) \
-    
-#define OBJINDEX(name) Organik::Objects::ObjIndexes[Organik::Objects::##name]
-#define MAPOBJ(name) {OBJINDEX(name), Object_Data(OBJINDEX(name))},
-std::unordered_map<int32_t, CObjectGM*> *GetParentObjects()
-{
-    static std::unordered_map<int32_t, CObjectGM*> parentObjects;
-    if (parentObjects.size() == 0)
+    if (ImGui::BeginPopup("ObjectContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings 
+        | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Popup | ImGuiWindowFlags_AlwaysAutoResize))
     {
-        parentObjects = {
-            PARENTS_DO(MAPOBJ)
-        };
+        ImGui::MenuItem("Show Object Details", "", &(*GetObjectsForTabs())[child], true);
+        ImGui::MenuItem("Track Instances (this)", "", &tracked, true);
+        if (ImGui::MenuItem("Track Instances (all children)", "", &tracked, true))
+        {
+            recurse(child, [tracked](CObjectGM* obj) {
+                if (obj)
+                    (*GetTrackedObjects())[obj] = tracked;
+            });
+        }
+        ImGui::EndPopup();
     }
-    return &parentObjects;
+    ImGui::PopID();
 }
-std::unordered_map<int32_t, CObjectGM*> *GetGlobalObjects()
-{
-    static std::unordered_map<int32_t, CObjectGM*> globalObjects;
-    if (globalObjects.size() == 0)
+void InstanceVariableViewer::displayFuncNoButton(CObjectGM* child, std::function<void(CObjectGM*)> leafFunc){
+    if (!child) return;
+    if (!child->m_ChildrenMap || !(child->m_ChildrenMap->m_UsedCount))
     {
-        globalObjects = {
-            GLOBALS_DO(MAPOBJ)
-        };
+        leafFunc(child);
+        return;
     }
-    return &globalObjects;
-}
-std::unordered_map<int32_t, CObjectGM*> *GetTrackedObjects()
-{
-    static std::unordered_map<int32_t, CObjectGM*> trackedObjects;
-    return &trackedObjects;
-}
-// std::unordered_map<CObjectGM*, std::vector<CInstance*>>* GetGroupedInstances()
-// {
-//     auto trackedObjects = GetTrackedObjects();
-//     static std::unordered_map<CObjectGM*, std::vector<CInstance*>> groupedInstances;
-    
-    
-//     groupedInstances.clear();
-//     for (auto instance = (*Run_Room)->m_Active.m_First; instance != nullptr; instance = instance->m_Next) // pair = {objectID, vector<CInstance*>}
-//     {
-//         int32_t objectID = instance->m_ObjectIndex;
-//         RValue objectNameRVal = RValue(instance->m_Object->m_Name);
-//         if (strlen(objectNameFilter.InputBuf))
-//         {
-//             if (!objectNameFilter.PassFilter(*std::launder(&objectNameRVal.m_RefString->m_String)))
-//                 continue;
-//         }
-//         //DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectID)});
-//         std::string objectName = objectNameRVal.ToString();
-
-//         if (objectNameFilter.IsActive() && !objectNameFilter.PassFilter(objectName.c_str()))
-//             continue;
-
-//         // Track outgame as a default parent category
-//         CObjectGM* parentDisplay = Object_Data(Organik::Objects::ObjIndexes[Organik::Objects::outgame]);
-
-//         // our own object if it exists (it should)
-//         if (parentDisplay = instance->m_Object)
-//             parentDisplay = parentDisplay->m_ParentObject ? parentDisplay->m_ParentObject : parentDisplay;// or its parent object if it has one
+    if (child->m_ChildrenMap->m_UsedCount == 1) {
+        leafFunc(child->m_ChildrenMap->FirstOrDefault([](int key, CHashMapHash hash, CObjectGM* obj) -> bool {
+            return true;
+        })->m_Value);
+    } else if (ImGui::TreeNodeEx((const void*)(child), 
+        ((child->m_ChildrenMap && child->m_ChildrenMap->m_UsedCount)
+            ? ImGuiTreeNodeFlags_None : ImGuiTreeNodeFlags_Leaf)
+        | ImGuiTreeNodeFlags_DrawLinesFull 
+        | ImGuiTreeNodeFlags_NavLeftJumpsToParent,
+        "%s (#%d, %d children)", child->m_Name ? child->m_Name : "<no_name>", 
+            child->m_ID, 
+            child->m_ChildrenMap ? child->m_ChildrenMap->m_UsedCount : 0))
+    {
         
-//         groupedInstances[
-//             instance->m_Object->m_ParentObject 
-//             ? instance->m_Object->m_ParentObject 
-//             : instance->m_Object
-//         ].push_back(instance);
-//     }
-//     return &groupedInstances;
-// }
->>>>>>> Stashed changes
+        child->m_ChildrenMap->ForEach([&](int key, CHashMapHash hash, CObjectGM* obj) {
+            if (!obj || (!hash) || (hash & HASH_DELETED) == HASH_DELETED || (obj->m_ID < 0)) {
+                return;
+            }
+            if (obj->m_ChildrenMap && obj->m_ChildrenMap->m_UsedCount)
+                displayFuncNoButton(obj, leafFunc);
+            else
+                leafFunc(obj);
+        });
+        ImGui::TreePop();
+    }
+}
 void InstanceVariableViewer::DrawObjectParentsFilterList()
 {
     static ImGuiTextFilter objNameFilter;
     static bool filterObjects = false;
-<<<<<<< Updated upstream
-    Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
+    std::vector<int32_t> toErase;
     auto trackedObjects = GetTrackedObjects();
-    if (ImGui::InputTextWithHint("##obj_name_filter", "Search Parent Object Name.", &objNameFilterBuf))
+    for(auto &[obj, show] : (*trackedObjects))
     {
-        if (!objNameFilterBuf.empty()){
-            strncpy(&objNameFilter.InputBuf[0], objNameFilterBuf.data(), IM_ARRAYSIZE(objNameFilter.InputBuf));
-            objNameFilter.Build();
-            filterObjects = true;
-            Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-        }
-        else
-        {
-            Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-            objNameFilter.Clear();
-            filterObjects = false;
-=======
-    auto trackedObjects = GetTrackedObjects();
-    if (ImGui::InputTextWithHint("##obj_name_filter", "Search Parent Object Name.", objNameFilter.InputBuf, sizeof(objNameFilter.InputBuf), ImGuiInputTextFlags_CallbackAlways))
-    {
-        if (strlen(objNameFilter.InputBuf) != 0){
-            filterObjects = true;
-            objNameFilter.Build();
-        }
-        else
-        {
-            filterObjects = false;
-            objNameFilter.Clear();
->>>>>>> Stashed changes
-        }
+        auto tmpObj = obj->m_ParentObject;
+        auto noParentsDisplayed = [&]() -> auto {
+            while (tmpObj)
+            {
+                if (trackedObjects->contains(tmpObj))
+                    return false;
+                if (!tmpObj->m_ParentObject || tmpObj->m_ParentObject == tmpObj)
+                    break;
+                tmpObj = tmpObj->m_ParentObject;
+            }
+            return tmpObj != obj && !(trackedObjects->contains(tmpObj));
+        }();
+        
+        if (noParentsDisplayed)
+            displayFunc(obj, show); // only show root parents here.
     }
-    ImGui::NewLine();
-    if (ImGui::CollapsingHeader("Object Filters"))
+}
+bool FakeEvent(CInstance* self, CInstance* other, YYObjectBase* context)
+{
+    static RValue variantpredestined;
+
+    if (!(variantpredestined.GetKind() == VALUE_REAL))
+        variantpredestined = RValue(20.00);
+    (*self->InternalGetYYVarRef(VAR_HASH(variantpredestined))) = variantpredestined;
+
+    if (context)
     {
-<<<<<<< Updated upstream
-        Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-        if (ImGui::BeginChild("##trackedobj_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
-        {
-            Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-=======
-        if (ImGui::BeginChild("##trackedobj_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
-        {
->>>>>>> Stashed changes
-            for (auto& pair : (*GetTrackedObjects()))
-            {
-                if (filterObjects && !objNameFilter.PassFilter(pair.second->m_Name))
-                    continue;
-                if (ImGui::Selectable(pair.second->m_Name, true, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_Highlight))
-                {
-                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                    {
-                        trackedObjects->erase(pair.first);
-                    }
-                }
-            }
-<<<<<<< Updated upstream
-            Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-        }
-        ImGui::EndChild();
-        ImGui::SameLine();
-        Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-=======
-        }
-        ImGui::EndChild();
-        ImGui::SameLine();
->>>>>>> Stashed changes
-        if (ImGui::BeginChild("##objparents_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
-        {
-            for (auto& pair : (*GetParentObjects()))
-            {
-                if ((filterObjects && !objNameFilter.PassFilter(pair.second->m_Name))
-                    || trackedObjects->contains(pair.first))
-                    continue;
-                if (ImGui::Selectable(pair.second->m_Name, false, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_Highlight))
-                {
-                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                    {
-                        (*trackedObjects)[pair.first] = pair.second;
-<<<<<<< Updated upstream
-=======
-                    }
-                }
-            }
-        }
-        ImGui::EndChild();
-        ImGui::SameLine();
-        if (ImGui::BeginChild("##objglobals_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
-        {
-            for (auto& pair : (*GetGlobalObjects()))
-            {
-                if ((filterObjects && !objNameFilter.PassFilter(pair.second->m_Name))
-                    || trackedObjects->contains(pair.first))
-                    continue;
-                if (ImGui::Selectable(pair.second->m_Name, false, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_Highlight))
-                {
-                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                    {
-                        (*trackedObjects)[pair.first] = pair.second;
->>>>>>> Stashed changes
-                    }
-                }
-            }
-        }
-        ImGui::EndChild();
-<<<<<<< Updated upstream
-        ImGui::SameLine();
-        Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-        if (ImGui::BeginChild("##objglobals_list", ImVec2(0.0f, 350.0f), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders))
-        {
-            for (auto& pair : (*GetGlobalObjects()))
-            {
-                if ((filterObjects && !objNameFilter.PassFilter(pair.second->m_Name))
-                    || trackedObjects->contains(pair.first))
-                    continue;
-                if (ImGui::Selectable(pair.second->m_Name, false, ImGuiSelectableFlags_AllowOverlap | ImGuiSelectableFlags_AllowDoubleClick | ImGuiSelectableFlags_Highlight))
-                {
-                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                    {
-                        (*trackedObjects)[pair.first] = pair.second;
-                    }
-                }
-            }
-        }
-        ImGui::EndChild();
-        ImGui::NewLine();
-        Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-=======
-        ImGui::NewLine();
->>>>>>> Stashed changes
-        ImGui::Text("Double click to add/remove from tracked objects.");
+        RValue *from = context->InternalGetYYVarRef(VAR_HASH(from));
+        YYCreateString(from, "obj_stats.mod_luck");
+        StructCreate(context->InternalGetYYVarRef(VAR_HASH(scale)));
+        MessageBoxA(NULL, from->ToCString(), "Test", MB_OK);
+        bool ret = doGetFrom(self, other, context);
+        if (ret)
+            Organik::GetLogger()->LogFormatted("FakeEvent: doGetFrom succeeded, result: %.f", parseRValueNumber<double>(context->InternalGetYYVarRef(VAR_HASH(result))));
+        else
+            Error_Show_Action("FakeEvent: doGetFrom failed", true, true);
+        return ret;
     }
+    return false;
+}
+
+void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
+{
+    static CObjectGM* toAdd = nullptr;
+    static Action *toAddEvent = nullptr;
+    
+    static struct {
+        struct Tab {
+            YYObjectBase*(*getParams)() = []() -> YYObjectBase* {
+                static RValue params;
+                if (!(params.GetKind() == VALUE_OBJECT)) {
+                    StructCreate(&params);
+                    RValue* variables = params.ToObject()->InternalGetYYVarRef(VAR_HASH(variables));
+                    RValue* parameters = params.ToObject()->InternalGetYYVarRef(VAR_HASH(parameters));
+                    StructCreate(variables);
+                    StructCreate(parameters);
+                    *(variables->ToObject()->InternalGetYYVarRef(VAR_HASH(debug))) = RValue("Hello from Direktor!");
+                    *(parameters->ToObject()->InternalGetYYVarRef(VAR_HASH(self))) = RValue(-2);
+                    *(parameters->ToObject()->InternalGetYYVarRef(VAR_HASH(other))) = RValue(-2);
+                }
+                return params.ToObject();
+            };
+            Tab() : m_Object(nullptr), m_ObjectID(-1), m_Name("<no_name>"), m_ParentID(-1), m_ParentName("<no_parent>") {};
+            Tab(CObjectGM* obj) : m_Object(obj), m_ObjectID(obj ? obj->m_ID : 7), m_Name(obj ? obj->m_Name : "<no_name>") {
+                m_ParentID = (obj && obj->m_ParentObject && obj->m_ParentObject != obj) ? obj->m_ParentObject->m_ID : -1;
+                m_ParentName = (obj && obj->m_ParentObject && obj->m_ParentObject != obj) ? (obj->m_ParentObject->m_Name ? obj->m_ParentObject->m_Name : "<no_name>") : "<no_parent>";
+            };
+            Tab(int32_t id) : m_ObjectID(id), m_Name("<no_name>"), m_ParentID(-1), m_ParentName("<no_parent>") {
+                m_Object = Object_Data(id);
+                if (m_Object) {
+                    m_Name = m_Object->m_Name ? m_Object->m_Name : "<no_name>";
+                    m_ParentID = (m_Object->m_ParentObject && m_Object->m_ParentObject != m_Object) ? m_Object->m_ParentObject->m_ID : -1;
+                    m_ParentName = (m_Object->m_ParentObject && m_Object->m_ParentObject != m_Object) ? (m_Object->m_ParentObject->m_Name ? m_Object->m_ParentObject->m_Name : "<no_name>") : "<no_parent>";
+                }
+            };
+            CObjectGM* m_Object;
+            int32_t m_ObjectID;
+            const char* m_Name;
+            int32_t m_ParentID;
+            const char* m_ParentName;
+            //map event main code (0-14) to list of events
+            std::unordered_map<int32_t, std::vector<MapDisplayEntry<int64_t, CEvent, 3>*>> m_Events;
+            std::vector<CObjectGM*> m_ChildObjects;
+            inline void CacheEvents() {
+                m_Events.clear();
+                if (m_ObjectID < 0) return;
+                if (!m_Object)
+                    m_Object = Object_Data(m_ObjectID);
+                if (!m_Object) return;
+
+                m_Object->m_EventsMap->ForEachWithIndex([&](const int32_t& index, const int64_t& key, const CHashMapHash& hash, CEvent* value) -> void
+                {
+                    if (value == nullptr 
+                            || (hash & HASH_DELETED))
+                        return;
+                    if (!m_Events.contains(key >> 32)) // main event code
+                        m_Events[key >> 32] = std::vector<MapDisplayEntry<int64_t, CEvent, 3>*>();
+                    m_Events[key >> 32].push_back(new MapDisplayEntry<int64_t, CEvent, 3>(
+                        value ? (value->m_Code->m_Name ? value->m_Code->m_Name : "<no_name>") : "<no_name>",
+                        (key & 0xFFFFFFFF) | ((key & 0xFFFF0000) >> 16),
+                        index,
+                        m_Object->m_EventsMap
+                    ));
+                });
+            }
+            inline CObjectGM* GetObject()  {
+                return m_Object = Object_Data(m_ObjectID);
+            }
+
+            inline ~Tab() {
+                for(auto &entry : m_Events)
+                    for(auto &entry2 : entry.second)
+                        delete entry2;
+                m_Events.clear();
+                m_ChildObjects.clear();
+            };
+
+            inline void ImGuiDoTableRowChar (const char* label, const char* value) {
+                ImGui::TableNextRow(ImGuiTableRowFlags_None, 10.0f);
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", label);
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", value);
+            }
+            inline void ImGuiDoTableRowNum (const char* label, double value) {
+                ImGui::TableNextRow(ImGuiTableRowFlags_None, 10.0f);
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", label);
+                ImGui::TableNextColumn();
+                ImGui::Text("%.5f", value);
+            }
+            inline void DisplayMainTable()
+            {
+                if (ImGui::BeginTable("object_details_table##tab", 2, ImGuiTableFlags_Borders))
+                {
+                    ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                    ImGui::TableHeadersRow();
+
+                    ImGuiDoTableRowChar("Name", m_Object->m_Name ? m_Object->m_Name : "<no_name>");
+                    ImGuiDoTableRowNum("ID", m_Object->m_ID);
+                    ImGuiDoTableRowNum("Instances", m_Object->m_Instances.m_Count);
+                    ImGuiDoTableRowNum("Instances (all)", m_Object->m_InstancesRecursive.m_Count);
+                    ImGuiDoTableRowChar("Parent", m_ParentName ? m_ParentName : "<no_parent>");
+                    ImGuiDoTableRowNum("Parent ID", m_ParentID);
+                    ImGuiDoTableRowNum("Depth", m_Object->m_Depth);
+                    ImGuiDoTableRowNum("Children", m_Object->m_ChildrenMap ? m_Object->m_ChildrenMap->m_UsedCount : 0);
+                    ImGuiDoTableRowNum("Events", m_Events.size());
+
+                    ImGui::EndTable();
+                }
+            }
+            inline void DisplayEventsTable()
+            {
+                if (!m_Object->m_EventsMap || (m_Object->m_EventsMap->m_UsedCount < 1))
+                {
+                    ImGui::TextDisabled("No events found.");
+                    return;
+                }
+                if (ImGui::BeginTable("##events_table", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_HighlightHoveredColumn))
+                {
+                    ImGui::TableSetupColumn("##button", ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoHeaderLabel, 10.0f);
+                    ImGui::TableSetupColumn("Code", ImGuiTableColumnFlags_NoResize, 10.0f);
+                    ImGui::TableSetupColumn("OwnerID", ImGuiTableColumnFlags_NoResize, 15.0f);
+                    ImGui::TableSetupColumn("Details", ImGuiTableColumnFlags_None, 160.0f);
+                    ImGui::TableHeadersRow();
+
+                    GetObject()->m_EventsMap->ForEach([&](const int64_t& key, const CHashMapHash& hash, CEvent*& value) -> void
+                    {
+                        if (!value 
+                                || (hash & HASH_DELETED) == HASH_DELETED)
+                            return;
+                        ImGui::TableNextRow();
+                        ImGui::PushID(value);
+                        ImGui::Selectable("##eventrow", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap);
+                        ImGui::OpenPopupOnItemClick("event_details", ImGuiPopupFlags_MouseButtonLeft);
+                        ImGui::TableSetColumnIndex(0);
+                        int32_t code = key >> 32;
+                        int32_t subcode = key & 0xFFFFFFFF;
+                        if (ImGui::ButtonEx("Edit##event", ImVec2(0, 0), ImGuiButtonFlags_PressedOnClickRelease))
+                        {
+
+                            auto _hash = CalculateEventHash(code, subcode);
+                            recurse(m_Object, [&](CObjectGM* obj) {
+                                if (!obj) return;
+                                
+                                if (obj->m_EventsMap)
+                                {
+                                    CEvent::InsertIntoMap(obj->m_EventsMap, code, subcode, &FakeEvent, getParams(), obj->m_ID, true, false);
+                                }
+                            });
+                        }
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("(%d, %d)", code, subcode);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("%d", value->m_OwnerObjectID);
+                        ImGui::TableNextColumn();
+
+                        ImGui::SameLine(0,0);
+                        ImGui::Text("%p -- %s", value, 
+                            (value->m_Code && value->m_Code->m_Name)
+                                ? value->m_Code->m_Name
+                                : ((value->m_Code->m_Functions && value->m_Code->m_Functions->m_Name)
+                                    ? value->m_Code->m_Functions->m_Name 
+                                    : "<no_name>"
+                                )
+                            );
+                        if (ImGui::BeginPopup("event_details", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings 
+                            | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Popup | ImGuiWindowFlags_AlwaysAutoResize))
+                        {
+                            ImGui::TextDisabled("Event Details");
+                            ImGui::Separator();
+                            ImGui::Text("Owner Object ID: %d", value->m_OwnerObjectID);
+                            ImGui::Text("Event Code: (%d, %d)", code, subcode);
+                            ImGui::Text("CEvent*: %p", value);
+                            ImGui::Text("CCode*: %p", value->m_Code);
+                            if (value->m_Code)
+                            {
+                                ImGui::Text("Name: %s", value->m_Code->m_Name ? value->m_Code->m_Name : "<no_name>");
+                                ImGui::Text("Functions: %p", value->m_Code->m_Functions);
+                                if (value->m_Code->m_Functions)
+                                {
+                                    ImGui::Text("Function Name: %s", value->m_Code->m_Functions->m_Name ? value->m_Code->m_Functions->m_Name : "<no_name>");
+                                    ImGui::Text("Function Variables: %p", value->m_Code->m_Functions->m_FunctionVariables);
+                                    ImGui::Text("Function Pointer: %p", value->m_Code->m_Functions->m_RawFunction);
+                                }
+                                ImGui::Text("Kind: %d", value->m_Code->m_Kind);
+                                ImGui::Text("Compiled: %d", value->m_Code->m_Compiled);
+                                ImGui::Text("ArgC: %d", value->m_Code->m_ArgsCount);
+                                ImGui::Text("LocalC: %d", value->m_Code->m_LocalsCount);
+                                ImGui::Text("Flags: %d", value->m_Code->m_Flags);
+                                ImGui::Text("Watch: %s", value->m_Code->m_Watch ? "yes" : "no");
+                                ImGui::Text("Offset: %d", value->m_Code->m_Offset);
+                                ImGui::Text("CodeIndex: %d", value->m_Code->m_CodeIndex);
+                                ImGui::Text("Str: %s", value->m_Code->m_Str ? (value->m_Code->m_Str[0] ? value->m_Code->m_Str : "<no_str>") : "<null_str>");
+                                ImGui::Text("Code: %s", value->m_Code->m_Code ? (value->m_Code->m_Code[0] ? value->m_Code->m_Code : "<no_code>") : "<null_code>");
+                                ImGui::Text("RToken Arr: %p", value->m_Code->m_Token.m_Arr);
+                                ImGui::Text("RToken ArrLength: %d", value->m_Code->m_Token.m_ArrLength);
+                                ImGui::Text("RToken Index: %d", value->m_Code->m_Token.m_Index);
+                                ImGui::Text("RToken Kind: %d", value->m_Code->m_Token.m_Kind);
+                                ImGui::Text("RToken Offset: %d", value->m_Code->m_Token.m_Offset);
+                                ImGui::Text("RToken Position: %d", value->m_Code->m_Token.m_Position);
+                                ImGui::Text("RToken Type: %d", value->m_Code->m_Token.m_Type);
+                                ImGui::Text("RTokenVal Kind: %s", value->m_Code->m_Token.m_Value.GetKindName());
+                                ImGui::Text("RTokenVal Value: %d", value->m_Code->m_Token.m_Value.GetKind() == VALUE_STRING
+                                    ? YYGetString(&value->m_Code->m_Token.m_Value, 0)
+                                    : std::to_string(parseRValueNumber<int64_t>(value->m_Code->m_Token.m_Value)).c_str()
+                                );
+                                ImGui::Text("RTokenVal Flags: %d", value->m_Code->m_Token.m_Value.m_Flags);
+                                ImGui::Text("RValue Kind: %d", value->m_Code->m_Value.GetKindName());
+                                ImGui::Text("RValue Value: %d", value->m_Code->m_Value.GetKind() == VALUE_STRING
+                                    ? YYGetString(&value->m_Code->m_Value, 0)
+                                    : std::to_string(parseRValueNumber<int64_t>(value->m_Code->m_Value)).c_str());
+                                ImGui::Text("RValue Flags: %d", value->m_Code->m_Value.m_Flags);
+                                ImGui::Text("Prototype: %p", value->m_Code->m_Prototype);
+                                ImGui::Text("VmDebugInfo: %p", value->m_Code->m_VmDebugInfo);
+                                ImGui::Text("VmInstance: %p", value->m_Code->m_VmInstance);
+                            }
+
+                            ImGui::EndPopup();
+                        }
+                        ImGui::PopID();
+                    });
+                    ImGui::EndTable();
+                }
+            }
+            inline void Display()
+            {
+                if (!(*Run_Room))
+                {
+                    ImGui::TextDisabled("Room transition likely running");
+                    return;
+                }
+                
+                if ((*Run_Room) == Room_Data(ROOM_ID(roomtransistion))
+                    || (*Run_Room) == Room_Data(ROOM_ID(Load)))
+                {
+                    ImGui::TextDisabled("Room transition likely running");
+                    return;
+                }
+
+                if (!GetObject())
+                    return;
+
+                if (!ImGui::BeginTabItem(m_Name ? m_Name : "<no_name>##tab")) return;
+
+                DisplayMainTable();
+                
+                ImGui::Separator();
+                    
+                DisplayEventsTable();
+                
+                ImGui::EndTabItem();
+            }
+        };
+        std::unordered_map<int32_t, Tab> tabs;
+        void ToggleTab(CObjectGM* obj) {
+            if (tabs.contains(obj->m_ID)) {
+                tabs.erase(obj->m_ID);
+                (*GetObjectsForTabs())[obj] = false;
+                return;
+            }
+            (*GetObjectsForTabs())[obj] = true;
+            tabs[obj->m_ID] = Tab(obj);
+        }
+    } objectDetailsTabs;    
+
+
+
+    for (auto& [obj, show] : (*GetObjectsForTabs())) {
+        if (!show) continue;
+        if (!objectDetailsTabs.tabs.contains(obj->m_ID))
+            objectDetailsTabs.ToggleTab(obj);
+
+        objectDetailsTabs.tabs[obj->m_ID].Display();
+    }
+    if (toAdd)
+    {
+        objectDetailsTabs.ToggleTab(toAdd);
+        toAdd = nullptr;
+    }
+    
+}
+void InstanceVariableViewer::RecurseObjectInstanceTree(CObjectGM* obj)
+{
+    if (!obj) return;
+    if (!obj->m_InstancesRecursive.m_Count)
+        return;
+    if (!(*GetTrackedObjects()).contains(obj))
+        return;
+    ImGuiTreeNodeFlags child_obj_flags = 0
+                        | ImGuiTreeNodeFlags_DrawLinesFull 
+                        | ImGuiTreeNodeFlags_NavLeftJumpsBackHere;
+
+    displayFuncNoButton(obj, [&](CObjectGM* childObj) -> void {
+        if (!childObj) return;
+        child_obj_flags |= (childObj->m_Instances.m_Count > 1)
+                        ? ImGuiTreeNodeFlags_None
+                        : ImGuiTreeNodeFlags_Leaf;
+        if (
+            ImGui::TreeNodeEx(
+                (const void*)(childObj), 
+                child_obj_flags, 
+                "%s (%d)", childObj->m_Name ? childObj->m_Name : "<no_name>", 
+                childObj->m_Instances.m_Count
+            ))
+        {
+            auto _node = childObj->m_Instances.m_First;
+            do
+            {
+                CInstance* inst = reinterpret_cast<CInstance*>(
+                    (_node ? ( _node->m_Object ? _node->m_Object : nullptr) : nullptr)
+                );
+                
+                if (!inst) break;
+                int32_t ID = inst->m_ID;
+                if (ImGui::TreeNodeEx((const void*)(inst),
+                    child_obj_flags
+                    | ((VisibleInstance && VisibleInstance == inst) ? ImGuiTreeNodeFlags_Selected : 0)
+                    | ImGuiTreeNodeFlags_Leaf,
+                    "#%d (%d vars)", ID,inst->m_YYVarsMap->m_UsedCount
+                )) { ImGui::TreePop(); };
+                
+                if (ImGui::IsItemClicked())
+                {
+                    VisibleInstance = inst;
+                }
+
+                if (!_node->m_Next || (_node == childObj->m_Instances.m_Last))
+                    break;
+                _node = _node->m_Next;
+            }
+            while (_node && (_node != childObj->m_Instances.m_Last));
+            ImGui::TreePop();
+        }
+    });
 }
 void InstanceVariableViewer::DrawObjectList()
 {
     auto trackedObjects = GetTrackedObjects();
-    if (ImGui::BeginChild("##tree", ImVec2(300, 0), ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders | ImGuiChildFlags_NavFlattened))
+    for(auto &[obj, show] : (*trackedObjects))
     {
-<<<<<<< Updated upstream
-<<<<<<< HEAD
-        Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-        for (auto& pair : (*trackedObjects)) // pair = {objectID, vector<CInstance*>}
+        if (obj->m_ParentObject && obj->m_ParentObject != obj)
         {
-            ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanFullWidth;
-=======
-        std::for_each(instanceMap.begin(), instanceMap.end(), [&](std::pair<int32_t, std::vector<CInstance*>> pair) {
-            int32_t objectID = pair.first;
-            RValue objectNameRVal = RValue(pair.second.at(0)->m_Object->m_Name);
-            //DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectID)});
-            std::string objectName = objectNameRVal.ToString();
->>>>>>> 073bc0d (std::launder for squeaky clean RValues)
-
-            if (ImGui::TreeNodeEx((void*)pair.second, node_flags, "%s (%d)", pair.second->m_Name, pair.second->m_Instances.m_Count))
-            {
-                CInstance* inst = pair.second->m_Instances.m_First;
-=======
-        for (auto& pair : (*trackedObjects)) // pair = {objectID, vector<CInstance*>}
-        {
-            ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanFullWidth;
-
-            if (ImGui::TreeNodeEx((void*)pair.second, node_flags, "%s (%d)", pair.second->m_Name, pair.second->m_InstancesRecursive.m_Count))
-            {
-                CInstance* inst = pair.second->m_InstancesRecursive.m_First;
->>>>>>> Stashed changes
-
-                while (inst)
+            auto tmpObj = obj->m_ParentObject;
+            auto noParentsDisplayed = [&]() -> auto {
+                while (tmpObj)
                 {
-                    int32_t ID = inst->m_ID;
-                    ImGui::PushID(inst);
-                    if (ImGui::Selectable(
-                        ("##instance_" + std::to_string(ID)).c_str(),
-                        (VisibleInstance && VisibleInstance == inst),
-                        ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap
-                    ))
-                    {
-                        VisibleInstance = inst;
-                    }
-                    ImGui::SameLine(0,0);
-                    ImGui::Text("#%d (%d vars)", 
-                        ID, 
-<<<<<<< Updated upstream
-<<<<<<< HEAD
-                        inst->m_YYVarsMap->m_CurrentSize
-=======
-                        instance->m_YYVarsMap->m_CurrentSize
->>>>>>> 073bc0d (std::launder for squeaky clean RValues)
-=======
-                        inst->m_YYVarsMap->m_CurrentSize
->>>>>>> Stashed changes
-                    );
-                    ImGui::Separator();
-                    ImGui::PopID();
-
-                    if (inst == pair.second->m_InstancesRecursive.m_Last)
+                    if (trackedObjects->contains(tmpObj))
+                        return false;
+                    if (!tmpObj->m_ParentObject || tmpObj->m_ParentObject == tmpObj)
                         break;
-                    inst = inst->m_Next;
+                    tmpObj = tmpObj->m_ParentObject;
                 }
-                ImGui::TreePop();
-            }
+                return tmpObj != obj && !(trackedObjects->contains(tmpObj));
+            }();
+        
+            if (!noParentsDisplayed)
+                continue; // only show root parents here.
         }
-<<<<<<< Updated upstream
-        Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-=======
->>>>>>> Stashed changes
+        RecurseObjectInstanceTree(obj);
     }
-    ImGui::EndChild();
 }
-void InstanceVariableViewer::DisplayVarTableEntry(CInstance* instance, const std::string& memberName, RValue* memberValue)
-{
-    ImGui::TableNextRow();
-    ImGui::TableSetColumnIndex(0);
-    ImGui::PushID(memberName.c_str());
 
-    DisplayVariableValue(memberName, memberValue);
+std::unordered_map<int32_t, std::unordered_map<int32_t, std::pair<int32_t, const char*>>> *GetMapCache()
+{
+    static std::unordered_map<int32_t, std::unordered_map<int32_t, std::pair<int32_t, const char*>>> mapCache;
+    return &mapCache;
 }
+
+constexpr const int regexConsts = std::regex_constants::match_continuous | std::regex_constants::icase | std::regex_constants::optimize;
 void InstanceVariableViewer::DrawInner()
 {
-    DrawObjectParentsFilterList();
-    ImGui::Separator();
-    
-<<<<<<< Updated upstream
-    Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-
-    DrawObjectList();
-    Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
-=======
-        
-    DrawObjectList();
->>>>>>> Stashed changes
-    
-    ImGui::SameLine();
+    static std::regex pattern("", regexConsts);
     CInstance* instance;
     if (instance = VisibleInstance)
     {
@@ -689,191 +709,78 @@ void InstanceVariableViewer::DrawInner()
         int32_t objectIndex = instance->m_ObjectIndex;
         std::string objectName = instance->m_Object->m_Name;
         bool rowClicked = false;
-        if (ImGui::BeginChild("##variables", ImVec2(0, 0), ImGuiChildFlags_Borders))
+        ImGui::Text("Variables for: %s (ID: %d)", 
+                    instance->m_Object->m_Name ? instance->m_Object->m_Name : "<no_name>", 
+                    id);
+        ImGui::SameLine(0,5.0);
+        static std::string varNameFilterBuf;
+        auto textEntered = ImGui::InputTextWithHint("##obj_name_filter", "Search Variable Name. (partial matching, regex allowed.)", &varNameFilterBuf, ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::SameLine(0,5.0);
+        
+        if (textEntered || ImGui::Button("Search"))
         {
-<<<<<<< Updated upstream
-<<<<<<< HEAD
-=======
-            // Get object name for header
-            int32_t objectIndex = instance->m_ObjectIndex;
-            RValue objectNameRVal;
-            DoBuiltinRef(&gml_object_get_name, objectNameRVal, {RValue(objectIndex)});
-	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-            std::string objectName = objectNameRVal.ToString();
->>>>>>> 073bc0d (std::launder for squeaky clean RValues)
-=======
->>>>>>> Stashed changes
-            ImGui::Text("Variables for: %s (ID: %d)", 
-                       objectName.c_str(), 
-                       id);
-            ImGui::Separator();
-<<<<<<< Updated upstream
-<<<<<<< HEAD
-=======
-            
-	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-            std::map<std::string, RValue*> memberMap;
-            if (!varMapCache.contains(id) || (instance->GetMemberCount() != varMapCache[id].size()))
-            {
-                constexpr int szInst = sizeof(CInstance);
-                GetLogger()->LogFormatted("Caching variable map for instance ID %d", id);
-                // TODO:auto varmap = Organik::Utils::GetVariableMap(instance); == ALMOST WORKS BUT NOT QUITE
-                // GetLogger()->LogFormatted("Returnd: %s: %d", refResult.GetKindName(), refResult.GetArrayLength());
-                RValue instanceVarNames = DoBuiltin(&gml_variable_instance_get_names, { RValue(id) });
-                std::vector<RValue*> refVector = instanceVarNames.ToRefVector();
-                std::vector<std::string> memberNames;
-                for (RValue *memberNameRVal : refVector)
-                {
-                    Organik::GetLogger()->LogFormatted("%d: %s", id, memberNameRVal->ToCString());
-                    if (memberNameRVal->m_Kind == VALUE_STRING)
-                    {
-                        memberNames.push_back(memberNameRVal->ToString());
-                    }
-                }
-                //varMapCache.insert_or_assign(id, varmap);
-                for (const std::string& name : memberNames)
-                {
-                    int32_t slot = Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(name.c_str()));
-                    if (!slot || slot < 0)
-                    {
-                        continue;
-                    }
-	                Organik::GetLogger()->LogFormatted("%s:%d --- %s %s", __FILE__, __LINE__, name.c_str(), __FUNCTION__);
-                    RValue* member = instance->InternalReadYYVar(slot);
-                    if (!member || (member->m_Kind == VALUE_NULL || 
-                        member->m_Kind == VALUE_UNDEFINED || 
-                        member->m_Kind == VALUE_UNSET))
-                    {
-                        // If member is null, skip it
-                        continue;
-                    }
-                    memberMap.insert({name, member});
-	                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-                    varMapCache[id].insert({slot, name});
-                }
+            if (!varNameFilterBuf.empty()){
+                pattern.operator=(varNameFilterBuf);
             }
             else
             {
-                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-                GetLogger()->LogFormatted("Using cached varmap for instance ID %d", id);
-                for (const auto& [slot, name] : varMapCache[id])
-                {
-	                Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-                    RValue* member = instance->InternalReadYYVar(slot);
-                    if (!member || (member->m_Kind == VALUE_NULL || 
-                        member->m_Kind == VALUE_UNDEFINED || 
-                        member->m_Kind == VALUE_UNSET))
-                    {
-                        // If member is null, skip it
-                        continue;
-                    }
-                    memberMap.insert({name, member});
-                }
+                pattern.operator=(std::regex(""));
             }
+        }
+        
+        ImGui::Separator();
+
+        // Display all variables in a table
+        if (ImGui::BeginTable("Variables", 3, 
+                    ImGuiTableFlags_SortMulti | 
+                    ImGuiTableFlags_Borders | 
+                    ImGuiTableFlags_RowBg | 
+                    ImGuiTableFlags_Resizable |
+                    ImGuiTableFlags_ScrollY))
+        {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort | ImGuiTableColumnFlags_PreferSortAscending, 150.0f);
+            ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortAscending, 80.0f);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableHeadersRow();
             
->>>>>>> 073bc0d (std::launder for squeaky clean RValues)
-=======
->>>>>>> Stashed changes
-            // Display all variables in a table
-            if (ImGui::BeginTable("Variables", 3, 
-                        ImGuiTableFlags_Borders | 
-                        ImGuiTableFlags_RowBg | 
-                        ImGuiTableFlags_Resizable |
-                        ImGuiTableFlags_ScrollY))
+            if (!((*GetMapCache()).contains(id)))
             {
-                // Setup columns
-                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150.0f);
-                ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableHeadersRow();
-                    
-                if ((!varMapCache.contains(id)) || (instance->GetMemberCount() != varMapCache[id].size()))
-                {
-                    varMapCache[id].clear();
-                    instance->m_YYVarsMap->ForEach([&](const int32_t& slot, const CHashMapHash& hash, RValue* value) {
-                        // Get variable name from slot
-                        rowClicked = false;
-                        std::string name = VARNAME_FROMHASH(slot);
-                        if (name.empty())
-                            return;
-                        varMapCache[id].insert({slot, name});
-                        DisplayVarTableEntry(
-                            instance,
-                            name,
-                            value
-                        );
-                    });
-                }
-                else
-                {
-                    for(auto& [slot, name] : varMapCache[id])
-                    {
-                        rowClicked = false;
-                        RValue* member = instance->InternalReadYYVar(slot);
-                        if (!member || (member->m_Kind == VALUE_NULL || 
-                            member->m_Kind == VALUE_UNDEFINED || 
-                            member->m_Kind == VALUE_UNSET ||
-                            member->m_Kind >= VALUE_PARAMS))
-<<<<<<< Updated upstream
-                        {
-                            // If member is null, skip it
-                            continue;
-                        }
-<<<<<<< HEAD
-                        DisplayVarTableEntry(
-                            instance,
-                            name,
-                            member
-                        );
-=======
-                        ImGui::SameLine(0,0);
-                        ImGui::Text("%s", memberName.c_str());
-                        
-                        // Variable type
-                        ImGui::TableSetColumnIndex(1);
-                        std::string typeName = memberValue->GetKindName();
-                        ImGui::Text("%s", typeName.c_str());
-                        
-                        // Variable value
-                        ImGui::TableSetColumnIndex(2);
-                        
-                        DisplayVariableValue(memberName, memberValue);
-                        // Handle row click - open edit popup
-                        if (rowClicked && !showPopup)
-=======
->>>>>>> Stashed changes
-                        {
-                            // If member is null, skip it
-                            continue;
-                        }
-<<<<<<< Updated upstream
-	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-                        if (rowClicked && showPopup)
-                        {
-                            ImGui::OpenPopup("VarEdit");
-                        }
-                        DisplayEditPopup();
-                        ImGui::PopID();
->>>>>>> 073bc0d (std::launder for squeaky clean RValues)
-=======
-                        DisplayVarTableEntry(
-                            instance,
-                            name,
-                            member
-                        );
->>>>>>> Stashed changes
-                    }
-                }
+                (*GetMapCache())[id] = std::unordered_map<int32_t, std::pair<int32_t, const char*>>();
             }
+            if (instance->m_YYVarsMap->m_UsedCount != (*GetMapCache())[id].size())
+            {
+                (*GetMapCache())[id].reserve(instance->m_YYVarsMap->m_UsedCount);
+                Organik::GetLogger()->LogFormatted("%s: %s -- %d RECACHING VARMAP", __FILE__, __FUNCTION__, __LINE__);
+                
+                instance->m_YYVarsMap->ForEach([&](const int32_t& key, const CHashMapHash& hash, RValue*& value) -> void {
+                    if (value == nullptr 
+                        || (hash & HASH_DELETED)
+                        || (value->m_Kind == VALUE_NULL 
+                            || value->m_Kind == VALUE_UNDEFINED 
+                            || value->m_Kind == VALUE_UNSET 
+                            || value->m_Kind >= VALUE_PARAMS))
+                    {
+                        return;
+                    }
+                    int32_t varid = key;
+                    
+                    const char* varname = Organik::Variables::HashToVariableMap[varid];
+                    if (!varname)
+                        varname = "<no_name>";
+                    if (!varname[0])
+                        varname = "<no_name>";
+
+                    DisplayVariableValue(varname, value);
+                });
+            }
+           
             ImGui::EndTable();
         }
-        ImGui::EndChild();
     }
     else
     {
         ImGui::TextDisabled("Select an instance to view its variables");
     }
-    Organik::GetLogger()->LogFormatted("%s: %s -- %d", __FILE__, __FUNCTION__, __LINE__);
 }
 
 void InstanceVariableViewer::PrepareEditValue(RValue* value)
@@ -904,7 +811,6 @@ void InstanceVariableViewer::PrepareEditValue(RValue* value)
     else
     {
         editStringValue = value->ToString();
-        Organik::GetLogger()->LogFormatted("%s:%d - unsupported type, name=%s", __FUNCTION__, __LINE__, KIND_NAME_RValue(value));
     }
 }
 
@@ -958,7 +864,6 @@ void InstanceVariableViewer::DisplayEditPopup()
                     ImGui::CloseCurrentPopup();
                 }
             }
-	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         }
         else if (kind == VALUE_STRING)
         {
@@ -1007,11 +912,12 @@ void InstanceVariableViewer::DisplayEditPopup()
         showPopup = false;
     }
 }
-void InstanceVariableViewer::DisplayArrayElement(size_t index, RValue* element, std::string name)
+void InstanceVariableViewer::DisplayArrayElement(size_t index, RValue* element, const char* name)
 {
+    const char* dispName = name ? name : "Array";
     if (!(element->m_Kind == VALUE_ARRAY))
     {
-        DisplayVariableValue(("Array[" + std::to_string(index) + "]"), element);
+        DisplayVariableValue((GetLogger()->ParseFormatting("%s[%zu]", dispName, index)).c_str(), element);
     }
     else
     {
@@ -1020,56 +926,48 @@ void InstanceVariableViewer::DisplayArrayElement(size_t index, RValue* element, 
         std::vector<RValue*> arrayValues = element->ToRefVector();
         if (!arrayLength) 
         {
-            ImGui::Text("Array[%zu] (empty)", arrayLength);
+            ImGui::Text("%s[%zu] (empty)", dispName, index);
             return;
         }
-        if (ImGui::TreeNode(element, "Array[%zu]", arrayLength))
+        if (ImGui::TreeNode(element, "%s[%zu]", dispName, arrayLength))
         {
-            // Create nested table for sub-array
-            if (ImGui::BeginTable("NestedArray", 3, 
-                                 ImGuiTableFlags_Borders | 
-                                 ImGuiTableFlags_RowBg))
+           
+            int j = 0;
+            for (RValue *rV : arrayValues)
             {
-                ImGui::TableSetupColumn("Index", ImGuiTableColumnFlags_WidthFixed, 60.0f);
-                ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableHeadersRow();
-                int j = 0;
-                for (RValue *rV : arrayValues)
-                {
-                    DisplayArrayElement(j, rV);
-                    j++;
-                }
-                ImGui::EndTable();
+                DisplayArrayElement(j, rV);
+                j++;
             }
             ImGui::TreePop();
         }
     }
 }
+void InstanceVariableViewer::DisplayVariableValue(MapDisplayEntry<int32_t, RValue, 3>* entry)
+{
+    DisplayVariableValue(entry->m_Name, entry->m_Value);
+}
 
-void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValue* value)
+void InstanceVariableViewer::DisplayVariableValue(const char* name, RValue* value)
 {
     if (!value) {
         return;
     }
     bool rowClicked = false;
-    ImGui::PushID(value);
     ImGui::TableNextRow();
+    ImGui::PushID(value);
     ImGui::TableSetColumnIndex(0);
-    if (ImGui::Selectable(("##row_" + name).c_str(), (editingValue == value), 
-        ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap | ImGuiSelectableFlags_Highlight))
+    if (ImGui::Selectable((name && strnlen_s(name, 64)) ? name : "<no_name>", (editingValue == value), 
+        ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
     {
         if (!(value->m_Kind == VALUE_ARRAY))
         {
             rowClicked = true;
         }
     }
-    
-    ImGui::Text(name.c_str());
-    ImGui::TableSetColumnIndex(1);
-    ImGui::Text(value->GetKindName());
-    ImGui::TableSetColumnIndex(2);
 
+    ImGui::TableNextColumn();
+    ImGui::Text(value->GetKindName());
+    ImGui::TableNextColumn();
     uint32_t kind = value->GetKind();
     
     if (kind == VALUE_REAL)
@@ -1096,10 +994,6 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
     {
         bool boolVal = value->ToBoolean();
         ImGui::Text("%s", boolVal ? "true" : "false");
-    }
-    else if (kind == VALUE_ARRAY)
-    {
-        DisplayArrayElement(0, value, name);
     }
     else if (kind == VALUE_PTR)
     {
@@ -1131,27 +1025,137 @@ void InstanceVariableViewer::DisplayVariableValue(const std::string& name, RValu
         editingValue = value;
         showPopup = true;
         PrepareEditValue(value);
-        ImGui::OpenPopup("VarEdit");
     }
     ImGui::PopID();
 }
 
-// Demonstrate creating a simple property editor.
 void InstanceVariableViewer::Draw(bool& out_mousedOver, bool* p_open, const std::string &title)
 {
-    ImGui::SetNextWindowSize(ImVec2(430, 750), ImGuiCond_FirstUseEver);
-	    // Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
-    if (!ImGui::Begin("Organik Variable Viewer", p_open))
+    ImGuiID dockspaceId = ImGui::GetID("VariableViewerDockspace");
+    ImGui::SetNextWindowSize(ImVec2(1200, 750), ImGuiCond_FirstUseEver);
+    ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_AutoHideTabBar;
+    
+    static bool first_time = true;
+    if (first_time)
     {
+        first_time = false;
+        ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderSetNodeSize(dockspaceId, ImGui::GetWindowSize());
+
+        ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.4f, &dock_left_id, &dock_right_id);
+        
+        ImGui::DockBuilderSetNodeSize(dock_left_id, ImVec2(300, 750));
+        ImGui::DockBuilderSetNodeSize(dock_right_id, ImVec2(900, 750));
+
+        ImGui::DockBuilderSplitNode(dock_left_id, ImGuiDir_Up, 0.5f, &dock_left_top_id, &dock_left_bottom_id);
+        ImGui::DockBuilderSplitNode(dock_right_id, ImGuiDir_Up, 0.5f, &dock_right_top_id, &dock_right_bottom_id);
+
+        ImGui::DockBuilderDockWindow("Object Tree", dock_left_top_id);
+        ImGui::DockBuilderDockWindow("Instance Tree", dock_left_bottom_id);
+        ImGui::DockBuilderDockWindow("Object Details", dock_right_top_id);
+        ImGui::DockBuilderDockWindow("Variables Table", dock_right_bottom_id);
+
+        ImGui::DockBuilderFinish(dockspaceId);
+    }
+    
+    if (!ImGui::Begin("Organik Variable Viewer", p_open, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NavFlattened | ImGuiWindowFlags_NoCollapse))
+    {
+        ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_KeepAliveOnly);
         ImGui::End();
         return;
     }
+    
+    ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), dockspace_flags);
+
 
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows))
         out_mousedOver = true;
 
-    static InstanceVariableViewer variable_viewer;
+    DrawObjectTreeWindow(&out_mousedOver);
+    DrawInstanceTreeWindow(&out_mousedOver);
+    DrawObjectDetailsWindow(&out_mousedOver);
 
-    variable_viewer.DrawInner();
+    DrawVariablesPanel(&out_mousedOver);
+    if (showPopup)
+    {
+        ImGui::OpenPopup("VarEdit");
+        showPopup = false;
+    }
+    DisplayEditPopup();
+    ImGui::End();
+}
+
+void InstanceVariableViewer::DrawObjectTreeWindow(bool* out_mousedOver)
+{
+    ImGui::SetNextWindowDockID(dock_left_top_id, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 450), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Object Tree", nullptr, 
+        ImGuiWindowFlags_NoScrollbar 
+        | ImGuiWindowFlags_NavFlattened ))
+    {
+        DrawObjectParentsFilterList();
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows))
+        {
+            *out_mousedOver = true;
+        }
+    }
+    ImGui::End();
+}
+
+void InstanceVariableViewer::DrawInstanceTreeWindow(bool* out_mousedOver)
+{
+    ImGui::SetNextWindowDockID(dock_left_bottom_id, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 450), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Instance Tree", nullptr, ImGuiWindowFlags_NoScrollbar 
+        | ImGuiWindowFlags_NavFlattened ))
+    {
+        DrawObjectList();
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows))
+        {
+            *out_mousedOver = true;
+        }
+    }
+    ImGui::End();
+}
+
+void InstanceVariableViewer::DrawObjectDetailsWindow(bool* out_mousedOver)
+{
+    ImGui::SetNextWindowDockID(dock_right_top_id, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(350, 350), ImGuiCond_FirstUseEver);
+    
+    if (ImGui::Begin("Object Details", nullptr, ImGuiWindowFlags_NoScrollbar 
+        | ImGuiWindowFlags_NavFlattened ))
+    {
+        if (ImGui::BeginTabBar("ObjectDetailsTabs", ImGuiTabBarFlags_Reorderable
+            | ImGuiTabBarFlags_AutoSelectNewTabs
+            | ImGuiTabBarFlags_FittingPolicyScroll))
+        {
+            CObjectDetailsPane(nullptr);
+            ImGui::EndTabBar();
+        }
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows))
+        {
+            *out_mousedOver = true;
+        }
+    }
+    ImGui::End();
+}
+
+void InstanceVariableViewer::DrawVariablesPanel(bool* out_mousedOver)
+{
+    ImGui::SetNextWindowDockID(dock_right_bottom_id, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(350, 350), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Variables Table", nullptr, ImGuiWindowFlags_NoScrollbar 
+        | ImGuiWindowFlags_NavFlattened  ))
+    {
+        DrawInner();
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows))
+        {
+            *out_mousedOver = true;
+        }
+    }
     ImGui::End();
 }

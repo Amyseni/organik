@@ -92,6 +92,20 @@ struct GlobalPre
 		int32_t m_Count;
 		int32_t m_DeleteType;
 	};
+	template <typename T>
+	struct SLinkedList
+	{
+		typedef struct Node
+		{
+			Node* m_pNext;
+			Node* m_pPrev;
+			T* m_pObj;
+		} Node;
+
+		Node* m_pFirst;
+		Node* m_pLast;
+		int m_Count;
+	};
     template <typename T>
 	struct OLinkedList
 	{
@@ -209,8 +223,8 @@ struct GlobalPre
 		}
 
 	public:
-		int32_t m_UsedCount;
 		int32_t m_CurrentSize;
+		int32_t m_UsedCount;
 		int32_t m_CurrentMask;
 		int32_t m_GrowThreshold;
 		CHashMapElement<TKey, TValue>* m_Elements;

@@ -18,10 +18,10 @@ struct CScript {{
 struct CInstance depends (CObjectGM) {{
     
 	int32_t GetMemberCount() const {
-		return m_YYVarsMap ? m_YYVarsMap->m_CurrentSize : 0;
+		return m_YYVarsMap ? m_YYVarsMap->m_UsedCount : 0;
 	}
 	int32_t GetMemberCount() {
-		return m_YYVarsMap ? m_YYVarsMap->m_CurrentSize : 0;
+		return m_YYVarsMap ? m_YYVarsMap->m_UsedCount : 0;
 	}
 
 	static std::vector<CInstance*> Where(std::function<bool(CInstance*)> func);

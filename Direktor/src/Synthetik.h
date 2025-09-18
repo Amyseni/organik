@@ -28,6 +28,16 @@ __declspec(noreturn) inline void __cdecl __NOP() {}
 #include <GameMaker_Defs.h>
 #include <random>
 #include "zhl_internal.h"
+
+#ifdef GetObject
+#undef GetObject
+#endif
+#ifdef GetObjectW
+#undef GetObjectW
+#endif
+#ifdef GetObjectA
+#undef GetObjectA
+#endif
 struct SWithIterator;
 struct CBackGM;
 struct CCode;
@@ -104,14 +114,28 @@ struct LinkedList
 	int32_t m_Count;
 	int32_t m_DeleteType;
 };
-    template <typename T>
+template <typename T>
 struct OLinkedList
 {
 	T* m_First;
 	T* m_Last;
 	int32_t m_Count;
 };
+template <typename T>
+struct SLinkedList
+{
+	typedef struct Node
+	{
+		Node* m_Next;
+		Node* m_Prev;
+		T* m_Object;
+	} Node;
 
+	Node* m_First;
+	Node* m_Last;
+	int m_Count;
+};
+void Error_Show_Action(bool mustCrash, bool manualError, const char* fmt, ...);
 struct YYLink
 {
 	YYLink *p_next;
@@ -221,15 +245,14 @@ private:
 
 public:
 	//? Size of the map (all reserved slots)
-	int32_t m_UsedCount;
-	//? Number of elements in the map (I don't get it either)
 	int32_t m_CurrentSize;
-	//? Current mask for hashing (should == m_UsedCount - 1)
+	//? Number of elements in the map
+	int32_t m_UsedCount;
+	//? Current mask for hashing
 	int32_t m_CurrentMask;
 	//? When to grow the map
 	int32_t m_GrowThreshold;
 	Element* m_Elements;
-	void(*m_DeleteValue)(TKey* Key, TValue* Value);
 	bool GetContainer(
 		TKey Key,
 
@@ -256,44 +279,202 @@ public:
 		}
 		return false;
 	}
+	int32_t GetDistance(
+		CHashMapHash Hash,
+		int32_t Position
+	)
+	{
+		return (Position + m_CurrentSize - (Hash & m_CurrentMask)) & m_CurrentMask;
+	}
+	void InsertOrAssign (
+		CHashMapHash Hash,
+		TValue Value,
+		bool force = false
+	)
+	{
+		if (m_UsedCount > m_GrowThreshold)
+		{
+			Error_Show_Action(false, true, "CHashMap::Insert: Map needs to be resized, but it is not implemented yet.");
+			return;
+		}
+		int32_t _position = static_cast<int32_t>(Hash & m_CurrentMask);
+		int32_t _startingPosition = _position;
+		ForEach([&](const TKey& key, const CHashMapHash& hash, TValue& elem) -> void
+		{
+			if (hash == Hash)
+			{
+				elem = Value;
+				return;
+			}
+		});
+		while (true){
+			if (m_Elements[_position].m_Hash == 0)
+			{
+				m_Elements[_position].m_Hash = Hash;
+				m_Elements[_position].m_Value = Value;
+				m_UsedCount++;
+				return;
+			}
+			else if (m_Elements[_position].m_Hash == Hash)
+			{
+				m_Elements[_position].m_Value = Value;
+				return;
+			}
+			else
+			{
+				_position = (1 + _position) & m_CurrentMask;	
+				if (_position == _startingPosition)
+				{
+					Error_Show_Action(false, true, "CHashMap::Insert: Map is full, but it is not implemented yet.");
+					return;
+				}
+			}
+		}
+		Error_Show_Action(false, true, "CHashMap::Insert: Collision detected, but it is not implemented yet.");
+		return;
+	}
 	struct iterator {
-		Element* ptr;
+		int32_t index;
 		CHashMap<TKey, TValue, TInitialMask>* m_Map;
-		iterator(Element* p, CHashMap<TKey, TValue, TInitialMask>* map) : ptr(p), m_Map(map) {}
+		int m_Count;
+		iterator(Element* p, CHashMap<TKey, TValue, TInitialMask>* map) : index(p - &(map->m_Elements[0])), m_Map(map), m_Count(0) {}
 		iterator& operator++() {
 			// Move to the next element
-			do {
-				++ptr;
-			} while ((
-					(ptr->m_Hash & m_Map->m_CurrentMask) == HASH_EMPTY
-					|| (ptr->m_Hash & HASH_DELETED) == HASH_DELETED
-				) && ptr < ptr + m_Map->m_UsedCount
-			);
+			if (!(index < m_Map->m_CurrentSize)) {
+				// End of the map
+				return *this;
+			}
+			++index;
+			Element& elem = m_Map->m_Elements[index];
+			if (elem.m_Hash && !(elem.m_Hash & HASH_DELETED)) {
+				// Valid element
+				++m_Count;
+				return *this;
+			}
 			return *this;
 		}
 
-		bool operator!=(const iterator& other) {
-										//! iterators are not equal if:
-			return (ptr->m_Hash == HASH_EMPTY)							//? Hash is 0
-					|| (ptr->m_Hash & HASH_DELETED)						//? Hash deleted bit set
-					|| (ptr != other.ptr) 								//? ptrs not equal
-					|| ((ptr->m_Hash & m_Map->m_CurrentMask)				//? or masked hashes not equal
-							!= (other.ptr->m_Hash & other.m_Map->m_CurrentMask)
-					   );
+		Element* getNextElement() 
+		{
+			while (index <= m_Map->m_CurrentSize)
+			{
+				Element& elem = m_Map->m_Elements[++index];
+
+				if (elem.m_Hash && !(elem.m_Hash & HASH_DELETED)) {
+					// Valid element
+					++m_Count;
+					return &elem;
+				}
+			}
+			return nullptr;
+		}
+		
+		bool operator!=(const iterator& other) { return (index != other.index); }
+		bool operator<=(const iterator& other) { return (index <= other.index); }
+		bool operator>=(const iterator& other) { return (index >= other.index); }
+		bool operator<(const iterator& other)  { return (index < other.index);  }
+		bool operator>(const iterator& other)  { return (index > other.index);  }
+		bool operator==(const iterator& other) { return (index == other.index && m_Map == other.m_Map);}
+		Element *GetDummyItem() 
+		{
+			static Element dummyItem{};
+			if (!dummyItem.m_Value)
+				dummyItem.m_Value = TValue{};
+			
+			if (!dummyItem.m_Hash)
+				dummyItem.m_Hash = HASH_DELETED;
+
+			return &dummyItem;
+		}
+		Element& operator*() { 
+			if (!m_Map || !m_Map->m_Elements || index > m_Map->m_CurrentSize)
+				return *GetDummyItem();
+			return m_Map->m_Elements[index];
+		}
+		Element* operator->() { 
+			if (!m_Map || !m_Map->m_Elements || index > m_Map->m_CurrentSize)
+				return GetDummyItem();
+			return &(m_Map->m_Elements[index]); 
 		}
 
-		Element& operator*() { return *ptr; }
-		Element* operator->() { return ptr; }
-
 		iterator next() {
-			return ++(*this);
+			Element* elem;
+			while (true)
+			{
+				elem = &m_Map->m_Elements[max(++index, m_Map->m_CurrentSize - 1)];
+				
+				if (!elem)
+					continue;
+				if (!elem->m_Hash)
+					continue;
+				if (elem->m_Hash & HASH_DELETED)
+					continue;
+
+				++m_Count;
+				return *this;
+			}
+			return *this;
 		}
 	};
 	template<typename Func>
 	requires std::is_invocable_r_v<void, Func, const TKey&, const CHashMapHash&, TValue&>
 	void ForEach(Func func) {
-		for (auto it = begin(); it != end(); ++it) {
-			func(it->m_Key, it->m_Hash, it->m_Value);
+		iterator it = begin();
+		Element val;
+		while (it.getNextElement())
+		{
+			val = *it;
+			if (!val.m_Value || !val.m_Hash || (val.m_Hash & HASH_DELETED))
+				continue;
+			func(val.m_Key, val.m_Hash, val.m_Value);
+		}
+	}
+	template<typename Func>
+	requires std::is_invocable_r_v<bool, Func, const TKey&, const CHashMapHash&, TValue&>
+	std::vector<Element*> Where(Func func) {
+		iterator it = begin();
+		Element val;
+		std::vector<Element*> results;
+		while (it.getNextElement())
+		{
+			val = *it;
+			if (!val.m_Value || !val.m_Hash || (val.m_Hash & HASH_DELETED))
+				continue;
+			if (func(val.m_Key, val.m_Hash, val.m_Value))
+			{
+				results.push_back(it.operator->());
+			}
+		}
+		return results;
+	}
+	template<typename Func>
+	requires std::is_invocable_r_v<bool, Func, const TKey&, const CHashMapHash&, TValue&>
+	Element* FirstOrDefault(Func func, Element* defaultValue = nullptr) {
+		iterator it = begin();
+		Element val;
+		while (it.getNextElement())
+		{
+			val = *it;
+			if (!val.m_Value || !val.m_Hash || (val.m_Hash & HASH_DELETED))
+				continue;
+			if (func(val.m_Key, val.m_Hash, val.m_Value))
+			{
+				return it.operator->();
+			}
+		}
+		return defaultValue;
+	}
+	template<typename Func>
+	requires std::is_invocable_r_v<void, Func, const int32_t&, const TKey&, const CHashMapHash&, TValue&>
+	void ForEachWithIndex(Func func) {
+		iterator it = begin();
+		Element val;
+		while (it.getNextElement())
+		{
+			val = *it;
+			if (!val.m_Value || !val.m_Hash || (val.m_Hash & HASH_DELETED))
+				continue;
+			func(it.index,val.m_Key, val.m_Hash, val.m_Value);
 		}
 	}
 	CHashMap<TKey, TValue, TInitialMask>::iterator begin() {
@@ -302,7 +483,7 @@ public:
 	}
 
 	CHashMap<TKey, TValue, TInitialMask>::iterator end() {
-		return iterator((Element*) m_Elements + m_UsedCount, this);
+		return iterator((Element*) m_Elements + m_CurrentSize, this);
 	}
 
 	bool GetValue(
@@ -381,21 +562,26 @@ struct RefString {
     int32_t m_Length;
 };
 
+template <typename T1, typename T2>
+requires (sizeof(T1) == 4 && sizeof(T2) == 4)
+struct RValuePair {
+	T1 first;
+	T2 second;
+
+	inline operator std::pair<T1, T2>() const {
+		return std::pair<T1, T2>(first, second);
+	}
+	inline operator std::pair<T1, T2>&() {
+		return *(std::pair<T1, T2>*)this;
+	}
+};
+
 struct Action;
 struct CCode;
 struct EventMap;
 #pragma pack(push, 4)
 struct RValue
 {
-	
-	// enum TIndex : uint8_t{
-	// 	OBJECT = 0,
-	// 	ARRAY  = 1,
-	// 	STRING = 2,
-	// 	ACTION = 3,
-	// };
-	//the function pointer
-	
 	// ########################################################################
 	// the following structure is replicated from the YoYo YYC runtime headers for GMS Runtime 2.3.6 and 2.3.7
 	// and I added some stuff
@@ -411,8 +597,9 @@ struct RValue
 			RefDynamicArrayOfRValue* m_RefArray; // also actions array
 			YYObjectBase* m_Object;
 			CInstance* m_Instance;
-
+			Action* m_Action; //? Action : public CCode
 			// EventMap* m_EventMap; 		//? EventMap : public YYObjectBase
+			RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> m_ActionPair;
 		};
 		PVOID m_Pointer = nullptr;
 	};
@@ -431,7 +618,42 @@ struct RValue
 	static RValue& ReadStructValue(RValue* p_Struct, RValue index);
 
 	int32_t GetArrayLength() const;
-	
+	template<typename T>
+	requires(sizeof(T) == 4)
+	void SetPairFirst(const T& value)
+	{
+		*(reinterpret_cast<T*>(&std::launder(&this->m_ActionPair)->first)) = value;
+	}
+	template<typename T>
+	requires(sizeof(T) == 4)
+	void SetPairSecond(const T& value)
+	{
+		*(reinterpret_cast<T*>(&std::launder(&this->m_ActionPair)->second)) = value;
+	}
+	template<typename T>
+	requires(sizeof(T) == 4)
+	T GetPairFirst() const
+	{
+		return *reinterpret_cast<const T*>(std::launder(&this->m_ActionPair.first));
+	}
+	template<typename T>
+	requires(sizeof(T) == 4)
+	T GetPairSecond() const
+	{
+		return *reinterpret_cast<const T*>(std::launder(&this->m_ActionPair.second));
+	}
+	template<typename T>
+	requires(sizeof(T) == 4)
+	T GetPairFirst()
+	{
+		return *reinterpret_cast<T*>(std::launder(&this->m_ActionPair.first));
+	}
+	template<typename T>
+	requires(sizeof(T) == 4)
+	T GetPairSecond()
+	{
+		return *reinterpret_cast<T*>(std::launder(&this->m_ActionPair.second));
+	}
 	// Converts the RValue to a double.
 	double ToDouble() const;
 
@@ -455,6 +677,11 @@ struct RValue
 	// Converts the RValue to an object.
 	YYObjectBase* ToObject() const;
 
+	RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> ToActionPair() const;
+	RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> ToActionPair();
+	const RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& ToRefActionPair() const;
+	RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& ToRefActionPair();
+
 	// Converts the RValue to an instance.
 	CInstance* ToInstance() const;
 
@@ -467,17 +694,13 @@ struct RValue
 	// Converts the RValue to a UTF-8 string.
 	std::u8string ToUTF8String() const;
 
-	//! ACTION ARRAYS
-	RValue& GetMember2d(size_t index1, size_t index2);
-
-	//! OTHER ARRAYS
+	//! ARRAYS
 	RValue& operator=(const RValue& Other);
 	RValue& push_back(const RValue& Other);
 	RValue& back();
 	std::vector<RValue*> ToRefVector();
 
 	std::unordered_map<std::string, RValue*> ToRefMap();
-
 
 	int32_t GetMemberCount() const;
 
@@ -489,9 +712,7 @@ struct RValue
 
 	RValue();
 
-	RValue(const RValue& Other);
-
-	
+	RValue(const RValue& Other);	
 
 	RValue(RValue&& Other) noexcept;
 
@@ -590,13 +811,47 @@ struct RValue
 	RValue(const std::map<std::string, RValue>& Values);
 	RValue(const std::unordered_map<int32_t, RValue>& Values);
 	RValue(const std::vector<RValue>& Values);
-	RValue(RefDynamicArrayOfRValue* actionArrayPointer);
+	inline RValue(const std::pair<PFN_ACTIONHANDLER, YYObjectBase*>& Values)
+	{
+		FREE_RValue(this);
+
+		(*std::launder(&this->m_ActionPair)).first = Values.first;
+		(*std::launder(&this->m_ActionPair)).second = Values.second;
+		this->m_Kind = VALUE_ACTION;
+	}
+	inline RValue(Action* actionPointer)
+	{
+		FREE_RValue(this);
+		
+		*std::launder(&this->m_Pointer) = (PVOID)(actionPointer);
+		this->m_Kind = VALUE_ACTION;
+	}
+	RValue(CCode* codePointer) : RValue(reinterpret_cast<Action*>(codePointer)) {}
 	RValue(EventMap* eventMapPointer) : RValue(reinterpret_cast<YYObjectBase*>(eventMapPointer)) {}
 	// RValue(Action* actionPointer);
 
 	RValue& operator=(const std::map<std::string, RValue>& Values);
 	RValue& operator=(const std::vector<RValue>& Values);
-	RValue& operator=(RefDynamicArrayOfRValue* actionPointer);
+	RValue& operator=(const std::pair<PFN_ACTIONHANDLER, YYObjectBase*>& Values)
+	{
+		FREE_RValue(this);
+
+		(*std::launder(&this->m_ActionPair)).first = Values.first;
+		(*std::launder(&this->m_ActionPair)).second = Values.second;
+		this->m_Kind = VALUE_ACTION;
+		return *this;
+	}
+
+	inline RValue& operator=(Action* actionPointer) {
+		FREE_RValue(this);
+		
+		*std::launder(&this->m_Pointer) = (PVOID)(actionPointer);
+		this->m_Kind = VALUE_ACTION;
+		return *this;
+	};
+	inline RValue& operator=(CCode* codePointer) {
+		return this->operator=(reinterpret_cast<Action*>(codePointer));
+	}
 	inline RValue& operator=(EventMap* eventMapPointer) {
 		return this->operator=(reinterpret_cast<YYObjectBase*>(eventMapPointer));
 	};
@@ -627,7 +882,7 @@ struct RValue
 
 	explicit operator int64_t();
 
-	bool operator()(RValue* in, RValue* out);
+	void operator()(CInstance* self, CInstance* other);
 
 	// operator Action*();
 
@@ -653,7 +908,7 @@ struct RToken
 	int m_Offset;
 	RValue m_Value;
 	int m_ArrLength;
-	RToken* m_Arr;
+	RValue* m_Arr;
 	int m_Position;
 
 };
@@ -663,7 +918,7 @@ struct YYObjectBase;
 
 struct CCode
 {
-	void *vtbl;
+	virtual ~CCode() {};
 	CCode *m_Next;
 	int m_Kind;
 	int m_Compiled;
@@ -672,7 +927,7 @@ struct CCode
 	RValue m_Value;
 	PVOID m_VmInstance;
 	PVOID m_VmDebugInfo;
-	char *m_Code;
+	const char *m_Code;
 	const char *m_Name;
 	int m_CodeIndex;
 	YYGMLFuncs *m_Functions;
@@ -682,9 +937,11 @@ struct CCode
 	int m_ArgsCount;
 	int m_Flags;
 	YYObjectBase *m_Prototype;
-	
+	CCode(bool m_Watch = false, int m_Kind = 1, int m_Compiled = 1, const char* m_Name = "", YYGMLFuncs* m_Functions = nullptr, const char* m_Str = "", int m_CodeIndex = 0,
+		int m_LocalsCount = 0, int m_ArgsCount = 0, int m_Flags = 0, YYObjectBase* m_Prototype = nullptr, int m_Offset = 0, RToken m_Token = RToken(), RValue m_Value = RValue(),
+		PVOID m_VmInstance = nullptr, PVOID m_VmDebugInfo = nullptr, const char* m_Code = "", CCode* m_Next = nullptr);
 };
-
+constexpr size_t CCodeSz = sizeof(CCode);
 struct CDS_Grid
 {
 	
@@ -716,7 +973,16 @@ struct CEvent
 	LIBZHL_API bool LoadFromChunk(YYEvent *param_1, uchar *param_2);
 	CCode *m_Code;
 	int m_OwnerObjectID;
-	
+	CEvent(PFN_ACTIONHANDLER pfn, int32_t m_OwnerObjectID = -1);
+	CEvent(Action* pAction, int32_t m_OwnerObjectID = -1);
+	static CEvent* InsertIntoMap(
+		CHashMap<int64_t, CEvent*, 3>* eventMap, int32_t eventID, int32_t eventSubID,
+		Action* pAction, int32_t m_OwnerObjectID, bool replaceIfExists = true
+	);
+	static CEvent* InsertIntoMap(CHashMap<int64_t, CEvent*, 3>* eventMap, int32_t eventID, int32_t eventSubID,
+    PFN_ACTIONHANDLER pfn, const RValue& params, int32_t m_OwnerObjectID, bool replaceIfExists, bool after = false);
+
+	CEvent() = default;
 };
 
 struct CEventMap;
@@ -816,17 +1082,18 @@ struct CObjectGM
 	const char *m_Name;
 	CObjectGM *m_ParentObject;
 	CHashMap<int, CObjectGM*, 2> *m_ChildrenMap;
-	CHashMap<int, CEvent*, 3> *m_EventsMap;
+	CHashMap<int64_t, CEvent*, 3> *m_EventsMap;
 	CPhysicsDataGM m_PhysicsData;
-	LinkedList<CInstance> m_Instances;
-	LinkedList<CInstance> m_InstancesRecursive;
+	SLinkedList<CInstance> m_Instances;
+	SLinkedList<CInstance> m_InstancesRecursive;
 	uint32_t m_Flags;
 	int32_t m_SpriteIndex;
 	int32_t m_Depth;
 	int32_t m_Parent;
 	int32_t m_Mask;
 	int32_t m_ID;
-	
+
+	CObjectGM() = default;
 };
 
 struct CPhysicsObject;
@@ -908,10 +1175,10 @@ struct CInstance : YYObjectBase
 	
     
 	int32_t GetMemberCount() const {
-		return m_YYVarsMap ? m_YYVarsMap->m_CurrentSize : 0;
+		return m_YYVarsMap ? m_YYVarsMap->m_UsedCount : 0;
 	}
 	int32_t GetMemberCount() {
-		return m_YYVarsMap ? m_YYVarsMap->m_CurrentSize : 0;
+		return m_YYVarsMap ? m_YYVarsMap->m_UsedCount : 0;
 	}
 
 	static std::vector<CInstance*> Where(std::function<bool(CInstance*)> func);
@@ -1525,6 +1792,7 @@ struct YYGMLFuncs
 	};
 	PVOID m_FunctionVariables;
 
+	YYGMLFuncs() : m_Name(""), m_CodeFunction(nullptr),  m_FunctionVariables(nullptr) {}
 };
 
 struct YYRoom
@@ -9350,7 +9618,7 @@ namespace Organik
 			#include "GuiSettingsInline.h"
 			
 			static bool g_SettingsLoaded;
-			static std::pair<std::unique_lock<std::mutex>, GUISettings*> GetUISettings();
+			static std::pair<std::unique_lock<std::mutex>, GUISettings*&> GetUISettings();
 		};
 		void GetCurrentRoom(CRoom*& room);
 		std::string url_encode(const std::string &value);
@@ -9491,5 +9759,3 @@ static void DoBuiltinRef(T fn, RValue &out, std::vector<RValue> args)
 
 #include "DefinitionHelpers/InstanceHelper.h"
 #include "DefinitionHelpers/VariableHelper.h"
-
-

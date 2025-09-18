@@ -8,6 +8,131 @@
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 
+RValue* GetEventCodeReverseMap() {
+    static RValue eCodeReverseMap;
+    if (eCodeReverseMap.GetKind() != VALUE_OBJECT) {
+        eCodeReverseMap = RValue({
+            //! MAP: EVENT_CREATE
+            {
+                EVENT_CREATE, 
+                RValue({
+                    {0,      "create"},
+
+                    //* base event name
+                    {INT32_MAX, "create"}   //? Pair
+                })
+            },
+            //! END: EVENT_CREATE
+
+            //! MAP: EVENT_DESTROY
+            {
+                EVENT_DESTROY,
+                RValue({
+                    {0,     "destroy"},
+                    
+                    //* base event name
+                    {INT32_MAX, "destroy"}   //? Pair
+                })
+            },
+            //! END: EVENT_DESTROY
+
+            //! MAP: EVENT_ALARM
+            {
+                EVENT_ALARM, 
+                RValue({
+                    {SUBEV_ALARM0,     "alarm_0"},           {SUBEV_ALARM1, "alarm_1"},         {SUBEV_ALARM2, "alarm_2"},
+                    {SUBEV_ALARM3,     "alarm_3"},           {SUBEV_ALARM4, "alarm_4"},         {SUBEV_ALARM5, "alarm_5"},
+                    {SUBEV_ALARM6,     "alarm_6"},           {SUBEV_ALARM7, "alarm_7"},         {SUBEV_ALARM8, "alarm_8"},
+                    {SUBEV_ALARM9,     "alarm_9"},         {SUBEV_ALARM10, "alarm_10"},       {SUBEV_ALARM11, "alarm_11"},
+
+                    //* base event name
+                    {INT32_MAX, "alarm"}   //? Pair
+                })
+            },
+            //! END: EVENT_ALARM 
+
+            //! MAP: EVENT_STEP
+            {
+                EVENT_STEP, 
+                RValue({
+                    {0, "step_normal"},       {1, "step_begin"},        {2, "step_end"},
+                    
+                    //* base event name
+                    {INT32_MAX, "step"}   //? Pair
+                })        
+            },
+            //!END: EVENT_STEP
+
+            //! MAP: EVENT_MOUSE
+            {
+                EVENT_MOUSE, 
+                RValue({
+                    {INT32_MAX-1,   "mouse_any"}, 
+
+                    //* base event name
+                    {INT32_MAX, "mouse"}   //? Pair
+                })
+            },
+            //! END: EVENT_MOUSE
+
+            //! MAP: EVENT_OTHER
+            {
+                EVENT_OTHER, 
+                RValue({
+                    {SUBEV_USER0,      "user_0"},          {SUBEV_USER1,  "user_1"},         {SUBEV_USER2,  "user_2"},   
+                    {SUBEV_USER3,      "user_3"},          {SUBEV_USER4,  "user_4"},         {SUBEV_USER5,  "user_5"},
+                    {SUBEV_USER6,      "user_6"},          {SUBEV_USER7,  "user_7"},         {SUBEV_USER8,  "user_8"},
+                    {SUBEV_USER9,      "user_9"},         {SUBEV_USER10, "user_10"},        {SUBEV_USER11, "user_11"},
+                    {SUBEV_USER12,    "user_12"},         {SUBEV_USER13, "user_13"},        {SUBEV_USER14, "user_14"},
+                    {SUBEV_USER15,    "user_15"},
+
+                    //* base event name
+                    {INT32_MAX, "other"}   //? Pair
+                })
+            },
+            //! END: EVENT_OTHER
+
+            //! MAP: EVENT_DRAW
+            {
+                EVENT_DRAW, 
+                RValue({
+                    {DRAW_GUI,     "draw_gui"},    {DRAW_RESIZE,      "draw_resize"},    {DRAW_BEGIN,   "draw_begin"},  
+                    {DRAW_END,     "draw_end"}, {DRAW_GUI_BEGIN,   "draw_gui_begin"},  {DRAW_GUI_END, "draw_gui_end"},
+                    {DRAW_PRE,     "draw_pre"},      {DRAW_POST,        "draw_post"},
+
+                    //* base event name
+                    {INT32_MAX, "draw"}   //? Pair
+                })
+            },
+            //! END: EVENT_DRAW
+
+            //! MAP: EVENT_KEYPRESS
+            {
+                EVENT_KEYPRESS, 
+                RValue({
+                    {INT32_MAX-1,    "key_press"},
+
+                    //* base event name
+                    {INT32_MAX, "keypress"}   //? Pair
+                })
+            },
+            //! END: EVENT_KEYPRESS
+
+            //! MAP: EVENT_PRE_CREATE
+            {
+                EVENT_PRE_CREATE,
+                RValue({
+                    {INT32_MAX-1,   "pre_create"},
+                
+                    //* base event name
+                    {INT32_MAX, "precreate"}   //? Pair
+                })
+            },
+            //! END: EVENT_PRE_CREATE
+        });
+    }
+    return &eCodeReverseMap;
+}
 double g_ReplaceBulletIndex = 0;
 double* getReplaceBulletIndex() {
     return &g_ReplaceBulletIndex;
