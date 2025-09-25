@@ -4,11 +4,12 @@
 #include <iomanip>
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #include <sstream>
-#include "UI/OrganikConsole.h"
-#include "UI/UIManager.h"
-#include "CallbackManager/CallbackManagerInterface.h"
-#include "ModuleMain.h"
+// #include "UI/OrganikConsole.h"
+// #include "UI/UIManager.h"
+// #include "CallbackManager/CallbackManagerInterface.h"
+// #include "ModuleMain.h"
 
 namespace Organik
 {
@@ -16,13 +17,10 @@ namespace Organik
      * @brief Singleton instance of the Logger.
      */
     static Logger* g_LoggerInstance = nullptr;
-
-    /**
-     * @brief Retrieves the singleton Logger instance.
-     * @return Pointer to the Logger instance, or nullptr if not initialized.
-     */
-    Logger* GetLogger() { return g_LoggerInstance; }
-
+    Logger* GetLogger(void)
+    {
+        return g_LoggerInstance;
+    }
     /**
      * @brief Initializes the logging system.
      * This function creates and initializes the singleton Logger instance.
@@ -98,14 +96,12 @@ namespace Organik
     )
     {
         constexpr size_t max_length = 4096;
-        size_t length = strlen(Format);
+        size_t length = strnlen_s(Format, max_length);
 
         if (length >= max_length)
             return "<string too long to print>";
 
         char buffer[max_length] = { 0 };
-
-        // strncpy_s is not needed here as vsprintf_s will write the formatted string.
         vsprintf_s(buffer, Format, Arguments);
 
         return buffer;
@@ -142,7 +138,9 @@ namespace Organik
         {
             return false;
         }
-        outFile << message << std::endl;
+        outFile << message;
+        if (flushLine) 
+            outFile << std::endl;
         return true;
     }
 
@@ -151,9 +149,9 @@ namespace Organik
      * @param text The text message to log.
      * @return True if logging was successful, false otherwise.
      */
-    bool Logger::LogSimple(const char* text)
+    bool Logger::LogSimple(const char* text, bool flushLine)
     {
-        return WriteToLog(text);
+        return WriteToLog(text, flushLine);
     }
 
     /**
@@ -171,99 +169,20 @@ namespace Organik
         return WriteToLog(formatted_output, true);
     }
 
-    bool Logger::TryLogConsole(const char* fmt, ...)
-    {
-        va_list args;
-        va_start(args, fmt);
-        std::string formatted_output = ParseFormatting(fmt, args);
-        va_end(args);
+    // bool Logger::TryLogConsole(const char* fmt, ...)
+    // {
+    //     va_list args;
+    //     va_start(args, fmt);
+    //     std::string formatted_output = ParseFormatting(fmt, args);
+    //     va_end(args);
 
-        auto* console = Organik::UIManager::GetInstance()->GetElement<OrganikConsole>(false);
-        if (console)
-        {
-            console->AddLog(formatted_output.c_str());
-            return true;
-        }
-        LogSimple(formatted_output.c_str());
-        return false;
-    }
-
-    int tryDereference(int ptr)
-    {
-        LPCVOID int_hack = (LPCVOID)ptr;
-        MEMORY_BASIC_INFORMATION mbi;
-        if (VirtualQuery((LPCVOID)ptr, &mbi, sizeof(mbi)) != 0 && mbi.State == MEM_COMMIT &&
-            (mbi.Protect == PAGE_READONLY || mbi.Protect == PAGE_READWRITE || mbi.Protect == PAGE_EXECUTE_READ || mbi.Protect == PAGE_EXECUTE_READWRITE))
-        {
-            return *(int*)int_hack;
-        }
-        return -1;
-    }
-
-    int tryDereferencePtrLoop(IN int ptr_trgt, OUT int& COUNT)
-    {
-        int i = 0;
-        COUNT = 0;
-        int last_val = ptr_trgt;
-        int ptr_test = ptr_trgt;
-        do 
-        {
-            i = i + 1;
-            last_val = ptr_test;
-            ptr_test = tryDereference(ptr_test);
-            COUNT = i;
-        } while (ptr_test != -1);
-        return last_val;
-    }
-
-    
-
-    /**
-     * @brief Logs details of a CodeEvent callback.
-     * @param sourceFile The source file where the log call originated.
-     * @param line The line number in the source file.
-     * @param callbackName The name of the callback function.
-     * @param args The CodeEventArgs tuple.
-     * @param logArgv If true, logs the arguments (argv) passed to the event.
-     * @return True if logging was successful, false otherwise.
-     */
-    bool Logger::LogEventCallback(const char *sourceFile, const int line, const char* callbackName, CodeEventArgs args) {
-        bool success = true;
-        CInstance* self = std::get<0>(args);
-        CInstance* other = std::get<1>(args);
-        CCode* code = std::get<2>(args);
-        int argc = std::get<3>(args);
-        RValue* r_argv = std::get<4>(args);
-        
-        // for (auto arg : r_argv->ToRefVector()) {
-        //     if (arg == nullptr) {
-        //         continue; // Skip null arguments
-        //     }
-        //     std::string argStr = arg->ToString();
-        //     if (!argStr.empty()) {
-        //         g_LoggerInstance->LogFormatted("Arg: %s", argStr.c_str());
-        //     } else {
-        //         g_LoggerInstance->LogFormatted("Arg: <null or empty>");
-        //     }
+        // auto* console = Organik::UIManager::GetInstance()->GetElement<OrganikConsole>(false);
+        // if (console)
+        // {
+        //     console->AddLog(formatted_output.c_str());
+        //     return true;
         // }
-        // Get current time for timestamp
-        auto now = std::chrono::system_clock::now();
-        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-        std::tm local_tm;
-        localtime_s(&local_tm, &now_time);
-        std::ostringstream timestamp_ss;
-        timestamp_ss << std::put_time(&local_tm, "%H:%M:%S");
-        std::string timestamp = timestamp_ss.str();
-
-        std::ostringstream infoStream;
-        int out_buf(0);
-        infoStream << g_LoggerInstance->ParseFormatting("[EVENT] [0x%p->%s() call 0x%p] [%s] @ [%s:%d]", self, callbackName, code, timestamp.c_str(), sourceFile, line) << "\n";
-        
-        infoStream << g_LoggerInstance->ParseFormatting("    Code? : %s", (code->m_Code && tryDereference((int)code->m_Code) != -1) ? code->m_Code : "Code not found or points to invalid memory") << "\n";
-        infoStream << g_LoggerInstance->ParseFormatting("    Argument count: %d", code->m_LocalsCount) << "\n";
-
-        success = g_LoggerInstance->LogFormatted("%s", infoStream.str().c_str());
-
-        return success;
-    }
+    //     LogSimple(formatted_output.c_str());
+    //     return false;
+    // }
 }
