@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> 68fe850 (Initial commit - It works on my machine.)
 .cache/
 
 .secrets
@@ -13,7 +8,7 @@ build/
 # MVSC builds
 x64/
 x86/
-
+Direktor.code-workspace
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -27,16 +22,9 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 out/
-
-<<<<<<< HEAD
-=======
-=======
-out/
-
->>>>>>> 68fe850 (Initial commit - It works on my machine.)
 main.dir/
 Src.dir/
-
+yygml.zhl
 main.sln
 
 *.vcxproj
@@ -44,10 +32,4 @@ main.sln
 
 # Visual Studio Code settings
 .vscode/
-
-# custom
-<<<<<<< HEAD
 clean-and-debug.sh
-=======
-clean-and-debug.sh
->>>>>>> 68fe850 (Initial commit - It works on my machine.)

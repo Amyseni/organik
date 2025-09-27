@@ -1,0 +1,36 @@
+"558BEC6AFF68????????64A1????????50515657A1????????33C5508D45??64A3????????8BF18975??68":
+void CInstance::constructor(CInstance * this<ecx>, float _x, float _y, int _id, int _objectIndex, bool _hasObjectParent);
+".51803D????????00":
+void YYObjectBase::constructor(YYObjectBase * this<ecx>, int n_Vars, int param_2);
+".558BEC6AFF68????????64A1????????505657A1????????33C5508D45??64A3????????8BF1":
+void CInstance::destructor(CInstance * this);
+".558BEC6AFF68????????64A1????????5083EC08":
+void CInstance::DeSerialise(CInstance * this<ecx>, IBuffer * param_1, bool param_2);
+".566A00":
+void CInstance::Free(CInstance * this<ecx>, bool param_2);
+".568BF18B06FF50??6A00FF7424??56E8????????83C40C":
+void YYObjectBase::Free(YYObjectBase * this<ecx>, bool p1);
+".558BEC6AFF68????????64A1????????5051535657A1????????33C5508D45??64A3????????8BF9":
+RValue * YYObjectBase::InternalGetYYVarRef(YYObjectBase * this<ecx>, int param_1);
+".558BEC":
+RValue * YYObjectBase::InternalGetYYVarRefL(YYObjectBase * this<ecx>, int param_1);
+".5356FF7424":
+bool CInstance::Mark4GC(CInstance * this<ecx>, uint * param_2, int param_3);
+".83EC08":
+bool YYObjectBase::Mark4GC(YYObjectBase * this<ecx>, uint * param_1, int param_2);
+".51":
+bool YYObjectBase::MarkOnlyChildren4GC(YYObjectBase * this<ecx>, uint * param_1, int param_2);
+".A1":
+bool YYObjectBase::MarkThisOnly4GC(YYObjectBase * this<ecx>, uint * param_1, int param_2);
+".568BF1":
+void CInstance::PreFree(CInstance * this);
+".568BF18B46":
+void YYObjectBase::PreFree(YYObjectBase * this);
+".558BEC":
+void CInstance::Serialise(CInstance * this<ecx>, IBuffer * param_1);
+".56FF7424":
+void CInstance::ThreadFree(CInstance * this<ecx>, bool param_2, void * GC_Context);
+".FF7424??FF7424":
+void YYObjectBase::ThreadFree(YYObjectBase * this<ecx>, bool param_1, void * GC_Context);
+"568BF1E8????????F64424??0174??6A64":
+void * YYObjectBase::destructor(YYObjectBase * this<ecx>, uint param_1);
