@@ -4,6 +4,7 @@
 #include "VariableHelper.h"
 #include "room_list.h"
 #include "Globals.h"
+#include "VariableDefHelper.h"
 #include "Variant.h"
 
 #define MAKE_HASHES(var) Code_Variable_FindAlloc_Slot_From_Name(GetGlobalInstance(), const_cast<char*>(#var)),
@@ -98,7 +99,9 @@ void Organik::DoHelperSetup()
     }
     Organik::GetLogger()->LogSimple("Room indexes initialized.");
     Organik::GetLogger()->LogSimple("Helper definitions set up successfully.");
+    #ifndef OBJ_HASH
     #define OBJ_HASH(obj) Organik::Objects::ObjIndexes[Organik::Objects::##obj]
+    #endif
     *getPossibleBullets() = {
         OBJ_HASH(obj_bullet_sniperturret),
         OBJ_HASH(obj_bullet_enemysniper),
@@ -247,6 +250,6 @@ void Organik::DoHelperSetup()
         OBJ_HASH(obj_bullet_laser_railgun_item),
         OBJ_HASH(obj_bullet_laser_beam_item),
     };
-    
+    MessageBoxA(nullptr, VariableDefHelper::Get()->m_VariableDefs[VAR_HASH(bulletdamagemodifier2)]->m_Name.c_str(), "VariableDefHelper Test", MB_OK);
     ChatAddHooks();
 }

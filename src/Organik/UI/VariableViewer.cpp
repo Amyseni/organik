@@ -9,6 +9,7 @@
 #include "Events.h"
 #include "Action.h"
 #include "UIManager.h"
+#include "VariableDefHelper.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
@@ -104,51 +105,40 @@ static auto instanceFilter = ItemFilter();
 #define OBJINDEX(name) Organik::Objects::ObjIndexes[Organik::Objects::##name]
 #define TMAPOBJ(name) {Object_Data(OBJINDEX(name)), true},
 #define FMAPOBJ(name) {Object_Data(OBJINDEX(name)), false},
-std::unordered_map<CObjectGM*, bool> *GetParentObjects()
+
+std::unordered_map<const CObjectGM*, bool> *GetTrackedObjects()
 {
-    static std::unordered_map<CObjectGM*, bool> parentObjects;
-    if (parentObjects.size() == 0)
-    {
-        parentObjects = {
-            PARENTS_DO(FMAPOBJ)
-        };
-    }
-    return &parentObjects;
-}
-std::unordered_map<CObjectGM*, bool> *GetGlobalObjects()
-{
-    static std::unordered_map<CObjectGM*, bool> globalObjects;
-    if (globalObjects.size() == 0)
-    {
-        globalObjects = {
-            GLOBALS_DO(TMAPOBJ)
-        };
-    }
-    return &globalObjects;
-}
-std::unordered_map<CObjectGM*, bool> *GetTrackedObjects()
-{
-    static std::unordered_map<CObjectGM*, bool> trackedObjects;
+    static std::unordered_map<const CObjectGM*, bool> trackedObjects;
     if (!trackedObjects.size())
     {
-        trackedObjects.merge(*GetGlobalObjects());
-        trackedObjects.merge(*GetParentObjects());
+        trackedObjects = {
+            OBJECTS_DO(FMAPOBJ)
+        };
+        trackedObjects[__gStats->m_Object] = true;
+        trackedObjects[__gLocalPlayer->m_Object] = true;
+        trackedObjects[_gObj_(obj_weapon_PARENT)->m_Object] = true;
+        trackedObjects[_gObj_(obj_item_parent)->m_Object] = true;
+        trackedObjects[_gObj_(obj_perk_parent)->m_Object] = true;
     }
     return &trackedObjects;
 }
-void recurse(CObjectGM* obj, std::function<void(CObjectGM*)> pred) {
+void recurse(const CObjectGM* obj, std::function<void(const CObjectGM*)> pred) {
     if (obj)
         pred(obj);
     if (obj->m_ChildrenMap && obj->m_ChildrenMap->m_UsedCount)
     {
-        obj->m_ChildrenMap->ForEach([&](const int32_t& key, const CHashMapHash& hash, CObjectGM* elem) {
-            recurse(elem, pred);
-        });
+        auto it = obj->m_ChildrenMap->begin();
+        const CHashMap<int32_t, CObjectGM*, 2>::Element *elem = nullptr;
+        while (obj->m_ChildrenMap->FindNextValue(it, &elem))
+        {
+            const CObjectGM* child = elem->m_Value;
+            recurse(child, pred);
+        }
     }
 }
-auto GetObjectsForTabs() -> std::unordered_map<CObjectGM*, bool>*
+auto GetObjectsForTabs() -> std::unordered_map<const CObjectGM*, bool>*
 {
-    static std::unordered_map<CObjectGM*, bool> objectsForTabs;
+    static std::unordered_map<const CObjectGM*, bool> objectsForTabs;
     if (!objectsForTabs.size()) objectsForTabs = {
         GLOBALS_DO(FMAPOBJ)
         PARENTS_DO(FMAPOBJ)
@@ -156,46 +146,30 @@ auto GetObjectsForTabs() -> std::unordered_map<CObjectGM*, bool>*
     return &objectsForTabs;
 }
 
-
-
-std::unordered_map<CObjectGM*, bool> *GetTreeNodeOpen()
-{
-    static std::unordered_map<CObjectGM*, bool> treeNodeOpen;
-    if (!treeNodeOpen.size())
-    {
-        treeNodeOpen = {
-            GLOBALS_DO(FMAPOBJ)
-            PARENTS_DO(FMAPOBJ)
-        };
-    }
-    return &treeNodeOpen;
-}
-
 typedef void (*objectPred)(CObjectGM*, std::function<void(CObjectGM*)>);
 static std::string objNameFilterBuf;
-void InstanceVariableViewer::displayFunc(CObjectGM* child, bool& tracked){
+void InstanceVariableViewer::displayFunc(const CObjectGM* child, bool& tracked){
     if (!child) return;
     ImGui::PushID(child);
     if (ImGui::TreeNodeEx((const void*)(child), 
-        ((child->m_ChildrenMap && child->m_ChildrenMap->m_UsedCount)
-            ? ImGuiTreeNodeFlags_None : ImGuiTreeNodeFlags_Leaf)
-        | ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DrawLinesFull
+        (ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DrawLinesFull
         | (tracked ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None)
         | ImGuiTreeNodeFlags_AllowItemOverlap
-        | ImGuiTreeNodeFlags_NavLeftJumpsToParent,
-        "%s (#%d, %d children)", child->m_Name ? child->m_Name : "<no_name>", 
-            child->m_ID, 
+        | ImGuiTreeNodeFlags_NavLeftJumpsToParent),
+        "%s (#%d, %d children)", child->m_Name ? child->m_Name : "<no_name>",
+            child->m_ID,
             child->m_ChildrenMap ? child->m_ChildrenMap->m_UsedCount : 0))
     {
         if (child->m_ChildrenMap && child->m_ChildrenMap->m_UsedCount)
         {
-            child->m_ChildrenMap->ForEach([&](int key, CHashMapHash hash, CObjectGM* obj) {
-                if (!obj || (!hash) || (hash & HASH_DELETED) || (obj->m_ID < 0)) {
-                    return;
-                };
-                if (obj->m_ChildrenMap && obj->m_ChildrenMap->m_UsedCount)
-                    displayFunc(obj, ((*GetTrackedObjects())[obj]));
-            });
+            auto it = child->m_ChildrenMap->begin();
+            const CHashMap<int32_t, CObjectGM*, 2>::Element *elem = nullptr;
+            while (child->m_ChildrenMap->FindNextValue(it, &elem))
+            {
+                CObjectGM* obj = elem->m_Value;
+                displayFunc(obj, ((*GetTrackedObjects())[obj]));
+                
+            }
         }
         ImGui::TreePop();
     }
@@ -209,7 +183,7 @@ void InstanceVariableViewer::displayFunc(CObjectGM* child, bool& tracked){
         ImGui::MenuItem("Track Instances (this)", "", &tracked, true);
         if (ImGui::MenuItem("Track Instances (all children)", "", &tracked, true))
         {
-            recurse(child, [tracked](CObjectGM* obj) {
+            recurse(child, [tracked](const CObjectGM* obj) {
                 if (obj)
                     (*GetTrackedObjects())[obj] = tracked;
             });
@@ -218,7 +192,7 @@ void InstanceVariableViewer::displayFunc(CObjectGM* child, bool& tracked){
     }
     ImGui::PopID();
 }
-void InstanceVariableViewer::displayFuncNoButton(CObjectGM* child, std::function<void(SLinkedList<CInstance>)> leafFunc){
+void InstanceVariableViewer::displayFuncNoButton(const CObjectGM* child, std::function<void(SLinkedList<CInstance>)> leafFunc){
     if (!child) return;
     if (!child->m_ChildrenMap || !(child->m_ChildrenMap->m_UsedCount))
     {
@@ -252,11 +226,11 @@ void InstanceVariableViewer::DrawObjectParentsFilterList()
     auto trackedObjects = GetTrackedObjects();
     for(auto &[obj, show] : (*trackedObjects))
     {
-        auto tmpObj = obj->m_ParentObject;
+        const CObjectGM* tmpObj = obj->m_ParentObject;
         auto noParentsDisplayed = [&]() -> auto {
             while (tmpObj)
             {
-                if (trackedObjects->contains(tmpObj))
+                if ((*trackedObjects)[tmpObj])
                     return false;
                 if (!tmpObj->m_ParentObject || tmpObj->m_ParentObject == tmpObj)
                     break;
@@ -284,18 +258,14 @@ bool FakeEvent(CInstance* self, CInstance* other, YYObjectBase* context)
         StructCreate(context->InternalGetYYVarRef(VAR_HASH(scale)));
         MessageBoxA(NULL, from->ToCString(), "Test", MB_OK);
         bool ret = doGetFrom(self, other, context);
-        if (ret)
-            Organik::GetLogger()->LogFormatted("FakeEvent: doGetFrom succeeded, result: %.f", parseRValueNumber<double>(context->InternalGetYYVarRef(VAR_HASH(result))));
-        else
-            Error_Show_Action("FakeEvent: doGetFrom failed", true, true);
         return ret;
     }
     return false;
 }
 
-void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
+void InstanceVariableViewer::CObjectDetailsPane(const CObjectGM* toggleObj)
 {
-    static CObjectGM* toAdd = nullptr;
+    static const CObjectGM* toAdd = nullptr;
     static Action *toAddEvent = nullptr;
     
     static struct {
@@ -315,7 +285,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                 return params.ToObject();
             };
             Tab() : m_Object(nullptr), m_ObjectID(-1), m_Name("<no_name>"), m_ParentID(-1), m_ParentName("<no_parent>") {};
-            Tab(CObjectGM* obj) : m_Object(obj), m_ObjectID(obj ? obj->m_ID : 7), m_Name(obj ? obj->m_Name : "<no_name>") {
+            Tab(const CObjectGM* obj) : m_Object(obj), m_ObjectID(obj ? obj->m_ID : 7), m_Name(obj ? obj->m_Name : "<no_name>") {
                 m_ParentID = (obj && obj->m_ParentObject && obj->m_ParentObject != obj) ? obj->m_ParentObject->m_ID : -1;
                 m_ParentName = (obj && obj->m_ParentObject && obj->m_ParentObject != obj) ? (obj->m_ParentObject->m_Name ? obj->m_ParentObject->m_Name : "<no_name>") : "<no_parent>";
             };
@@ -327,14 +297,14 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                     m_ParentName = (m_Object->m_ParentObject && m_Object->m_ParentObject != m_Object) ? (m_Object->m_ParentObject->m_Name ? m_Object->m_ParentObject->m_Name : "<no_name>") : "<no_parent>";
                 }
             };
-            CObjectGM* m_Object;
+            const CObjectGM* m_Object;
             int32_t m_ObjectID;
             const char* m_Name;
             int32_t m_ParentID;
             const char* m_ParentName;
             //map event main code (0-14) to list of events
             std::unordered_map<int32_t, std::vector<MapDisplayEntry<int64_t, CEvent, 3>*>> m_Events;
-            std::vector<CObjectGM*> m_ChildObjects;
+            std::vector<const CObjectGM*> m_ChildObjects;
             inline void CacheEvents() {
                 m_Events.clear();
                 if (m_ObjectID < 0) return;
@@ -357,7 +327,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                     ));
                 });
             }
-            inline CObjectGM* GetObject()  {
+            inline const CObjectGM* GetObject()  {
                 return m_Object = Object_Data(m_ObjectID);
             }
 
@@ -414,9 +384,9 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                 if (ImGui::BeginTable("##events_table", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_HighlightHoveredColumn))
                 {
                     //ImGui::TableSetupColumn("##button", ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoHeaderLabel, 10.0f);
-                    ImGui::TableSetupColumn("Code", ImGuiTableColumnFlags_WidthFixed, 15.0f);
+                    ImGui::TableSetupColumn("Event Name", ImGuiTableColumnFlags_WidthFixed, 15.0f);
                     ImGui::TableSetupColumn("Owner", ImGuiTableColumnFlags_WidthFixed, 25.0f);
-                    ImGui::TableSetupColumn("Details", ImGuiTableColumnFlags_WidthStretch, 160.0f);
+                    ImGui::TableSetupColumn("Event Function", ImGuiTableColumnFlags_WidthStretch, 160.0f);
                     ImGui::TableHeadersRow();
 
                     GetObject()->m_EventsMap->ForEach([&](const int64_t& key, const CHashMapHash& hash, CEvent*& value) -> void
@@ -424,12 +394,15 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                         ImGui::PushID(value);
                         ImGui::TableNextRow();
                         ImGui::TableSetColumnIndex(0);
-                        if (ImGui::Selectable("##eventrow##", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))                    
-                            ImGui::OpenPopup("##event_details", ImGuiPopupFlags_MouseButtonLeft);
+                        bool open = ImGui::Selectable("##eventrow##", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap);
+                        if (open || ImGui::IsItemClicked())
+                            ImGui::OpenPopup("event_details");
+
                         ImGui::TableSetColumnIndex(0);
                         int32_t code = key >> 32;
                         int32_t subcode = key & 0xFFFFFFFF;
-
+                        ImGui::SetItemTooltip("Click for details");
+                        ImGui::SameLine(0,0);
                         ImGui::Text("%s", eventSpecificName(code, subcode).c_str());
                         ImGui::TableNextColumn();
 
@@ -504,7 +477,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
             }
         };
         std::unordered_map<int32_t, Tab> tabs;
-        void ToggleTab(CObjectGM* obj) {
+        void ToggleTab(const CObjectGM* obj) {
             if (tabs.contains(obj->m_ID)) {
                 tabs.erase(obj->m_ID);
                 (*GetObjectsForTabs())[obj] = false;
@@ -517,7 +490,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
 
 
 
-    for (auto& [obj, show] : (*GetObjectsForTabs())) {
+    for (const auto& [obj, show] : (*GetObjectsForTabs())) {
         if (!show) continue;
         if (!objectDetailsTabs.tabs.contains(obj->m_ID))
             objectDetailsTabs.ToggleTab(obj);
@@ -531,7 +504,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
     }
     
 }
-void InstanceVariableViewer::RecurseObjectInstanceTree(CObjectGM* obj)
+void InstanceVariableViewer::RecurseObjectInstanceTree(const CObjectGM* obj)
 {
     if (!obj) return;
     if (!obj->m_InstancesRecursive.m_Count)
@@ -630,62 +603,268 @@ std::unordered_map<int32_t, std::unordered_map<int32_t, std::pair<int32_t, const
     static std::unordered_map<int32_t, std::unordered_map<int32_t, std::pair<int32_t, const char*>>> mapCache;
     return &mapCache;
 }
+struct CachedRValue
+{
+    const char* m_Name;
+    int32_t m_ID;
+    RValueType m_Kind;
+    RValue lastKnownValue;
+    const CInstance* owner;
+
+    CInstance** ownerRef;
+
+    CachedRValue(): m_Name("<no_name>"), m_ID(0), m_Kind(VALUE_UNDEFINED), lastKnownValue(), owner(nullptr), ownerRef(nullptr) {}
+    CachedRValue(CInstance* inst, int32_t id, const char* name)
+        : m_Name(name), m_ID(id), m_Kind(VALUE_UNDEFINED), lastKnownValue(), owner(inst), ownerRef(&inst)
+    {
+        if (owner)
+        {
+            RValue* val = owner->InternalGetYYVarRef(m_ID);
+            if (val)
+                m_Kind = (RValueType) val->GetKind();
+            lastKnownValue = val ? *val : RValue();
+        }
+    }
+    explicit operator bool() const { 
+        if (!(owner && ownerRef)) return false;
+        if (*ownerRef != owner) return false;
+        return true;
+    }
+
+    RValue* operator->() { return owner->InternalGetYYVarRef(m_ID); }
+    RValue& operator*() { return *(owner->InternalGetYYVarRef(m_ID)); }
+    RValue* operator->() const { return owner->InternalGetYYVarRef(m_ID); }
+    RValue& operator*() const { return *(owner->InternalGetYYVarRef(m_ID)); }
+
+    template<typename MemberType>
+    MemberType& operator->*( MemberType RValue::* member) { return (*(owner->InternalGetYYVarRef(m_ID))).*member; }
+    template<typename MemberType>
+    MemberType& operator->*(const MemberType RValue::* member) const { return (*(owner->InternalGetYYVarRef(m_ID))).*member; }
+
+    operator RValue*() { return owner->InternalGetYYVarRef(m_ID); }
+    operator RValue*() const { return owner->InternalGetYYVarRef(m_ID); }
+
+    bool DoCache() {
+        if (!owner) return false;
+        if (!ownerRef) return false;
+        if (*ownerRef != owner) return false;
+        RValue* current = owner->InternalReadYYVar(m_ID);
+        if (!current) return false;
+        const RValue copy = current ? *current : RValue();
+        if (parseRValueNumber<int64_t>(lastKnownValue) != parseRValueNumber<int64_t>(copy)) {
+            lastKnownValue = copy;
+            return true;
+        }
+        return false;
+    }
+    ~CachedRValue() {
+        owner = nullptr;
+        ownerRef = nullptr;
+    }
+};
+struct CacheState {
+    CInstance* instance = nullptr;
+    enum : ImGuiID {
+        COL_NAME = 0,
+        COL_TYPE = 1,
+        COL_VALUE = 2
+    };
+    
+    CachedRValue* cachedValues = nullptr;
+    CHashMap<int32_t, RValue*, 3>* hashMapPtr = nullptr;
+    int32_t usedCount = 0;
+    int32_t actualCount = 0;
+    int32_t instId = 0;
+    
+    inline static CacheState* Get() {
+        static CacheState instance;
+        return &instance;
+    }
+    
+    static int __cdecl compare_func(const void* lhs, const void* rhs) {
+        auto specs = *GetTableSortSpecs();
+        int delta = 0;
+        auto* a = (const CachedRValue*)lhs;
+        auto* b = (const CachedRValue*)rhs;
+        if (!specs || specs->SpecsCount == 0)
+            return 0;
+        int sort_dir = 1;
+        for (int i=0; i < specs->SpecsCount; i++)
+        {
+            const ImGuiTableColumnSortSpecs* spec = &specs->Specs[i];
+            sort_dir = (spec->SortDirection == ImGuiSortDirection_Ascending) ? 1 : -1;
+            switch (spec->ColumnUserID)
+            {
+            case COL_NAME: // Name
+                delta += strcmp(a->m_Name, b->m_Name);
+            case COL_TYPE: // Type
+                delta += (a->m_Kind - b->m_Kind);
+            case COL_VALUE: // Value
+                delta += (parseRValueNumber<int32_t>(**a) - parseRValueNumber<int32_t>(**b));
+                break;
+            }
+        }
+        return (delta == 0 ? 0 : (delta * sort_dir));
+    }
+    static void SortEntries(CachedRValue* entries, size_t count, ImGuiTableSortSpecs* sort_specs)
+    {
+        (*GetTableSortSpecs()) = sort_specs;
+        if (!sort_specs || sort_specs->SpecsCount == 0)
+            return;
+
+
+        std::qsort(entries, count, sizeof(CachedRValue), compare_func);
+    }
+    bool Is(CInstance* inst) 
+    {
+        if (!inst) return false;
+        if (!(this->operator bool())) return false;
+        if (instance != inst) return false;
+        if (instId != inst->m_ID) return false;
+        if (hashMapPtr != inst->m_YYVarsMap) return false;
+        return true;
+    }
+    CInstance* GetInstance() {
+        static auto* lastValidInstance = (CInstance*)nullptr;
+        if (instance && instance->m_ID > 0 && instance->m_YYVarsMap) 
+        {
+            lastValidInstance = instance;
+        }
+        return lastValidInstance;
+    }
+    void Cache(CInstance* inst) {
+        if (!inst) return;
+
+        instance = inst;
+        instId = instance->m_ID;
+        
+        hashMapPtr = instance->m_YYVarsMap;
+
+        if (cachedValues)
+        {
+            delete[] cachedValues;
+            cachedValues = nullptr;
+        }
+
+        if (!hashMapPtr) return;
+        usedCount = instance->m_YYVarsMap->m_UsedCount;
+        if (usedCount < 1) return;
+        
+        cachedValues = new CachedRValue[usedCount];
+        
+        auto it = hashMapPtr->begin();
+        static const CHashMap<int32_t, RValue*, 3>::Element* elem = nullptr;
+        int32_t i=0;
+        while (hashMapPtr->FindNextValue(it, &elem))
+        {
+            const auto elemn = *elem;
+            if (!(*elem).m_Value) continue;
+            if ((*elem).m_Hash & HASH_DELETED) continue;
+            switch((*elem).m_Value->m_Kind)
+            {
+                case VALUE_NULL:
+                case VALUE_UNDEFINED:
+                case VALUE_UNSET:
+                case VALUE_PARAMS:
+                    continue;
+                default: break;
+            }
+            int32_t varid = (*elem).m_Key;
+            const char* varname = nullptr;
+            if (Organik::Variables::HashToVariableMap.contains(varid)) {
+                varname = Organik::Variables::HashToVariableMap[varid];
+            } else {
+                varname = "<no_name>";
+            }
+            if (!varname || !(varname[0]))
+                varname = "<no_name>";
+            
+            ::new (&cachedValues[i]) CachedRValue(instance, varid, varname);
+            i++;
+        }
+        actualCount = i;
+    }
+
+    operator bool() {
+        if (hashMapPtr) {
+            bool result = hashMapPtr->m_UsedCount > 0;
+            return result;
+        }
+        return false;
+    }
+    ~CacheState() {
+        if (cachedValues)
+        {
+            delete[] cachedValues;
+            cachedValues = nullptr;
+        }
+        instance = nullptr;
+        hashMapPtr = nullptr;
+        usedCount = 0;
+        instId = 0;
+    }
+};
 
 constexpr const int regexConsts = std::regex_constants::match_continuous | std::regex_constants::icase | std::regex_constants::optimize;
 void InstanceVariableViewer::DrawInner()
 {
+//     Organik::GetLogger()->LogFormatted("DrawInner: Starting");
     static std::regex pattern("", regexConsts);
-    CInstance* instance;
+    static CInstance* viewingInstance = nullptr;
 
-    struct {
-        std::unordered_map<int32_t, std::pair<int32_t, const char*>> varMap;
-        bool cached = false;
-    } static sL_InstanceMapCache;
-    if (instance = VisibleInstance)
+    if (VisibleInstance)
     {
         // basically both of these checks should be unreachable code, but you know how I get down.
-	    if (!instance)
-            return;
-        int id = instance->m_ID;
-
-        if (!instance->m_YYVarsMap)
+	    if (!VisibleInstance) return;
+        
+        int id = VisibleInstance->m_ID;
+        if (!VisibleInstance->m_YYVarsMap)
         {
             ImGui::Text("Instance has no variable map.");    
             return;
         }
-        if (instance->m_YYVarsMap->m_UsedCount == 0)
+        
+        if (VisibleInstance->m_YYVarsMap->m_UsedCount == 0)
         {
             ImGui::Text("Instance has no variable map.");
             return;
         }
-        int32_t objectIndex = instance->m_ObjectIndex;
-        const char* objectName = instance->m_Object ? instance->m_Object->m_Name : "<no_name>";
+        
+        if (!(CacheState::Get()) || !(CacheState::Get()->Is(VisibleInstance)))
+            CacheState::Get()->Cache(VisibleInstance);
+        
+        CInstance* cachedInstance = CacheState::Get()->GetInstance();
+        
+        if (!cachedInstance) {
+            ImGui::Text("Error: Cached instance is null");
+            return;
+        }
+        int32_t objectIndex = cachedInstance->m_ObjectIndex;
+        const char* objectName = objectIndex ? (Object_Data(objectIndex) ? Object_Data(objectIndex)->m_Name : "<no_name>") : "<no_name>";
+        
         bool rowClicked = false;
         ImGui::Text("Variables for: %s (ID: %d)", 
                     objectName ? (objectName[0] ? objectName : "<no_name>") : "<no_name>", 
                     id);
         ImGui::SameLine(0,5.0);
         static std::string varNameFilterBuf;
-        auto textEntered = ImGui::InputTextWithHint("##obj_name_filter", "Search Variable Name. (partial matching, regex allowed.)", &varNameFilterBuf, ImGuiInputTextFlags_EnterReturnsTrue);
+        static std::string lastVarNameFilterBuf;
+        
+        ImGui::InputTextWithHint("##obj_name_filter", "Search Variable Name. (partial matching, regex allowed.)", &varNameFilterBuf, ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::SameLine(0,5.0);
 
-        textEntered = (textEntered || ImGui::Button("Search"));
-        if (textEntered)
+        if (!(varNameFilterBuf._Equal(lastVarNameFilterBuf)))
         {
-            if (!varNameFilterBuf.empty()){
-                pattern.operator=(varNameFilterBuf);
-            }
-            else
-            {
-                pattern.operator=(std::regex(""));
-            }
+            pattern.operator=(varNameFilterBuf);
         }
         
+        lastVarNameFilterBuf = varNameFilterBuf;
         ImGui::Separator();
-
-        // Display all variables in a table
         if (ImGui::BeginTable("Variables", 3, 
-                    ImGuiTableFlags_SortMulti | 
+                    ImGuiTableFlags_Sortable |
+                    ImGuiTableFlags_BordersOuter |
+                    ImGuiTableFlags_BordersV |
+                    ImGuiTableFlags_NoBordersInBody |
                     ImGuiTableFlags_Borders | 
                     ImGuiTableFlags_RowBg | 
                     ImGuiTableFlags_Resizable |
@@ -694,40 +873,88 @@ void InstanceVariableViewer::DrawInner()
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort | ImGuiTableColumnFlags_PreferSortAscending, 150.0f);
             ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortAscending, 80.0f);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupScrollFreeze(0, 1); 
+
             ImGui::TableHeadersRow();
             
-            if (!((*GetMapCache()).contains(id)))
+                        // Sort our data if sort specs have been changed!
+            if (ImGuiTableSortSpecs* sort_specs = ImGui::TableGetSortSpecs())
+            if (sort_specs->SpecsDirty)
             {
-                (*GetMapCache())[id] = std::unordered_map<int32_t, std::pair<int32_t, const char*>>();
+                CacheState::Get()->SortEntries(CacheState::Get()->cachedValues, CacheState::Get()->actualCount, ImGui::TableGetSortSpecs());
+                sort_specs->SpecsDirty = false;
             }
-            if (instance->m_YYVarsMap->m_UsedCount != (*GetMapCache())[id].size())
+
+            for (int32_t i=0;i < CacheState::Get()->actualCount; i++)
             {
-                (*GetMapCache())[id].reserve(instance->m_YYVarsMap->m_UsedCount);
-                Organik::GetLogger()->LogFormatted("%s: %s -- %d RECACHING VARMAP", __FILE__, __FUNCTION__, __LINE__);
-                
-                instance->m_YYVarsMap->ForEach([&](const int32_t& key, const CHashMapHash& hash, RValue*& value) -> void {
-                    if (value == nullptr 
-                        || (hash & HASH_DELETED)
-                        || (value->m_Kind == VALUE_NULL 
-                            || value->m_Kind == VALUE_UNDEFINED 
-                            || value->m_Kind == VALUE_UNSET 
-                            || value->m_Kind >= VALUE_PARAMS))
+                CachedRValue* entry = &CacheState::Get()->cachedValues[i];
+                auto value = cachedInstance->InternalGetYYVarRef(entry->m_ID);
+                auto name = GetFriendlyName(entry->m_ID);
+                name = (name && name[0]) ? name : "<no_name>";
+                if (varNameFilterBuf.size() && !(std::regex_search(name, pattern)))
+                    continue;
+                if (!value) {
+                    return;
+                }
+                bool rowClicked = false;
+                ImGui::TableNextRow();
+                ImGui::PushID(ImGui::GetID(GetLogger()->ParseFormatting("%p##%s##", value, name).c_str()));
+                ImGui::TableSetColumnIndex(0);
+                if (ImGui::Selectable(name, (editingValue == value),
+                    ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
+                {
+                    if (!(value->m_Kind == VALUE_ARRAY))
                     {
-                        return;
+                        editingVariableID = entry->m_ID;
+                        editingVariable = name;
+                        editingValue = value;
+                        showPopup = true;
+                        PrepareEditValue(value);
                     }
-                    int32_t varid = key;
-                    
-                    const char* varname = Organik::Variables::HashToVariableMap.contains(varid) ? Organik::Variables::HashToVariableMap[varid] : "<no_name>";
-                    if (!varname[0])
-                        varname = "<no_name>";
-                    Organik::GetLogger()->LogFormatted("%s: %s -- %s (%d)", __FILE__, __FUNCTION__, varname, varid);
-                    
-                    DisplayVariableValue(varname, value);
-                });
+                }
+                ImGui::SetItemTooltip("Click to edit variable\nRight-click to edit variable details (Confused? Try this!).");
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                {
+                    editingVariableID = entry->m_ID;
+                    editingVariable = name;
+                    ImGui::OpenPopup("variable_name_popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_AnyPopupLevel | ImGuiPopupFlags_NoOpenOverExistingPopup);
+                }
+                ImGui::TableNextColumn();
+                ImGui::Text(value->GetKindName());
+                ImGui::TableNextColumn();
+                uint32_t kind = value->GetKind();
+    
+                DisplayVariableValue(name, value);
+                ImGui::PopID();
             }
-           
             ImGui::EndTable();
         }
+        if (showPopup)
+        {
+            ImGui::OpenPopup("VarEdit");
+            showPopup = false;
+        }
+        else if (ImGui::BeginPopup("variable_name_popup", 
+                ImGuiWindowFlags_Popup | ImGuiWindowFlags_AlwaysAutoResize 
+              | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings
+        ))
+        {
+            static std::string renameBuffer;
+            if (editingVariableID > 0)
+            {
+                ImGui::TextDisabled("Variable: %s (ID: %d)", editingVariable.c_str(), editingVariableID);
+                ImGui::Separator();
+                if (ImGui::InputTextWithHint("Rename: ", "Enter a more helpful name...", &renameBuffer, ImGuiInputTextFlags_EnterReturnsTrue))
+                {
+                }
+            }
+            else
+            {
+                ImGui::TextDisabled("Error: No variable selected");
+            }
+            ImGui::EndPopup();
+        }
+        DisplayEditPopup();
     }
     else
     {
@@ -735,10 +962,102 @@ void InstanceVariableViewer::DrawInner()
     }
 }
 
-void InstanceVariableViewer::PrepareEditValue(RValue* value)
+void InstanceVariableViewer::PrepareEditValue(RValue* value, int32_t varId)
 {
     if (!value) return;
-    RValueType kind = (RValueType) value->m_Kind;
+    RValueType kind = (RValueType) value->m_Kind;   
+    if (varId > 0 && VariableDefHelper::Get()->m_VariableDefs.contains(varId))
+    {
+        editingVariableID = varId;
+        auto varDef = VariableDefHelper::Get()->m_VariableDefs[varId];
+        auto [displayFlags, typeFlags, specFlags] = std::tuple<uint8_t,uint8_t,uint8_t>({
+             (varDef->m_DisplayFlags & 0xFF),                       //! display flags
+            ((varDef->m_DisplayFlags & 0xFF00) >> 8) & 0xFF,        //! type flags
+            ((varDef->m_DisplayFlags & 0x00FF0000) >> 16) & 0xFF    //! special flags
+        });
+        kind = (RValueType)0;
+        if (varDef->m_DisplayFlags & VariableDef::TYPE_ARRAY)
+        {
+            kind = VALUE_ARRAY;   
+        }
+        switch (typeFlags)
+        {
+            case VariableDef::TYPE_BOOL:
+                reinterpret_cast<uint32_t&>(kind) |= (uint32_t) VALUE_BOOL;
+                break;
+            case VariableDef::TYPE_COLOR:
+                reinterpret_cast<uint32_t&>(kind) |= (uint32_t) VALUE_VEC3;
+                break;
+            case VariableDef::TYPE_INT:
+                reinterpret_cast<uint32_t&>(kind) |= (uint32_t) VALUE_INT32;
+                break;
+            case VariableDef::TYPE_REAL:
+                reinterpret_cast<uint32_t&>(kind) |= (uint32_t) VALUE_REAL;
+                break;
+            case VariableDef::TYPE_STRING:
+                reinterpret_cast<uint32_t&>(kind) |= (uint32_t) VALUE_STRING;
+                break;
+        }
+        if (specFlags & VariableDef::TYPE_SPECIAL)
+        {
+            switch (value->GetKind())
+            {
+            case VALUE_FUNCTION:
+            case VALUE_UNDEFINED:
+            case VALUE_NULL:
+            case VALUE_UNSET:
+                ImGui::CloseCurrentPopup();
+                ImGui::OpenPopup("noedit_error", ImGuiPopupFlags_MouseButtonLeft | ImGuiPopupFlags_AnyPopupLevel );
+                editingVariableID = 0;
+                editingVariable = "";
+                editingValue = nullptr;
+                return;
+            case VALUE_OBJECT:
+                reinterpret_cast<uint32_t&>(kind) |= VALUE_MAP;
+                break;
+            case VALUE_ARRAY:
+                reinterpret_cast<uint32_t&>(kind) |= VALUE_ARRAY;
+                break;
+            case VALUE_INT32:
+                reinterpret_cast<uint32_t&>(kind) &= ~VALUE_VEC3;
+                reinterpret_cast<uint32_t&>(kind) |= VALUE_VEC4;
+                break;
+            }
+        }
+        editKindSpecial = kind;
+        editingVariableID = varId;
+        bool retEarly = false;  
+        if (kind & VALUE_VEC3 || kind & VALUE_VEC4)
+        {
+            retEarly = true;
+            ImGui::CloseCurrentPopup();
+            ImGui::OpenPopup("color_edit", ImGuiPopupFlags_MouseButtonLeft | ImGuiPopupFlags_AnyPopupLevel );
+            if (kind & VALUE_VEC3)
+            {
+                editingValue = value;
+            }
+            else if (kind & VALUE_VEC4)
+            {
+                editingValue = value;
+            }
+            editingVariable = varDef->m_Name.length() ? varDef->m_Name : Code_Variable_Find_Name(nullptr, 0, varId);
+            editingVariable += GetLogger()->ParseFormatting(" - Color %s", (kind & VALUE_VEC4) ? "(RGBA)" : "(RGB)");
+        }
+        if (kind & VALUE_ARRAY || kind & VALUE_MAP)
+        {
+            retEarly = true;
+            ImGui::CloseCurrentPopup();
+            ImGui::OpenPopup("multival_edit", ImGuiPopupFlags_MouseButtonLeft | ImGuiPopupFlags_AnyPopupLevel );
+            editingArray = reinterpret_cast<RefDynamicArrayOfRValue*>(value->ToPointer());
+            editingVariable = varDef->m_Name.length() ? varDef->m_Name : Code_Variable_Find_Name(nullptr, 0, varId);
+            editingVariable += GetLogger()->ParseFormatting(" (array[%d])", editingArray->m_Length);
+        }
+        if (retEarly)
+            return;
+    
+        editingVariable = varDef->m_Name.length() ? varDef->m_Name : Code_Variable_Find_Name(nullptr, 0, varId);
+        *editingValue = *value;
+    }
     
     if (kind == VALUE_REAL)
     {
@@ -768,162 +1087,240 @@ void InstanceVariableViewer::PrepareEditValue(RValue* value)
 
 void InstanceVariableViewer::DisplayEditPopup()
 {
-    if (ImGui::BeginPopup("VarEdit", ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup ))
+    if (ImGui::BeginPopup("noedit_error", ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup ))
     {
-        if (!editingValue)
+        ImGui::TextDisabled("This variable type cannot be edited.");
+        ImGui::Separator();
+        ImGui::Text("Variable: %s", editingVariable.c_str());
+        ImGui::Separator();
+        if (ImGui::Button("OK"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    else if (ImGui::BeginPopup("color_edit", ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup ))
+    {
+        if (editColorRGB + editColorRGBA == 0) 
         {
             ImGui::CloseCurrentPopup();
             ImGui::EndPopup();
             showPopup = false;
             return;
         }
-        if (!(editingVariable.size()))
-            ImGui::Text("Editing: %s", editingVariable.c_str());
-        
         ImGui::Text("Type: %s", editingValue->GetKindName());
         ImGui::Separator();
         
-        RValueType kind = (RValueType)editingValue->m_Kind;
+        uint32_t kind = 0;
         bool valueChanged = false;
-        
-        if (kind == VALUE_REAL || kind == VALUE_INT32 || kind == VALUE_INT64)
+        if (editingVariableDef->m_ID > 0)
         {
-            if (kind == VALUE_INT32)
+            kind = editKindSpecial;
+        }
+    
+        bool edited = false;
+        if (kind & VALUE_VEC3)
+        {
+            edited = (ImGui::ColorEdit3("Color (RGB)", &((vec3&)editingValue).x,
+                ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_DisplayRGB
+             | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayHex));
+        }
+        else if (kind & VALUE_VEC4)
+        {
+            edited = (ImGui::ColorEdit4("Color (RGBA)", &((vec4&)editingValue).x,
+                ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueWheel
+                | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_DisplayHex));
+        }
+        ImGui::Separator();
+
+        ImGui::SetKeyOwner((ImGuiKey)( ImGuiKey_Enter | ImGuiKey_Escape), ImGui::GetItemID(), ImGuiInputFlags_CondActive | ImGuiInputFlags_RouteUnlessBgFocused);
+        ImGui::SameLine();
+
+        if (ImGui::BeginPopup("VarEdit", ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup ))
+        {
+            if (editingValue == nullptr)
             {
-                if (ImGui::InputInt("Value", &editIntValue, 1, 100, ImGuiInputTextFlags_EnterReturnsTrue))
+                ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
+                showPopup = false;
+                return;
+            }
+            if (!(editingVariable.size()))
+                ImGui::Text("Editing: %s", editingVariable.c_str());
+            
+            ImGui::Text("Type: %s", editingValue->GetKindName());
+            ImGui::Separator();
+            
+            RValueType kind = (RValueType)editingValue->m_Kind;
+            bool valueChanged = false;
+            if (VariableDefHelper::Get()->m_VariableDefs.contains(editingVariableID))
+            {
+            
+            }
+            if (kind == VALUE_REAL || kind == VALUE_INT32 || kind == VALUE_INT64)
+            {
+                if (kind == VALUE_INT32)
                 {
-                    *editingValue = RValue(static_cast<int32_t>(editIntValue));
-                    valueChanged = true;
-                    ImGui::CloseCurrentPopup();
+                    if (ImGui::InputInt("Value", &editIntValue, 1, 100, ImGuiInputTextFlags_EnterReturnsTrue))
+                    {
+                        *editingValue = RValue(static_cast<int32_t>(editIntValue));
+                        valueChanged = true;
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+                else if (kind == VALUE_INT64)
+                {
+                    ImS64 one = (ImS64)1;
+                    if (ImGui::InputScalar("Value", ImGuiDataType_S64, &editLongLongValue, &one, NULL, "%lld", ImGuiInputTextFlags_EnterReturnsTrue))
+                    {
+                        *editingValue = RValue(static_cast<int64_t>(editLongLongValue));
+                        valueChanged = true;
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+                else
+                {
+                    if (ImGui::InputDouble("Value", &editDoubleValue, 0.1, 10.0, "%.6f", ImGuiInputTextFlags_EnterReturnsTrue))
+                    {
+                        *editingValue = RValue(static_cast<double>(editDoubleValue));
+                        valueChanged = true;
+                        ImGui::CloseCurrentPopup();
+                    }
                 }
             }
-            else if (kind == VALUE_INT64)
+            else if (kind == VALUE_STRING)
             {
-                ImS64 one = (ImS64)1;
-                if (ImGui::InputScalar("Value", ImGuiDataType_S64, &editLongLongValue, &one, NULL, "%lld", ImGuiInputTextFlags_EnterReturnsTrue))
+                char buffer[1024];
+                strncpy_s(buffer, editStringValue.c_str(), sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
+                
+                if (ImGui::InputText("Value", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
                 {
-                    *editingValue = RValue(static_cast<int64_t>(editLongLongValue));
+                    RValue newStr = RValue(0);
+                    YYCreateString(&newStr, buffer);
+                    *editingValue =  newStr;
+                    valueChanged = true;
+                        ImGui::CloseCurrentPopup();
+                }
+            }
+            else if (kind == VALUE_BOOL)
+            {
+                if (ImGui::Checkbox("Value", &editBoolValue))
+                {
+                    *editingValue = editBoolValue ? RValue(true): RValue(false);
                     valueChanged = true;
                     ImGui::CloseCurrentPopup();
                 }
             }
             else
             {
-                if (ImGui::InputDouble("Value", &editDoubleValue, 0.1, 10.0, "%.6f", ImGuiInputTextFlags_EnterReturnsTrue))
-                {
-                    *editingValue = RValue(static_cast<double>(editDoubleValue));
-                    valueChanged = true;
-                    ImGui::CloseCurrentPopup();
-                }
+                ImGui::TextDisabled("This type cannot be edited");
             }
-        }
-        else if (kind == VALUE_STRING)
-        {
-            char buffer[1024];
-            strncpy_s(buffer, editStringValue.c_str(), sizeof(buffer) - 1);
-            buffer[sizeof(buffer) - 1] = '\0';
             
-            if (ImGui::InputText("Value", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+            ImGui::Separator();
+            
+            ImGui::Text("Press Enter to apply changes, or Cancel to discard.");
+            
+            ImGui::SameLine();
+            
+            if (ImGui::Button("Cancel"))
             {
-                RValue newStr = RValue(0);
-                YYCreateString(&newStr, buffer);
-                *editingValue =  newStr;
-                valueChanged = true;
-                    ImGui::CloseCurrentPopup();
-            }
-        }
-        else if (kind == VALUE_BOOL)
-        {
-            if (ImGui::Checkbox("Value", &editBoolValue))
-            {
-                *editingValue = editBoolValue ? RValue(true): RValue(false);
-                valueChanged = true;
                 ImGui::CloseCurrentPopup();
             }
+            
+            ImGui::EndPopup();
         }
-        else
+        else 
         {
-            ImGui::TextDisabled("This type cannot be edited");
+            showPopup = false;
         }
-        
-        ImGui::Separator();
-        
-        ImGui::Text("Press Enter to apply changes, or Cancel to discard.");
-        
-        ImGui::SameLine();
-        
-        if (ImGui::Button("Cancel"))
-        {
-            ImGui::CloseCurrentPopup();
-        }
-        
-        ImGui::EndPopup();
-    }
-    else 
-    {
-        showPopup = false;
     }
 }
 void InstanceVariableViewer::DisplayArrayElement(size_t index, RValue* element, const char* name)
 {
     const char* dispName = name ? name : "Array";
-    if (!(element->m_Kind == VALUE_ARRAY))
+    if (element->GetKind() != VALUE_ARRAY)
     {
         DisplayVariableValue((GetLogger()->ParseFormatting("%s[%zu]", dispName, index)).c_str(), element);
     }
     else
     {
-        // Nested array - show size and allow drilling down
-        int arrayLength = element->GetArrayLength();
-        std::vector<RValue*> arrayValues = element->ToRefVector();
-        if (!arrayLength) 
+        int32_t arrayLength = std::launder((*element).m_RefArray)->m_Length;
+        std::vector<RValue*> elementRefArray = element->ToRefVector();
+        if (ImGui::TreeNodeEx((void*)element, ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_AllowItemOverlap, "%s[%zu]", dispName, arrayLength))
         {
-            ImGui::Text("%s[%zu] (empty)", dispName, index);
-            return;
-        }
-        if (ImGui::TreeNode(element, "%s[%zu]", dispName, arrayLength))
-        {
-           
-            int j = 0;
-            for (RValue *rV : arrayValues)
+            
+            if (ImGui::BeginTable(name, 3, 
+                ImGuiTableFlags_BordersOuter |
+                ImGuiTableFlags_HighlightHoveredColumn |
+                ImGuiTableFlags_BordersV |
+                ImGuiTableFlags_NoBordersInBody |
+                ImGuiTableFlags_NoKeepColumnsVisible |
+                ImGuiTableFlags_RowBg | 
+                ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_ScrollY, ImVec2(0.0, (ImGui::GetTextLineHeightWithSpacing() * 1.20f) * (max(16.0f, (float)arrayLength) + 3.0f))))
             {
-                DisplayArrayElement(j, rV);
-                j++;
+                ImGui::TableSetupColumn("Index", ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableHeadersRow();
+                for (int j = 0; j < arrayLength; j++)
+                {
+                    ImGui::PushID(elementRefArray[j]);
+                    
+                    ImGui::TableNextRow(ImGuiTableRowFlags_None, ImGui::GetTextLineHeightWithSpacing()*1.20f);
+                    ImGui::TableSetColumnIndex(0);
+                    char arr[21] = "##arrayElement## ##";
+                    arr[18] = '0' + (j % 10);
+                    if (ImGui::Selectable(arr, (editingValue == elementRefArray[j]),
+                    ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
+                    {
+                        if (!(elementRefArray[j]->m_Kind == VALUE_ARRAY))
+                        {
+                            editingVariable = name;
+                            editingValue = elementRefArray[j];
+                            showPopup = true;
+                            PrepareEditValue(elementRefArray[j]);
+                        }
+                    }
+                    
+                    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                    {
+                        ImGui::OpenPopup("array_element_context_menu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_AnyPopupLevel | ImGuiPopupFlags_NoOpenOverExistingPopup);
+                    }
+                    ImGui::SameLine(0,0);
+                    ImGui::Text("[%zu]", j);
+                    
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%s", elementRefArray[j]->GetKindName());
+                    ImGui::TableSetColumnIndex(2);
+
+                    DisplayArrayElement(j, elementRefArray[j]);
+                    ImGui::PopID();
+                }
+                ImGui::EndTable();
             }
             ImGui::TreePop();
         }
     }
 }
+const char* InstanceVariableViewer::GetFriendlyName(int32_t varId)
+{
+    return (VariableDefHelper::Get()->m_VariableDefs.contains(varId) 
+        ? (VariableDefHelper::Get()->m_VariableDefs)[varId]->m_Name 
+        : Code_Variable_Find_Name(nullptr, 0, varId)).c_str();
+}
 void InstanceVariableViewer::DisplayVariableValue(MapDisplayEntry<int32_t, RValue, 3>* entry)
 {
     DisplayVariableValue(entry->m_Name, entry->m_Value);
 }
-
-void InstanceVariableViewer::DisplayVariableValue(const char* name, RValue* value)
+void InstanceVariableViewer::DisplayVariableValue(const char* name, RValue* value, int32_t id)
 {
-    if (!value) {
-        return;
-    }
-    GetLogger()->LogSimple("Displaying variable value");
-    const char* realName = (name && strnlen_s(name, 64)) ? name : "<no_name>";
-    bool rowClicked = false;
-    ImGui::TableNextRow();
-    ImGui::PushID(value);
-    ImGui::TableSetColumnIndex(0);
-    if (ImGui::Selectable(realName, (editingValue == value),
-        ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
+    if (id > 0 && VariableDefHelper::Get()->m_VariableDefs.contains(id))
     {
-        if (!(value->m_Kind == VALUE_ARRAY))
-        {
-            rowClicked = true;
-        }
+        VariableDefHelper::Get()->m_VariableDefs[id]->GetRepresentation(*value);
     }
-
-    ImGui::TableNextColumn();
-    ImGui::Text(value->GetKindName());
-    ImGui::TableNextColumn();
-    uint32_t kind = value->GetKind();
-    
+    auto kind = value->GetKind();
     if (kind == VALUE_REAL)
     {
         double realVal = parseRValueNumber<double>(value);
@@ -941,7 +1338,18 @@ void InstanceVariableViewer::DisplayVariableValue(const char* name, RValue* valu
     }
     else if (kind == VALUE_STRING)
     {
-        ImGui::Text("\"%s\"", value->ToCString());
+        const char* strVal = nullptr;
+        if ((*std::launder(&value->m_RefString)) != nullptr)
+            strVal = (*std::launder(&value->m_RefString))->m_String;
+        if (!strVal)
+            strVal = "<null>";
+        if (!strVal[0])
+            strVal = "<empty>";
+        ImGui::Text("\"%s\"", std::string(strVal).data());
+    }
+    else if (kind == VALUE_ARRAY)
+    {
+        DisplayArrayElement(0, value, name); 
     }
     else if (kind == VALUE_BOOL)
     {
@@ -958,28 +1366,10 @@ void InstanceVariableViewer::DisplayVariableValue(const char* name, RValue* valu
         YYObjectBase* obj = value->ToObject();
         ImGui::Text("Object: 0x%p", obj);
     }
-    else if (kind == VALUE_UNDEFINED || kind == VALUE_UNSET)
+    else 
     {
-        ImGui::TextDisabled("undefined");
+        ImGui::TextDisabled("Unknown. Value hidden for safety.");
     }
-    else if (kind == VALUE_NULL)
-    {
-        ImGui::TextDisabled("null");
-    }
-    else
-    {
-        int64_t intVal = parseRValueNumber<int64_t>(value);
-        std::string kindName = value->GetKindName();
-        ImGui::Text("%lld (%s)", intVal, kindName.c_str());
-    }
-    if (rowClicked)
-    {
-        editingVariable = name;
-        editingValue = value;
-        showPopup = true;
-        PrepareEditValue(value);
-    }
-    ImGui::PopID();
 }
 
 void InstanceVariableViewer::Draw(bool& out_mousedOver, bool* p_open, const std::string &title)
@@ -1023,8 +1413,8 @@ void InstanceVariableViewer::Draw(bool& out_mousedOver, bool* p_open, const std:
 
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_ChildWindows))
         out_mousedOver = true;
+    DrawObjectTreeWindow(&out_mousedOver);  
 
-    DrawObjectTreeWindow(&out_mousedOver);
     DrawInstanceTreeWindow(&out_mousedOver);
     DrawObjectDetailsWindow(&out_mousedOver);
 

@@ -8,6 +8,7 @@
 #include "Variant.h"
 #include "Action.h"
 #include "stack"
+#include "Hooks.h"
 #include "Events.h"
 
 // HOOK_GLOBAL(gml_Object_obj_chest_weapon_wood_arena_Create_0, (CInstance* Self, CInstance* Other) -> void)
@@ -344,7 +345,8 @@ HOOK_GLOBAL(Script_Perform, (int index, CInstance *self, CInstance *other, int a
 //     }
 //     return event;
 // }
-auto Direktor::GMHook::Hooks = std::unordered_map<PVOID, Direktor::GMHook*>();
+auto Direktor::EventHook::s_EventToHookMap = std::unordered_map<CCode*, Direktor::EventHook*>();
+auto Direktor::EventHook::s_InstalledHooks = std::vector<Direktor::EventHook*>();
 auto Direktor::GMHook::HooksByType = std::unordered_map<int32_t, std::vector<Direktor::GMHook*>>();
 std::shared_mutex Direktor::GMHook::s_HookMutex;
 std::string eventSpecficName(int32_t eventCode, int32_t subCode, EventDetailType detailType = EV_WEAPON)

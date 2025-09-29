@@ -71,7 +71,7 @@ T parseRValueNumber(RValue* rValue)
         return T(0.0);
     } 
     T ret = T(0.0);
-    switch (rValue->m_Kind)
+    switch (rValue->GetKind())
     {
         case VALUE_INT32:
             ret = static_cast<T>(rValue->ToInt32());
@@ -92,13 +92,8 @@ template <typename T>
 requires std::is_arithmetic_v<T>
 T parseRValueNumber(RValue rValue)
 {
-    if (!rValue) 
-    {
-        return static_cast<T>(0.0);
-    }
-
     T ret = static_cast<T>(0.0);
-    switch (rValue.m_Kind)
+    switch (rValue.GetKind())
     {
         case VALUE_INT32:
             ret = static_cast<T>(rValue.ToInt32());
@@ -138,9 +133,10 @@ requires (ObjectEnum > -1)
 CInstance* GetGlobalObject()
 {
 	auto cObject = Object_Data(Organik::Objects::ObjIndexes[ObjectEnum]);
-	return cObject ? (cObject->m_Instances.m_First) : nullptr;
+	return cObject ? (cObject->m_Instances.m_First->m_Object) : nullptr;
 }
 #define __gObj(name) GetGlobalObject<g__##name>()
+#define _gObj_(name) GetGlobalObject<Organik::Objects::##name>()
 #define __gOutgame __gObj(outgame)
 #define __gStats __gObj(obj_stats)
 #define __gLocalPlayer __gObj(obj_localPlayer)

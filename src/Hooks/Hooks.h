@@ -3,7 +3,19 @@
 #include "Synthetik.h"
 #include "Events.h"
 
+enum HookTiming : int32_t
+{
+    BEFORE = 0,
+    AFTER = 1,
+    REPLACE = 2
+};
+typedef bool(__fastcall*FastAction)(CInstance*, std::unordered_map<int32_t, RValue*>*);
 namespace Direktor {
+    class Action {
+        public:
+            virtual ~Action() = default;
+            virtual FastAction* GetAction() = 0;
+    };
     class GMHook {
     protected:
         static std::unordered_map<int32_t, std::vector<GMHook*>> HooksByType;
@@ -133,25 +145,75 @@ namespace Direktor {
         EventHook() = default;
         EventHook(std::string const& objectName) : objName(objectName) {}
         EventHook(int32_t objectIndex) : objIndex(objectIndex) {}
+
+        ~EventHook() {
+            if (installed)
+                Uninstall();
+            
+            auto data = Object_Data(objIndex);
+            auto event = data ? data->GetEventRecursive(eventCode, subCode) : nullptr;
+            auto code = event ? event->m_Code : nullptr;
+            if (code && s_EventToHookMap.contains(code))
+                s_EventToHookMap.erase(code);
+        }
     public:
         std::string const objName;
         int32_t objIndex;
         int32_t eventCode;
         int32_t subCode;
-        FunctionHook_private* zhlHookObj = nullptr;
-        unsigned char* hookCode = nullptr;
-        PFUNC_YYGML *m_Hook = nullptr;
-        PFUNC_YYGML *originalFnPtr = nullptr;
+        PFUNC_YYGML originalFunction;
+        PFUNC_YYGML replaceFunction;
+        std::vector<PFUNC_YYGML> callbacksBefore;
+        std::vector<PFUNC_YYGML> callbacksAfter;
+        std::function<void(CInstance*, CInstance*)> hookFunction;
+        bool installed = false;
         bool Install() override;
         void Uninstall() override;
         
-        static EventHook* Create(std::string const& objectName, std::string const& eventName, int32_t eventSubcode, PFUNC_YYGML hookFunction) 
+        
+        static inline EventHook* Add(int32_t objectIndex, int32_t eventCode, int32_t subCode, HookTiming timing, PFUNC_YYGML hookFunction)
         {
-            EventHook hook = EventHook(objectName);
-            hook.eventCode = EventCodeFromName(eventName);
-            hook.subCode = eventSubcode;
-            hook.m_Hook = new PFUNC_YYGML(hookFunction);
-            return GMHook::Add(std::move(hook));
+            EventHook* hookObject = nullptr;
+            auto objectData = Object_Data(objectIndex);
+            if (!objectData)
+                Error_Show_Action("EventHook::Add: Invalid object index", true, true);
+            
+            CCode* code = objectData->GetEventRecursive(eventCode, subCode)->m_Code;
+            if (!code)
+            {
+                Error_Show_Action("EventHook::Add: Invalid event code or subcode", true, true);
+                return nullptr;
+            }
+
+            if (s_EventToHookMap.contains(code))
+            {
+                hookObject = s_EventToHookMap[code];
+            }
+            else
+            {
+                hookObject = new EventHook(objectIndex);
+                hookObject->objIndex = objectIndex;
+                hookObject->eventCode = eventCode;
+                hookObject->subCode = subCode;
+                hookObject->originalFunction = code->m_Functions->m_CodeFunction;
+                s_EventToHookMap[code] = hookObject;
+            }
+            switch (timing)
+            {
+            case HookTiming::BEFORE:
+                hookObject->callbacksBefore.push_back(hookFunction);
+                break;
+            case HookTiming::AFTER:
+                hookObject->callbacksAfter.push_back(hookFunction);
+                break;
+            case HookTiming::REPLACE:
+                hookObject->replaceFunction = hookFunction;
+                break;
+            default:
+                Error_Show_Action("EventHook::Add: Invalid HookTiming", true, true);
+                return nullptr;
+            }
+            return hookObject;
         }
     };
 }

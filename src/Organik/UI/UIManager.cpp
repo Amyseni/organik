@@ -161,7 +161,7 @@ void _DoFullInitPrivate()
 HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
 {
     
-    if (!Organik::UIManager::isImGuiInitialized())
+    if(ImGui::GetCurrentContext() == nullptr)
     {
         if (!present)
             return super(present);
@@ -234,7 +234,7 @@ HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     
     bool ret = super(present);
-//     GetLogger()->LogFormatted("D3D frame finished. returned %s", (ret ? "true" : "false"));
+    GetLogger()->LogFormatted("D3D frame finished. returned %s", (ret ? "true" : "false"));
     return ret;
 }
 

@@ -10142,4 +10142,7 @@
     VAR_ENTRY(optimized) \
     VAR_ENTRY(original_code_ptrs) \
     VAR_ENTRY(the_actual_array) \
+    VAR_ENTRY(display_flags) \
+    VAR_ENTRY(varinfo_desc) \
+    VAR_ENTRY(varinfo_author) \
     VAR_ENTRY(VARIABLES_END)

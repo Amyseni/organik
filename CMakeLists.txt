@@ -219,24 +219,25 @@ target_compile_options(${PROJ_NAME} PRIVATE
 	#! DEFINE the broken behavior and the reason a flag you are changing defines the behavior, otherwise LEAVE THESE ALONE
     
     /permissive-;           #! prevent non-conformance to the C++ standard
-    /Zc:rvalueCast;         #* msvc docs: the compiler follows section 5.4 of the C++11 standard and treats only cast expressions that result in non-reference types 
+    /Zc:rvalueCast;         #* msvc docs: causes the compiler to follow section 5.4 of the C++11 standard and treats only cast expressions that result in non-reference types 
 							#* and cast expressions that result in rvalue references to non-function types as rvalue types.
 							#* by default: the compiler is non-conforming, and treats all cast expressions that result in rvalue references as rvalues.
     /Zc:referenceBinding;   #! doesn't allow expressions that bind a user-defined type temporary to a non-const lvalue reference. 
 							#! By default, or if /Zc:referenceBinding- is specified, the compiler allows such expressions as a Microsoft extension
+	/O2;					#! optimize speed with virtually no safeguards
 	/W3;                    #* warning level 3
     /Zc:wchar_t;            #* enable wchar_t as a built-in type (default, no other options disable this, listed for the sake of completeness of implied flag usage)
-	#/Z7;					#? generate full debug PDB info
-    #/Gm-;                   #! disable minimal rebuild (this is a performance optimization that can cause issues with certain code patterns, so we disable it)
-	/Ox;					#* tend to optimize for speed
+	/Ox;					#* MORE SPEED (implied by /O2)
     /arch:SSE2;             #! use the x86-SSE2 instruction set. (includes floating point opcodes)
-    /Gz;                    #! use __stdcall for all functions except member functions
-	/Oy-;					#! don't omit frame pointers
+    /Gr;                    #! use __fastcall for all functions except member functions
+    /Gm-;                   #! disable minimum rebuild because it KEEPS MESSING UP ALL MY FREAKIN BUILDS
+    /Oi-;                   #! disable intrinsic functions because THEY SUCK
+	/Oy-;
+	/Ob1;
     /MD;                    #* use the multithreaded DLL version of the C runtime library (msvcrt.dll)
     /std:c++23preview;      #* use latest (preview) C++ std 23
-    /FC;                    
 	/Zc:inline-;			#! do not remove unreferenced data or functions
-    /Ot;                    #* optimize for speed
+    /Ot;                    #* EVEN MORE SPEED (implied by /O2)
 	/Zc:nrvo-;				#! disable optional elision (skipping) of copy / move operations on returning newly instantiated variables from functions.
     /Zc:tlsGuards;			#! enables checks for initialization of thread-local variables in DLLs. Previously, thread-local variables in DLLs weren't correctly initialized. 
 							#! Other than on the thread that loaded the DLL, they weren't initialized before first use on threads that existed before the DLL was loaded.
@@ -248,7 +249,5 @@ target_link_options(${PROJ_NAME} PRIVATE
 	/OPT:NOREF;				#! leave unreferenced data and functions alone (but the linker this time) (implicit by /DEBUG)
 	/OPT:NOICF;				#! do not iteratively fold identical COMDATs (redundant COMDATs are removed by the linker if true) (also implicit by /DEBUG)
 	/LTCG:OFF;				#! NO link-time code generation optimizations. if you aren't sure why this matters DO NOT TOUCH IT
-	#/ASSEMBLYDEBUG; 		#? emits the DebuggableAttribute attribute with debug information tracking and 
-							#! disables JIT optimizations
 	/SUBSYSTEM:CONSOLE;
 )

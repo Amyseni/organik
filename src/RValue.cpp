@@ -40,19 +40,7 @@ const char* RValue::GetKindName() const
 	case 5:
 		return "undefined";
 	case 6:
-		if (*((int*)this + 0x58) == 3) {
-			return "method";
-		}
-		else {
-			if (m_Flags == FLAG_MAP)
-				return "map";
-			else if (m_Flags == FLAG_TRIGGER)
-				return "trigger";
-			else if (m_Flags == FLAG_ACTION)
-				return "action";
-			else
-				return "struct";
-		}
+		return "object";
 	case 7:
 		return "int32";
 	case 8:
@@ -102,19 +90,7 @@ uint32_t RValue::GetKind() const
 	case 5:
 		return VALUE_UNDEFINED;
 	case 6:
-		if (*((int*)this + 0x58) == 3) {
-			return VALUE_OBJECT;
-		}
-		else {
-			if (m_Flags == 1<<0)
-				return VALUE_MAP;
-			else if (m_Flags == 1<<1)
-				return VALUE_TRIGGER;
-			else if (m_Flags == 1<<2)
-				return VALUE_ACTION;
-			else
-				return VALUE_OBJECT;
-		}
+		return VALUE_OBJECT;
 	case 7:
 		return VALUE_INT32;
 	case 8:
@@ -491,6 +467,7 @@ RValue::RValue(bool Value)
 {
 //Organik::GetLogger()->LogFormatted("RValue::RValue(bool Value) called for RValue at %p", this);
 //Organik::GetLogger()->LogFormatted("RValue::RValue: Value=%d", Value);
+	FREE_RValue(this);
 
 	*reinterpret_cast<double*>(std::launder(&this->m_Real)) = static_cast<double>(Value);
 	this->m_Flags = 0;
@@ -501,7 +478,7 @@ RValue::RValue(const RValue& Other)
 {
 //Organik::GetLogger()->LogFormatted("RValue::RValue(const RValue& Other) called for RValue at %p", this);
 //Organik::GetLogger()->LogFormatted("RValue::RValue: Other.m_Kind=%d", Other.m_Kind);
-	*this = RValue();
+	FREE_RValue(this);
 	////Organik::GetLogger()->LogFormatted("setting value of %p to %s: %lld", this, GetKindName(), Other.ToInt64());
 
 	COPY_RValue(
@@ -750,30 +727,10 @@ RValue& ReadStructValue(RValue* p_Struct, RValue index)
 	}
 	return *pVal;
 }
-RValue::operator bool()
-{
-//Organik::GetLogger()->LogFormatted("RValue::operator bool: m_Kind=%d", this->m_Kind);
-
-	return this->ToBoolean();
-}
-
-RValue::operator double()
-{
-//Organik::GetLogger()->LogFormatted("RValue::operator double() called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::operator double: m_Real=%f", this->m_Real);
-
-	return this->ToDouble();
-}
-
-RValue::operator std::string()
-{
-	return this->ToCString();
-}
-
 void RValue::__Free()
 {
 //Organik::GetLogger()->LogFormatted("RValue::__Free called for RValue at %p", this);
-	if (!this) return;
+	if (this == nullptr) return;
 //Organik::GetLogger()->LogFormatted("RValue::__Free: m_Kind=%d", this->m_Kind);
 //Organik::GetLogger()->LogFormatted("__Free called for RValue at %p", this);
 //Organik::GetLogger()->LogFormatted("__Free: Checking if RValue is undefined");

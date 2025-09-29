@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include "VariableDefHelper.h"
 
 inline ImGuiTableSortSpecs** GetTableSortSpecs()
 {
@@ -109,6 +110,7 @@ struct MapDisplayEntry {
         std::qsort(entries->data(), entries->size(), sizeof(MapDisplayEntry<kT, T*, N>), compare_func);
     }
 };
+struct CachedRValue;
 namespace Organik
 {
     struct InstanceVariableViewer : public UIElement
@@ -119,7 +121,7 @@ namespace Organik
             YetAnotherValue = 2,
         };
         CInstance* VisibleInstance = 0; // Currently visible instance
-        InstanceVariableViewer(std::string name = "Instance Variable Viewer") : UIElement(name) {};
+        InstanceVariableViewer(std::string name = "Instance Variable Viewer") : UIElement(name), editingVariableDef(nullptr) {};
         ~InstanceVariableViewer() = default;
         void Draw(bool& out_mousedOver, bool* p_open = NULL, const std::string &title = "");
         int32_t GetHash() override {
@@ -128,22 +130,26 @@ namespace Organik
         }
         void GetName(char* buf) override
         {
-            sprintf(buf, "Instance Variable Viewer (%p)", reinterpret_cast<void*>(VisibleInstance));
+            sprintf(buf, "Instance Variable Viewer (%p)", reinterpret_cast<void*>(this));
         }
         void DrawObjectParentsFilterList();
         void DrawObjectList();
         void DisplayVarTableEntry(CInstance* instance, const std::string& memberName, RValue* memberValue);
-        void RecurseObjectInstanceTree(CObjectGM* obj);
-        void CObjectDetailsPane(CObjectGM* obj = nullptr);
+        void RecurseObjectInstanceTree(const CObjectGM* obj);
+        void CObjectDetailsPane(const CObjectGM* obj = nullptr);
     private:
         CObjectGM* selectedObject = nullptr;
         void DrawInner();
+        const char* GetFriendlyName(int32_t varId);
         void DisplayVariableValue(MapDisplayEntry<int32_t, RValue, 3>* entry);
-        void DisplayVariableValue(const char* name, RValue* value);
+        void DisplayVariableValue(CachedRValue* entry);
+        void DisplayVariableValue(const char* name, RValue* value, int32_t id  = 0);
         std::string GetValuePreview(RValue* value);
         std::string editingVariable;
-        int32_t editingInstanceId;
+        int32_t editingVariableID;
         RValue* editingValue = nullptr;
+        RefDynamicArrayOfRValue* editingArray = nullptr;
+        YYObjectBase* editingMap = nullptr;
         RValue* editingValueArray = nullptr;
         bool rowClicked = false;
         static bool showPopup;
@@ -158,18 +164,22 @@ namespace Organik
         void DrawInstanceTreeWindow(bool* out_mousedOver);
         void DrawObjectDetailsWindow(bool* out_mousedOver);
         void DrawVariablesPanel(bool* out_mousedOver);
-        void displayFunc(CObjectGM* child, bool& tracked);
-        void displayFuncNoButton(CObjectGM* child, std::function<void(SLinkedList<CInstance>)> leafFunc);
+        void displayFunc(const CObjectGM* child, bool& tracked);
+        void displayFuncNoButton(const CObjectGM* child, std::function<void(SLinkedList<CInstance>)> leafFunc);
         // Edit value buffers
+        VariableDef* editingVariableDef;
         double editDoubleValue = 0.0;
         int32_t editIntValue = 0;
         int64_t editLongLongValue = 0;
+        uint32_t editKindSpecial = 0;
+        ImColor editColorRGB;
+        ImColor editColorRGBA;
         std::string editStringValue;
         bool editBoolValue = false;
 
-        void PrepareEditValue(RValue* value);
+        void PrepareEditValue(RValue* value, int32_t varId = 0);
         void DisplayArrayElement(size_t index, RValue* element, const char* name = nullptr);
         void DisplayEditPopup();
     };
 }
-void recurse(CObjectGM* obj, std::function<void(CObjectGM*)> pred);
+void recurse(const CObjectGM* obj, std::function<void(const CObjectGM*)> pred);

@@ -481,18 +481,17 @@ public:
 		}
 	};
 
-	bool FindNextValue(iterator& it, Element* out)
+	bool FindNextValue(iterator& it, const Element** const out)
 	{
 		while (true)
 		{
-			Element& elem = m_Elements[it.index++];
+			const Element* elem = &m_Elements[it.index++];
 			if (it.index > m_CurrentSize)
 			{
-				*out = Element{};
 				return false;
 			}
 
-			auto hash = elem.m_Hash;
+			auto hash = elem->m_Hash;
 			if (hash && !(hash & HASH_DELETED))
 			{
 				*out = elem;
@@ -508,10 +507,10 @@ public:
 		Element* val;
 		while (val = it.getNextElement())
 		{
-			if (!val)
-				continue;
-			if (!val->m_Value || !val->m_Hash || (val->m_Hash & HASH_DELETED))
-				continue;
+			if (!val)continue;
+			if (!val->m_Value) continue;
+			if (!val->m_Key) continue;
+			if (val->m_Hash & HASH_DELETED) continue;
 			func(val->m_Key, val->m_Hash, val->m_Value);
 		}
 	}
@@ -569,7 +568,7 @@ public:
 	
 	typename CHashMap<TKey, TValue, TInitialMask>::iterator begin() {
 		iterator it(m_Elements, this);
-		it.index = -1;
+		it.index = 0;
 		return it;
 	}
 
@@ -679,13 +678,15 @@ struct RValue
 		int32_t m_i32;
 		int64_t m_i64;
 		double m_Real;
-		union 
+		union
 		{
 			RefString* m_RefString;
 			RefDynamicArrayOfRValue* m_RefArray; // also actions array
 			YYObjectBase* m_Object;
 			CInstance* m_Instance;
 			Action* m_Action; //? Action : public CCode
+			vec3* m_RGB;
+			vec4* m_RGBA;
 			// EventMap* m_EventMap; 		//? EventMap : public YYObjectBase
 			RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> m_ActionPair;
 		};
@@ -702,7 +703,51 @@ struct RValue
 
 	// the rest of RValue is heavily based on the work done by Archie, creator of YYToolkit and Aurie
 
+template<class _MemberType, class T = _MemberType RValue::*, class _T2>
+auto operator->*(_T2 RValue::*_MemberType::* member) {
+		switch (typeid(_MemberType).hash_code()) {
+		case typeid(RefString*).hash_code():
+			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_STRING) Error_Show_Action(true, true, "RValue::operator->*: RValue is not a string.");
+				return std::launder(&this->m_RefString)->*member;
 
+			break;
+		case typeid(RefDynamicArrayOfRValue*).hash_code():
+			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) 
+				Error_Show_Action(true, true, "RValue::operator->*: RValue is not an array.");
+			return std::launder(&this->m_RefArray)->*member;
+
+		case typeid(YYObjectBase*).hash_code():
+			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_OBJECT) 
+				Error_Show_Action(true, true, "RValue::operator->*: RValue is not an object.");
+			return std::launder(&this->ToObject())->*member;
+			
+		case typeid(CInstance*).hash_code():
+			return std::launder(&this->ToInstance())->*member;
+
+		case typeid(vec3*).hash_code():
+			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_VEC3)
+				Error_Show_Action(true, true, "RValue::operator->*: RValue is not a vec3.");
+			return std::launder(&this->m_RGB)->*member;
+
+		case typeid(vec4*).hash_code():
+			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_VEC4) 
+				Error_Show_Action(true, true, "RValue::operator->*: RValue is not a vec4.");
+			return (*std::launder(&this->m_RGBA))->*member;
+			
+		case typeid(RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>).hash_code():
+			return std::launder(&this->ToActionPair())->*member;
+
+		case typeid(Action*).hash_code():
+			if (m_Kind != VALUE_ACTION) 
+				Error_Show_Action(true, true, "RValue::operator->*: RValue is not an action.");
+			break;
+		default:
+			break;
+		}
+		Error_Show_Action(true, true, "RValue::operator->*: Unknown type or unknown error: %s (%s, %s).", this->GetKindName(), typeid(_MemberType).name(), typeid(T).name());
+		static _T2 dummyMember = RValue().m_ActionPair->*dummyMember;
+		return dummyMember;
+	}
 
 	template<typename T>
 	requires(sizeof(T) == 4)
@@ -807,62 +852,114 @@ struct RValue
 
 	LIBZHL_API ~RValue();
 
+	RValue(const vec3& Value)
+	{
+		FREE_RValue(this);
+		*reinterpret_cast<vec3*>(std::launder(&this->m_RGB)) = Value;
+		this->m_Kind = VALUE_VEC3;
+	}
+	
+	RValue(const vec4& Value)
+	{
+		FREE_RValue(this);
+		*reinterpret_cast<vec4*>(std::launder(&this->m_RGBA)) = Value;
+		this->m_Kind = VALUE_VEC4;
+	}
+
+	RValue(vec3&& Value) noexcept
+	{
+		FREE_RValue(this);
+		*reinterpret_cast<vec3*>(std::launder(&this->m_RGB)) = std::move(Value);
+		this->m_Kind = VALUE_VEC3;
+	}
+
+	RValue(vec4&& Value) noexcept
+	{
+		FREE_RValue(this);
+		*reinterpret_cast<vec4*>(std::launder(&this->m_RGBA)) = std::move(Value);
+		this->m_Kind = VALUE_VEC4;
+	}
+	inline RValue& operator=(const vec3& Value) noexcept
+	{
+		FREE_RValue(&reinterpret_cast<RValue&>(*this));
+		*reinterpret_cast<vec3*>(std::launder(&this->m_RGB)) = Value;
+		this->m_Kind = VALUE_VEC3;
+		return *this;
+	}
+
+	inline RValue& operator=(const vec4& Value) noexcept
+	{
+		FREE_RValue(this);
+		*reinterpret_cast<vec4*>(std::launder(&this->m_RGBA)) = Value;
+		this->m_Kind = VALUE_VEC4;
+		return *this;
+	}
+
+	inline RValue& operator=(vec3&& Value) noexcept
+	{
+		FREE_RValue(this);
+		std::move(&(Value.x), &(Value.z) + sizeof(float*), &reinterpret_cast<float&>((*std::launder(&this->m_RGB))->x));
+		this->m_Kind = VALUE_VEC3;
+		return *this;
+	}
+
+	inline RValue& operator=(vec4&& Value) noexcept
+	{
+		FREE_RValue(this);
+		std::move(&(Value.x), &(Value.w) + sizeof(float*), &reinterpret_cast<float&>((*std::launder(&this->m_RGB))->x));
+		this->m_Kind = VALUE_VEC4;
+		return *this;
+	}
+
 	RValue(const int32_t Value)
 	{
-		*this = RValue();
-
+		FREE_RValue(this);
 		*reinterpret_cast<int32_t*>(std::launder(&this->m_i32)) = static_cast<int32_t>(Value);
 		this->m_Kind = VALUE_INT32;
 	}
 	RValue(const int64_t Value)
 	{
-		*this = RValue();
+		FREE_RValue(this);
 		*reinterpret_cast<int64_t*>(std::launder(&this->m_i64)) = static_cast<int64_t>(Value);
 		this->m_Kind = VALUE_INT64;
 	}
 	
 	RValue( const double Value)
 	{
-		*this = RValue();
-
+		FREE_RValue(this);
 		*reinterpret_cast<double*>(std::launder(&this->m_Real)) = static_cast<double>(Value);
 		this->m_Kind = VALUE_REAL;
 	}
 	RValue( const float Value)
 	{
-		*this = RValue();
-
+		FREE_RValue(this);
 		*reinterpret_cast<double*>(std::launder(&this->m_Real)) = static_cast<double>(Value);
 		this->m_Kind = VALUE_REAL;
 	}
 
 	RValue(CObjectGM *Value)
 	{
-		*this = RValue();
-
+		FREE_RValue(this);
 		this->m_Pointer = (PVOID)(Value);
 		this->m_Kind = VALUE_OBJECT;
 	}
 	RValue(YYObjectBase *Value)
 	{
-		*this = RValue();
-
+		FREE_RValue(this);
 		this->m_Pointer = (PVOID)(Value);
 		this->m_Kind = VALUE_OBJECT;
 	}
 	
 	RValue(CInstanceBase *Value)
 	{
-		*this = RValue();
-
+		FREE_RValue(this);
 		this->m_Pointer = (PVOID)(Value);
 		this->m_Kind = VALUE_OBJECT;
 	}
 
 	RValue(CInstance *Value)
 	{
-		*this = RValue();
-
+		FREE_RValue(this);
 		this->m_Pointer = (PVOID)(Value);
 		this->m_Kind = VALUE_OBJECT;
 	}
@@ -957,6 +1054,17 @@ struct RValue
 	LIBZHL_API explicit operator double();
 
 	LIBZHL_API explicit operator std::string();
+
+	
+	LIBZHL_API operator vec3&()
+	{
+		return *reinterpret_cast<vec3*>(std::launder(&this->m_RGB));
+	}
+	
+	LIBZHL_API operator vec4&()
+	{
+		return *reinterpret_cast<vec4*>(std::launder(&this->m_RGBA));
+	}
 
 	LIBZHL_API void operator()(CInstance* self, CInstance* other);
 
@@ -1207,6 +1315,17 @@ struct YYObjectBase : CInstanceBase
 	LIBZHL_API void ThreadFree(bool param_1, void *GC_Context);
 	LIBZHL_API YYObjectBase* constructor(int n_Vars, int param_2);
 	LIBZHL_API void *destructor(uint param_1);
+
+	LIBZHL_API RValue *InternalGetYYVarRef(int index) const 
+	{
+		return const_cast<YYObjectBase*>(this)->InternalGetYYVarRef(index);
+	};
+	LIBZHL_API RValue *InternalGetYYVarRefL(int index) const {
+		return const_cast<YYObjectBase*>(this)->InternalGetYYVarRefL(index);
+	};
+	LIBZHL_API RValue *InternalReadYYVar(int index) const {
+		return const_cast<YYObjectBase*>(this)->InternalReadYYVar(index);
+	};
 	
 	RValue* operator[](const char* name);
     RValue* operator[](int32_t index);
@@ -9509,8 +9628,8 @@ inline static HWND GetWindowHandle()
 	}
 	return windowHandle;
 }
-typedef void (*PFN_Builtin)(RValue &Result,CInstance* Self,CInstance* Other,int ArgumentCount,RValue Arguments[]);
-
+typedef void (__stdcall *PFN_Builtin)(RValue &Result,CInstance* Self,CInstance* Other,int ArgumentCount,RValue Arguments[]);
+#pragma auto_inline(off)
 #ifndef DO_BUILTIN_H
 #define DO_BUILTIN_H
 template <typename T>
@@ -9552,6 +9671,6 @@ static void DoBuiltinRef(T fn, RValue &out, std::vector<RValue> args)
 	return;
 }
 #endif // DO_BUILTIN_REF_H
-
+#pragma auto_inline(on)
 #include "DefinitionHelpers/InstanceHelper.h"
 #include "DefinitionHelpers/VariableHelper.h"

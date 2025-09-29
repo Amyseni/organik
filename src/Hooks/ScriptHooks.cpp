@@ -47,9 +47,13 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
     RValue* variantInit = Self->InternalReadYYVar(VAR_HASH(variantInit));
 	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
 
-    bool isLocalBool = isLocal ? isLocal->ToBoolean() : false;
-    int32_t variantpredestinedInt = variantpredestined ? variantpredestined->ToInt32() : -1;
-    bool variantInitBool = variantInit ? variantInit->ToBoolean() : false;
+    bool isLocalBool = false;
+    if (isLocal != nullptr)
+        isLocalBool = isLocal->ToBoolean();
+    int32_t variantpredestinedInt = (variantpredestined != nullptr) ? variantpredestined->ToInt32() : -1;
+    bool variantInitBool = false;
+    if (variantInit != nullptr) 
+        variantInitBool = variantInit->ToBoolean();
 
     if (!DoBuiltin(&gml_instance_exists, { 
         RValue(Organik::Objects::ObjIndexes[Organik::Objects::obj_control])
@@ -204,9 +208,14 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
     *Result = true;
     return Result;
 }
+HOOK_GLOBAL(BOOL_RValue, (const RValue* val) -> bool)
+{
+    return val->ToBoolean();
+}
 HOOK_GLOBAL(gml_Script_object_get_depth, (CInstance* self, CInstance* other, RValue* result, int argumentCount, RValue** arguments) -> RValue*)
 {
-    DoHelperSetup();
+    if (!Organik::UIManager::GetInstance()->isImGuiInitialized() && !ImGui::GetCurrentContext())
+        DoHelperSetup();
     if (argumentCount > 0 && arguments[0])
     {
         int32_t objIndex = parseRValueNumber<int32_t>(arguments[0]);
@@ -229,8 +238,14 @@ HOOK_GLOBAL(gml_Script_scr_create_bullet, (CInstance* self, CInstance* other, RV
     if (*getReplaceBulletIndex() != 0.0)
     {
         CInstance *objControl = CInstance::FirstOrDefault([&](CInstance* ci) -> bool { return ci && ci->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_control]; });
-        bool isNetworkedMulti = objControl ? objControl->InternalReadYYVar(VAR_HASH(isNetworkedMultiplayer)) ? objControl->InternalReadYYVar(VAR_HASH(isNetworkedMultiplayer))->ToBoolean() : false : false;
-        
+        bool isNetworkedMulti = false;
+        if (objControl)
+        {
+            auto *netmultiRV = objControl->InternalReadYYVar(VAR_HASH(isNetworkedMultiplayer));
+            if (netmultiRV != nullptr)
+                isNetworkedMulti = netmultiRV->ToBoolean();
+        }
+
         if (isNetworkedMulti)
         {
             return super(self, other, result, argumentCount, arguments);
@@ -271,7 +286,7 @@ HOOK_GLOBAL(gml_Script_scr_instance_create, (CInstance * Self, CInstance * Other
     if (!Organik::Utils::isInitializationDone())
         return super(Self, Other, Result, ArgumentCount, Arguments);
     
-    if (Arguments[2])
+    if (ArgumentCount > 2 && Arguments[2] != nullptr)
     {
         int32_t objIndex = parseRValueNumber<int32_t>(Arguments[2]);
         if (objIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_chest_mysteryarena]

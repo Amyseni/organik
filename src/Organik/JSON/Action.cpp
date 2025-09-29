@@ -437,34 +437,7 @@ static inline struct CEventAllocator {
         allocatedEvents.clear();
     }
 } _CEventAllocator;
-static byte testBuf[0x20] = { 
-    // Zero bytes are placeholders for immediate values to be filled in... dynamically
-    0x55,                                              // 0x00  --  push ebp
-    0x89, 0xE5,                                        // 0x01  --  mov ebp, esp
-    0xB8, 0x00, 0x00, 0x00, 0x00,                      // 0x03  --  mov eax, 0x00000000 (mov immediate)
-    0x50,                                              // 0x08  --  push eax
-    0xFF, 0x15, 0x00, 0x00, 0x00, 0x00,                // 0x09  --  call [0x00000000]   (call absolute, immediate)
-    0x58,                                              // 0x0F  --  pop eax
-    0x89, 0xEC,                                        // 0x10  --  mov esp, ebp
-    0x5D,                                              // 0x12  --  pop ebp
-    0xC3,                                              // 0x13  --  ret
-    0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,    // 0x14  --  padding / data
-    0xCC, 0xCC, 0xCC, 0xCC,                            // 0x1C  --  padding / data
-    // 0x20 -- please let me have only written this as a for fun exercise. If I ever write it to memory I will cry
-}; 
-// void __declspec(naked) amy_bad( /* CInstance self, CInstance other */ ) {
-//     __asm {
-//         push ebp
-//         mov ebp, esp
-//         mov eax, 0x00000000
-//         push eax
-//         call 0x00000000
-//         pop eax
-//         mov esp, ebp
-//         pop ebp
-//         ret
-//     }
-// }
+
 //! this function adds the CCode pointer to PatchedCodeThisIter
 //! which must be cleared by the caller using ClearPatchCache after recursing any children for this action
 //! MUST BE DONE PER ACTION CALL, NOT PER EVENT TRIGGER
@@ -1331,8 +1304,8 @@ bool doApplyVariables(CInstance* self, CInstance* other, YYObjectBase* context)
         }
         auto &variablesMap = context->InternalReadYYVar(VAR_HASH(variables))->ToObject()->m_YYVarsMap;
         CHashMap<int, RValue *, 3>::iterator iter = variablesMap->begin();
-        CHashMap<int, RValue *, 3>::Element *elem = nullptr;
-        while (variablesMap->FindNextValue(iter, elem))
+        const CHashMap<int, RValue *, 3>::Element *elem;
+        while (variablesMap->FindNextValue(iter, &elem))
         {
             Organik::GetLogger()->LogFormatted("doApplyVariables: optimizing variable entry key %d of kind %s",
                 elem->m_Key, elem->m_Value ? elem->m_Value->GetKindName() : "null");
@@ -1394,8 +1367,8 @@ bool doApplyVariables(CInstance* self, CInstance* other, YYObjectBase* context)
     {
         CHashMap<int, RValue *, 3> *varsMap = varsToApplyObj->ToObject()->m_YYVarsMap;
         CHashMap<int, RValue *, 3>::iterator iter = varsMap->begin();
-        CHashMap<int, RValue *, 3>::Element *elem = nullptr;
-        while (varsMap->FindNextValue(iter, elem))
+        const CHashMap<int, RValue *, 3>::Element *elem = nullptr;
+        while (varsMap->FindNextValue(iter, &elem))
         {
             if (!elem->m_Value) Organik::GetLogger()->LogFormatted("doApplyVariables: found null value for key %d, hash %d, hash_deleted %s",
                 elem->m_Key, elem->m_Hash, (elem->m_Hash & HASH_DELETED) ? "yes" : "no");
