@@ -10124,7 +10124,6 @@
     VAR_ENTRY(rng_chance) \
     VAR_ENTRY(variable_get) \
     VAR_ENTRY(from) \
-    VAR_ENTRY(multiplier) \
     VAR_ENTRY(equality_lhs) \
     VAR_ENTRY(equality_rhs) \
     VAR_ENTRY(returned_value) \
@@ -10140,9 +10139,26 @@
     VAR_ENTRY(triggers) \
     VAR_ENTRY(meta) \
     VAR_ENTRY(optimized) \
-    VAR_ENTRY(original_code_ptrs) \
     VAR_ENTRY(the_actual_array) \
-    VAR_ENTRY(display_flags) \
-    VAR_ENTRY(varinfo_desc) \
-    VAR_ENTRY(varinfo_author) \
+    VAR_ENTRY(vardisplayname) \
+    VAR_ENTRY(vardisplaydesc) \
+    VAR_ENTRY(vardisplayformat) \
+    VAR_ENTRY(vardisplaytype) \
+    VAR_ENTRY(vardisplayspecial) \
+    VAR_ENTRY(original_code_ptrs) \
+    VAR_ENTRY(_flat) \
+    VAR_ENTRY(_percent) \
+    VAR_ENTRY(_multiplier) \
+    VAR_ENTRY(_rotation) \
+    VAR_ENTRY(_time) \
+    VAR_ENTRY(_hex) \
+    VAR_ENTRY(_int) \
+    VAR_ENTRY(_real) \
+    VAR_ENTRY(_text) \
+    VAR_ENTRY(_boolean) \
+    VAR_ENTRY(_color) \
+    VAR_ENTRY(_neutral) \
+    VAR_ENTRY(_negative) \
+    VAR_ENTRY(_positive) \
+    VAR_ENTRY(_array) \
     VAR_ENTRY(VARIABLES_END)

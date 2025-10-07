@@ -1,5 +1,4 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "PartyChatTab.h"
 #include "ChatBox.h"
 #include "imgui/imgui.h"

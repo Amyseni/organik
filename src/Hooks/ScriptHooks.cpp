@@ -1,12 +1,11 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
-#include "zhl.h"
 #include "DefinitionHelpers/InstanceHelper.h"
 #include "VariableHelper.h"
 #include "Globals.h"
 #include "Action.h"
 #include "Organik/UI/UIManager.h"
 #include "Variant.h"
+#include "zhl.h"
 
 RValue playerID;
 RValue playerName;
@@ -30,10 +29,11 @@ RValue playerName;
 //     (*outgameObj->InternalReadYYVar(VAR_HASH(playerId))) = playerID;
 
 // }
+
 HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CInstance* Other, RValue* Result, int ArgumentCount, RValue** Arguments) -> RValue*)
 {
 
-    if (!UIManager::isImGuiInitialized())
+    if (!(ImGui::GetCurrentContext()))
         return super(Self, Other, Result, ArgumentCount, Arguments);
     if (!Self)
         return super(Self, Other, Result, ArgumentCount, Arguments);
@@ -207,23 +207,28 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
     Variant::Apply(Self, rollVariant, selectedClass, selectedSubclass, subclassLevel);
     *Result = true;
     return Result;
-}
-HOOK_GLOBAL(BOOL_RValue, (const RValue* val) -> bool)
-{
-    return val->ToBoolean();
-}
+} 
+// HOOK_GLOBAL(BOOL_RValue, (const RValue* val) -> bool)
+// {
+//     Log("BOOL_RValue called on %p", val);
+//     if (val->GetKind() == VALUE_UNDEFINED || val->GetKind() == VALUE_NULL || val->GetKind() == VALUE_UNSET)
+//     {
+//         return false;
+//     }
+//     return super(val);
+// }
 HOOK_GLOBAL(gml_Script_object_get_depth, (CInstance* self, CInstance* other, RValue* result, int argumentCount, RValue** arguments) -> RValue*)
 {
-    if (!Organik::UIManager::GetInstance()->isImGuiInitialized() && !ImGui::GetCurrentContext())
-        DoHelperSetup();
+    if (!(ImGui::GetCurrentContext()))
+    {
+        return super(self,other,result,argumentCount,arguments);
+    }
     if (argumentCount > 0 && arguments[0])
     {
         int32_t objIndex = parseRValueNumber<int32_t>(arguments[0]);
         if ((objIndex >> 2) << 2 == 164 ||
             !(objIndex & (~1660)))
         {
-            if (!Organik::Utils::isInitializationDone())
-                return super(self, other, result, argumentCount, arguments);
             *arguments[0] = OBJ_HASH(obj_menu_particle);
             
             result = super(self, other, result, argumentCount, arguments);
@@ -305,8 +310,7 @@ HOOK_GLOBAL(gml_Script_scr_instance_create, (CInstance * Self, CInstance * Other
                     &newChestType
                 };
                 Organik::GetLogger()->LogFormatted("Replacing arena chest with non-arena chest of type %d", newChestType.ToInt32());
-                gml_Script_scr_instance_create(GetGlobalInstance(), GetGlobalInstance(), Result, static_cast<int>(args.size()), args.data());
-                return Result;
+                return gml_Script_scr_instance_create(GetGlobalInstance(), GetGlobalInstance(), Result, static_cast<int>(args.size()), args.data());
         }
     }
     Result = super(Self, Other, Result, ArgumentCount, Arguments);
@@ -434,7 +438,7 @@ HOOK_GLOBAL(gml_Script_scr_enemy_set_stateChanged, (CInstance* Self, CInstance* 
 // {
 //     unsigned char* result = super(ret, param_2, ccode_index, param_4);
 
-//     // if (!Organik::UIManager::isImGuiInitialized())
+//     // if (!Organik::(*ZHL::HasInitFinished()))
 //     //     return result;
 
 //     static auto scriptHandlersMap = std::unordered_map<void*, void*>();

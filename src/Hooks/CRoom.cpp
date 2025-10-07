@@ -1,9 +1,8 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "zhl.h"
 #include <unordered_map>
 
-
+ 
 
 static bool g_fake =  ([]() -> bool {
     return true;

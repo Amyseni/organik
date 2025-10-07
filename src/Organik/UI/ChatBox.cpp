@@ -1,5 +1,4 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "ChatBox.h"
 #include "ChatTab.h"
 #include "GlobalChatTab.h"

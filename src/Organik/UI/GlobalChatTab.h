@@ -1,6 +1,5 @@
 #pragma once
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "ChatTab.h"
 
 

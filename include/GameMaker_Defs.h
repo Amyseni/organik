@@ -274,7 +274,7 @@ concept NumberCompatible = requires(T Param)
         unsigned long long, unsigned short>;
 };
 
-typedef void(__cdecl *PFUNC_YYGML)(CInstance* Self,CInstance* Other);
+typedef void(*PFUNC_YYGML)(CInstance* Self,CInstance* Other);
 
 using PFUNC_RAW = void(*)();
 
@@ -454,6 +454,7 @@ enum eBuffer_Seek : int32_t
 };
 #define VAR_HASH(var) Organik::Variables::Hashes[Organik::Variables::##var]
 
+
 union ScriptIndex
 {
     char* m_Script;
@@ -471,35 +472,6 @@ union LayerElementBlink
     CLayerSpriteElement* m_SpriteBlink;
     CLayerElementBase* m_Blink;
 };
-struct RTexture
-{
-    PVOID m_Texture;
-    short m_SzX;
-    short m_SzY;
-    float m_Width;
-    float m_Height;
-    bool m_Yes;
-};
-
-struct DynamicArrayOfRTexture
-{
-	int length;
-	RTexture** arr;
-};
-
-struct STextureGroupInfo
-{
-    const char* m_Name;
-    int m_TextureCount;
-    int m_SpriteCount;
-    int m_SpineSpriteCount;
-    int m_FontCount;
-    int m_TilesetCount;
-    int* m_PTextures;
-    int* m_PSprites;
-    int* m_PSpine;
-    int* m_PFonts;
-    int* m_PTilesets;
-};
+    
 typedef bool(*PFN_ACTIONHANDLER)(CInstance* self, CInstance* other, YYObjectBase* context);
 

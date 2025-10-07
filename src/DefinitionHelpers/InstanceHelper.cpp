@@ -1,4 +1,5 @@
 #include "Synthetik.h"
+#include "zhl.h"
 #include <unordered_map>
 #include "InstanceHelper.h"
 #include "VariableHelper.h"
@@ -28,7 +29,7 @@ const char* const Organik::Sprites::SpriteNamesArr[] =
 };
 const char* const Organik::Sounds::SoundNamesArr[] = 
 {
-    SPRITES_DO(MAKE_STRINGS)
+    SOUNDS_DO(MAKE_STRINGS)
 };
 const char* const Organik::Variables::VariableNamesArr[] = 
 {
@@ -110,12 +111,10 @@ void Organik::DoHelperSetup()
         OBJ_HASH(obj_bullet_enemypistol),
         OBJ_HASH(obj_bullet_enemyrifle),
         OBJ_HASH(obj_bullet_laser_worker),
-        OBJ_HASH(obj_bullet_turret_grenade),
         OBJ_HASH(obj_bullet_turret_mortar),
         OBJ_HASH(obj_bullet_drone_mortar),
         OBJ_HASH(obj_bullet_drone_mortar_ballistic),
         OBJ_HASH(obj_bullet_turret_crystalmortar),
-        OBJ_HASH(obj_bullet_buff_crystalmortar),
         OBJ_HASH(obj_bullet_rocket_boss2_A),
         OBJ_HASH(obj_bullet_rocket_boss2_B),
         OBJ_HASH(obj_bullet_rocket_heart),
@@ -207,7 +206,6 @@ void Organik::DoHelperSetup()
         OBJ_HASH(obj_bullet_breachingcharge),
         OBJ_HASH(obj_bullet_grenade_enm_aircom),
         OBJ_HASH(obj_bullet_grenade_enm_stun),
-        OBJ_HASH(obj_bullet_sawblade),
         OBJ_HASH(obj_bullet_sawblade_ultra),
         OBJ_HASH(obj_bullet_sawblade_item),
         OBJ_HASH(obj_bullet_kunai),
@@ -219,8 +217,6 @@ void Organik::DoHelperSetup()
         OBJ_HASH(obj_bullet_ironorb),
         OBJ_HASH(obj_bullet_ironorb_enemy),
         OBJ_HASH(obj_bullet_taser),
-        OBJ_HASH(obj_bullet_taser_enm),
-        OBJ_HASH(obj_bullet_laser_line),
         OBJ_HASH(obj_bullet_laser_line_drone),
         OBJ_HASH(obj_bullet_laser_line_item),
         OBJ_HASH(obj_bullet_laser_line_drone_challenge),
@@ -228,7 +224,6 @@ void Organik::DoHelperSetup()
         OBJ_HASH(obj_bullet_laser_line_cannon),
         OBJ_HASH(obj_bullet_laser_line_gold_pen),
         OBJ_HASH(obj_bullet_laser_shieldnuke),
-        OBJ_HASH(obj_bullet_laser_line_reducedDMG),
         OBJ_HASH(obj_bullet_laser_line_fire),
         OBJ_HASH(obj_bullet_laser_line_pellet),
         OBJ_HASH(obj_bullet_laser_line_pellet_fire),
@@ -242,14 +237,26 @@ void Organik::DoHelperSetup()
         OBJ_HASH(obj_bullet_laser_railgun),
         OBJ_HASH(obj_bullet_laser_railgun2),
         OBJ_HASH(obj_bullet_laser_plasma),
-        OBJ_HASH(obj_bullet_chain),
         OBJ_HASH(obj_bullet_chain_orb),
         OBJ_HASH(obj_bullet_chain_turret),
         OBJ_HASH(obj_bullet_chain_inverse),
         OBJ_HASH(obj_bullet_chain_beam),
-        OBJ_HASH(obj_bullet_laser_railgun_item),
         OBJ_HASH(obj_bullet_laser_beam_item),
     };
-    MessageBoxA(nullptr, VariableDefHelper::Get()->m_VariableDefs[VAR_HASH(bulletdamagemodifier2)]->m_Name.c_str(), "VariableDefHelper Test", MB_OK);
-    ChatAddHooks();
-}
+    
+    Organik::GetLogger()->LogFormatted("%s, %d: %s",
+        __FILE__, __LINE__, "Initializing Variable Definitions..."
+    );
+    auto* test1 = VariableDefHelper::Get();
+    test1->Init();
+    test1->Load();
+    auto test2 = VariableDefHelper::Get()->IsLoaded();
+    auto test3 = VariableDefHelper::Get()->GetVariableDefinitions()->size();
+    Organik::GetLogger()->LogFormatted("%s, %d: %s",
+        test2 ? "Variable Definitions Initialized" : "Variable Definitions Not Initialized", test3, "Checking Variable Definitions"
+    );
+    Organik::GetLogger()->LogFormatted("%s, %d: %s",
+        test1->m_DefFilePath.generic_string().c_str(), test1->GetVarDefForID(VAR_HASH(bulletdamagemodifier2)).m_ID, "Variable Definitions Checked"
+    );
+    ZHL::Done(true);
+} 

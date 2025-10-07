@@ -1,7 +1,6 @@
 #include "Synthetik.h"
 
 #include "zhl.h"
-#include "zhl_internal.h"
 #include "UIManager.h"
 #include "MainMenu.h"
 #include "ChatBox.h"
@@ -117,8 +116,9 @@ bool doImGuiInit(ID3D11Device* d3d11device, ID3D11DeviceContext* d3d11context)
 //         Organik::GetLogger()->LogSimple("D3D11 device or context is not set.");
         return false;
     }
-    if (!Organik::UIManager::isImGuiInitialized())
-    {        
+    if (!(Organik::UIManager::isImGuiInitialized()))
+    {
+        DoHelperSetup();
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
@@ -170,6 +170,7 @@ HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
 
         if (frameCount == 0)
         {
+            
             Organik::UIManager::Initialize();
         }
         
@@ -263,24 +264,35 @@ HOOK_GLOBAL(WndProc, (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRES
     switch (msg) {
         case WM_KEYDOWN:
         case WM_KEYUP:
-            if(wParam == VK_RETURN && !(g_chatOpenCloseDelay > 0) && !io.WantCaptureKeyboard)
+            imgui_wants_input = io.WantCaptureKeyboard;
+            if(wParam == VK_RETURN)
             {
-                if (!Organik::ChatBox::g_ShowGlobalChat)
+                if (!(g_chatOpenCloseDelay > 0))
                 {
-                    Organik::ChatBox::g_ShowGlobalChat = true;
-                    g_chatOpenCloseDelay = 10; 
+                    if (Organik::ChatBox::g_ShowGlobalChat && !ImGui::IsAnyItemFocused()) Organik::ChatBox::g_GrabInput = true;
+                    else Organik::ChatBox::g_ShowGlobalChat = true;
                 }
-                if (Organik::ChatBox::g_ShowGlobalChat) Organik::ChatBox::g_GrabInput = true;
-                imgui_wants_input = Organik::ChatBox::g_ShowGlobalChat;
-                return imgui_result;
+                imgui_wants_input = true;
             }
-            else if (wParam == VK_ESCAPE)
-            {
-                if (Organik::ChatBox::g_ShowGlobalChat)
-                {
-                    Organik::ChatBox::g_ShowGlobalChat = false;
-                }
-            }
+            // if(wParam == VK_RETURN && !(g_chatOpenCloseDelay > 0))
+            // {
+            //     if (!Organik::ChatBox::g_ShowGlobalChat)
+            //     {
+            //         Organik::ChatBox::g_ShowGlobalChat = true;
+            //         g_chatOpenCloseDelay = 10; 
+            //     }
+            //     if (Organik::ChatBox::g_ShowGlobalChat) Organik::ChatBox::g_GrabInput = true;
+            //     imgui_wants_input = Organik::ChatBox::g_ShowGlobalChat;
+            //     return imgui_result;
+            // }
+            // else if (wParam == VK_ESCAPE)
+            // {
+            //     if (Organik::ChatBox::g_ShowGlobalChat)
+            //     {
+            //         Organik::ChatBox::g_ShowGlobalChat = false;
+            //     }
+            // }
+            break;
         case WM_CHAR:
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
@@ -307,12 +319,20 @@ HOOK_GLOBAL(WndProc, (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRES
                 if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange))
                     ImGui::GetIO().ConfigFlags ^= ImGuiConfigFlags_NoMouseCursorChange;
                 ImGui::GetIO().MouseDrawCursor = false;
-                imgui_wants_input = io.WantCaptureMouse;
+                imgui_wants_input = ImGui::GetIO().WantCaptureMouse;
+                
             }
+            imgui_wants_input = ImGui::GetIO().MouseDrawCursor;
             break;
     }
-    if ((io.WantCaptureKeyboard && imgui_wants_input && UIManager::GetInstance()->isAnyItemHovered()) || imgui_result) {
-        // ImGui handled it, don't pass to game
+    if (imgui_wants_input) {
+    //     auto cursorObject = Object_Data(Objects::ObjIndexes[Objects::obj_cursor]);
+    //     auto cursorInstance = cursorObject ? cursorObject->m_Instances.m_First->m_Object : nullptr;
+    //     if (cursorInstance)
+    //     {
+            
+    //     }
+    //     // ImGui handled it, don't pass to game
         return imgui_result;
     }
 
@@ -326,8 +346,3 @@ HOOK_STATIC(Graphics, OpenWindow, (HWND hWnd, int width, int height, int screenM
 
     return result;
 }
-HOOK_GLOBAL(gml_window_set_fullscreen, (RValue* Result, CInstance* Self, CInstance* Other, int ArgumentCount, RValue* Arguments) -> void)
-{
-    super(Result, Self, Other, ArgumentCount, Arguments);
-}
-

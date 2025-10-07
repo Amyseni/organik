@@ -15,7 +15,6 @@ struct GlobalPre
 	#include <functional>
     #include <GameMaker_Defs.h>
 	#include <random>
-	#include "zhl_internal.h"
     struct SWithIterator;
     struct CBackGM;
     struct CCode;

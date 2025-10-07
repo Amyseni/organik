@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
+#include "zhl.h"
 #include "Organik/UI/UIManager.h"
 #include "windows.h"
 
@@ -58,7 +58,7 @@ std::pair<std::unique_lock<std::mutex>, Utils::Settings::GUISettings*&> Utils::S
     GUISettings *ret = nullptr;
     if (!(ret = g_UISettings)){
         ret = (
-            UIManager::isImGuiInitialized() && ImGui::GetIO().UserData
+            (ImGui::GetCurrentContext()) && ImGui::GetIO().UserData
         ) ? static_cast<GUISettings*>(ImGui::GetIO().UserData) 
           : new GUISettings();
         g_UISettings = ret;
@@ -180,7 +180,7 @@ CInstance* getOutgame() {
 void Organik::Utils::bugWebhook(const std::string& errorMsg)
 {
     const std::string& playerName = "Unknown Player";
-    if (UIManager::isImGuiInitialized()) //this means engine init has finished, safe to look at outgame now
+    if ((ImGui::GetCurrentContext())) //this means engine init has finished, safe to look at outgame now
     {
         
     }

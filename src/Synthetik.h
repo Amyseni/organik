@@ -28,7 +28,6 @@ __declspec(noreturn) inline void __cdecl __NOP() {}
 #include <GameMaker_Defs.h>
 #include <random>
 #include "Logging.h"
-#include "zhl_internal.h"
 
 #ifdef GetObject
 #undef GetObject
@@ -39,6 +38,7 @@ __declspec(noreturn) inline void __cdecl __NOP() {}
 #ifdef GetObjectA
 #undef GetObjectA
 #endif
+
 struct SWithIterator;
 struct CBackGM;
 struct CCode;
@@ -290,15 +290,15 @@ public:
 		return (Position + m_CurrentSize - (Hash & m_CurrentMask)) & m_CurrentMask;
 	}
 
-	CHashMap<TKey, TValue, TInitialMask>()
-	{
-		m_CurrentSize = (TInitialMask << 1) & (~TInitialMask);
-		m_UsedCount = 0;
-		m_CurrentMask = TInitialMask;
-		m_GrowThreshold = (m_CurrentSize * 3) / 4;
-		m_Elements = reinterpret_cast<Element*>(YYAlloc(sizeof(Element) * m_CurrentSize));
-		memset(m_Elements, 0, sizeof(Element) * m_CurrentSize);
-	}
+	// CHashMap<TKey, TValue, TInitialMask>()
+	// {
+	// 	m_CurrentSize = (TInitialMask << 1) & (~TInitialMask);
+	// 	m_UsedCount = 0;
+	// 	m_CurrentMask = TInitialMask;
+	// 	m_GrowThreshold = (m_CurrentSize * 3) / 4;
+	// 	m_Elements = reinterpret_cast<Element*>(YYAlloc(sizeof(Element) * m_CurrentSize));
+	// 	memset(m_Elements, 0, sizeof(Element) * m_CurrentSize);
+	// }
 
 	CHashMapHash HashAt(int32_t position)
 	{
@@ -335,6 +335,13 @@ public:
 		return m_Elements[position];
 	}
 	
+	CHashMap<TKey, TValue, TInitialMask>* Create(int32_t slots = (TInitialMask << 1) & (~TInitialMask))
+	{
+		auto newMap = (CHashMap<TKey, TValue, TInitialMask>*) Alloc(sizeof(CHashMap<TKey, TValue, TInitialMask>), __FILE__, __LINE__, false);
+		newMap->m_CurrentSize = slots;
+		
+	}
+
 	void InsertOrAssign (
 		CHashMapHash Hash,
 		TValue Value,
@@ -357,7 +364,7 @@ public:
 			}
 		});
 		while (true){
-			if (m_Elements[_position].m_Hash == 0)
+			if (m_Elements[_position].m_Hash == 0 || m_Elements[_position].m_Hash & HASH_DELETED)
 			{
 				m_Elements[_position].m_Hash = Hash;
 				m_Elements[_position].m_Value = Value;
@@ -684,7 +691,6 @@ struct RValue
 			RefDynamicArrayOfRValue* m_RefArray; // also actions array
 			YYObjectBase* m_Object;
 			CInstance* m_Instance;
-			Action* m_Action; //? Action : public CCode
 			vec3* m_RGB;
 			vec4* m_RGBA;
 			// EventMap* m_EventMap; 		//? EventMap : public YYObjectBase
@@ -703,51 +709,56 @@ struct RValue
 
 	// the rest of RValue is heavily based on the work done by Archie, creator of YYToolkit and Aurie
 
-template<class _MemberType, class T = _MemberType RValue::*, class _T2>
-auto operator->*(_T2 RValue::*_MemberType::* member) {
-		switch (typeid(_MemberType).hash_code()) {
-		case typeid(RefString*).hash_code():
-			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_STRING) Error_Show_Action(true, true, "RValue::operator->*: RValue is not a string.");
-				return std::launder(&this->m_RefString)->*member;
-
-			break;
-		case typeid(RefDynamicArrayOfRValue*).hash_code():
-			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) 
-				Error_Show_Action(true, true, "RValue::operator->*: RValue is not an array.");
-			return std::launder(&this->m_RefArray)->*member;
-
-		case typeid(YYObjectBase*).hash_code():
-			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_OBJECT) 
-				Error_Show_Action(true, true, "RValue::operator->*: RValue is not an object.");
-			return std::launder(&this->ToObject())->*member;
-			
-		case typeid(CInstance*).hash_code():
-			return std::launder(&this->ToInstance())->*member;
-
-		case typeid(vec3*).hash_code():
-			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_VEC3)
-				Error_Show_Action(true, true, "RValue::operator->*: RValue is not a vec3.");
-			return std::launder(&this->m_RGB)->*member;
-
-		case typeid(vec4*).hash_code():
-			if ((m_Kind & MASK_KIND_RVALUE) != VALUE_VEC4) 
-				Error_Show_Action(true, true, "RValue::operator->*: RValue is not a vec4.");
-			return (*std::launder(&this->m_RGBA))->*member;
-			
-		case typeid(RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>).hash_code():
-			return std::launder(&this->ToActionPair())->*member;
-
-		case typeid(Action*).hash_code():
-			if (m_Kind != VALUE_ACTION) 
-				Error_Show_Action(true, true, "RValue::operator->*: RValue is not an action.");
-			break;
-		default:
-			break;
-		}
-		Error_Show_Action(true, true, "RValue::operator->*: Unknown type or unknown error: %s (%s, %s).", this->GetKindName(), typeid(_MemberType).name(), typeid(T).name());
-		static _T2 dummyMember = RValue().m_ActionPair->*dummyMember;
-		return dummyMember;
+	template<class _MemberType, class T = _MemberType RValue::*, class _T2>
+	requires(std::is_member_object_pointer_v<T> && !std::is_function_v<_MemberType>)
+	auto operator->*(_T2 RValue::*T::* member) {
+		auto &the_member = *(T*)this;
+		return the_member->*member;
 	}
+
+		// 	switch (typeid(T).hash_code()) {
+	// 	case typeid(RefString*).hash_code():
+	// 		if ((m_Kind & MASK_KIND_RVALUE) != VALUE_STRING) Error_Show_Action(true, true, "RValue::operator->*: RValue is not a string.");
+	// 			return std::launder(&this->m_RefString)->*member;
+
+	// 		break;
+	// 	case typeid(RefDynamicArrayOfRValue*).hash_code():
+	// 		if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) 
+	// 			Error_Show_Action(true, true, "RValue::operator->*: RValue is not an array.");
+	// 		return std::launder(&this->m_RefArray)->*member;
+
+	// 	case typeid(YYObjectBase*).hash_code():
+	// 		if ((m_Kind & MASK_KIND_RVALUE) != VALUE_OBJECT) 
+	// 			Error_Show_Action(true, true, "RValue::operator->*: RValue is not an object.");
+	// 		return std::launder(&this->)->*member;
+			
+	// 	case typeid(CInstance*).hash_code():
+	// 		return std::launder(&this->ToInstance())->*member;
+
+	// 	case typeid(vec3*).hash_code():
+	// 		if ((m_Kind & MASK_KIND_RVALUE) != VALUE_VEC3)
+	// 			Error_Show_Action(true, true, "RValue::operator->*: RValue is not a vec3.");
+	// 		return std::launder(&this->m_RGB)->*member;
+
+	// 	case typeid(vec4*).hash_code():
+	// 		if ((m_Kind & MASK_KIND_RVALUE) != VALUE_VEC4) 
+	// 			Error_Show_Action(true, true, "RValue::operator->*: RValue is not a vec4.");
+	// 		return (*std::launder(&this->m_RGBA))->*member;
+			
+	// 	case typeid(RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>).hash_code():
+	// 		return std::launder(&this->m_AcitonPair)->*member;
+
+	// 	case typeid(Action*).hash_code():
+	// 		if (m_Kind != VALUE_ACTION) 
+	// 			Error_Show_Action(true, true, "RValue::operator->*: RValue is not an action.");
+	// 		break;
+	// 	default:
+	// 		break;
+	// 	}
+	// 	Error_Show_Action(true, true, "RValue::operator->*: Unknown type or unknown error: %s (%s, %s).", this->GetKindName(), typeid(_MemberType).name(), typeid(T).name());
+	// 	static _T2 dummyMember = RValue().m_ActionPair->*dummyMember;
+	// 	return dummyMember;
+	// }
 
 	template<typename T>
 	requires(sizeof(T) == 4)
@@ -846,9 +857,9 @@ auto operator->*(_T2 RValue::*_MemberType::* member) {
 
 	LIBZHL_API RValue(const RValue& Other);	
 
-	LIBZHL_API RValue(RValue&& Other) noexcept;
+	// LIBZHL_API RValue(RValue&& Other) noexcept;
 
-	LIBZHL_API RValue& operator=(RValue&& Other) noexcept;
+	// LIBZHL_API RValue& operator=(RValue&& Other) noexcept;
 
 	LIBZHL_API ~RValue();
 
@@ -991,22 +1002,6 @@ auto operator->*(_T2 RValue::*_MemberType::* member) {
 	LIBZHL_API RValue(const std::map<std::string, RValue>& Values);
 	LIBZHL_API RValue(const std::unordered_map<int32_t, RValue>& Values);
 	LIBZHL_API RValue(const std::vector<RValue>& Values);
-	inline RValue(const std::pair<PFN_ACTIONHANDLER, YYObjectBase*>& Values)
-	{
-		FREE_RValue(this);
-
-		(*std::launder(&this->m_ActionPair)).first = Values.first;
-		(*std::launder(&this->m_ActionPair)).second = Values.second;
-		this->m_Kind = VALUE_ACTION;
-	}
-	inline RValue(Action* actionPointer)
-	{
-		FREE_RValue(this);
-		
-		*std::launder(&this->m_Pointer) = (PVOID)(actionPointer);
-		this->m_Kind = VALUE_ACTION;
-	}
-	LIBZHL_API RValue(CCode* codePointer) : RValue(reinterpret_cast<Action*>(codePointer)) {}
 	LIBZHL_API RValue(EventMap* eventMapPointer) : RValue(reinterpret_cast<YYObjectBase*>(eventMapPointer)) {}
 	// RValue(Action* actionPointer);
 
@@ -1022,16 +1017,6 @@ auto operator->*(_T2 RValue::*_MemberType::* member) {
 		return *this;
 	}
 
-	inline RValue& operator=(Action* actionPointer) {
-		FREE_RValue(this);
-		
-		*std::launder(&this->m_Pointer) = (PVOID)(actionPointer);
-		this->m_Kind = VALUE_ACTION;
-		return *this;
-	};
-	inline RValue& operator=(CCode* codePointer) {
-		return this->operator=(reinterpret_cast<Action*>(codePointer));
-	}
 	inline RValue& operator=(EventMap* eventMapPointer) {
 		return this->operator=(reinterpret_cast<YYObjectBase*>(eventMapPointer));
 	};
@@ -1082,7 +1067,55 @@ auto operator->*(_T2 RValue::*_MemberType::* member) {
 };
 static_assert(sizeof(RValue) == 16, "RValue size is not 16 bytes!");
 #pragma pack(pop)
-
+template <typename T>
+requires std::is_arithmetic_v<T>
+T parseRValueNumber(RValue* rValue)
+{
+    if (!rValue)
+    {
+        return T(0.0);
+    } 
+    T ret = T(0.0);
+    switch (rValue->GetKind())
+    {
+        case VALUE_INT32:
+            ret = static_cast<T>(rValue->ToInt32());
+            break;
+        case VALUE_INT64:
+            ret = static_cast<T>(rValue->ToInt64());
+            break;
+        case VALUE_PTR:
+            ret = static_cast<T>((uintptr_t)rValue->ToPointer());
+            break;
+        case VALUE_REAL:
+            ret = static_cast<T>(rValue->ToDouble());
+            break;
+    }
+    return ret;
+}
+template <typename T>
+requires std::is_arithmetic_v<T>
+T parseRValueNumber(RValue rValue)
+{
+    T ret = static_cast<T>(0.0);
+    switch (rValue.GetKind())
+    {
+        case VALUE_INT32:
+            ret = static_cast<T>(rValue.ToInt32());
+            break;
+        case VALUE_INT64:
+            ret = static_cast<T>(rValue.ToInt64());
+            break;
+        case VALUE_PTR:
+            Error_Show_Action("WARNING! parseRValueNumber: called with VALUE_PTR, this is probably a bug.", false, true);
+            ret = static_cast<T>((uintptr_t)rValue.ToPointer());
+            break;
+        case VALUE_REAL:
+            ret = static_cast<T>(rValue.ToDouble());
+            break;
+    }
+    return ret;
+}
 struct RToken
 {
 	
@@ -1665,7 +1698,6 @@ struct CScript;
 struct CScript
 {
 	
-	virtual ~CScript() {};
 	void* m_Text;
 	CCode* m_Code;
 	YYGMLFuncs* m_Functions;
@@ -1676,12 +1708,13 @@ struct CScript
 	};
 	char* m_Name;
 	int m_Offset;
-
+	
+	virtual ~CScript();
 	LIBZHL_API bool Compile();
 	LIBZHL_API void constructor(const char *param_1);
 	
 };
-
+constexpr size_t seeScript = sizeof(CScript);
 struct CScriptRef
 {
 	
@@ -1986,8 +2019,6 @@ struct YYGMLFuncs
 		PFUNC_RAW m_RawFunction;
 	};
 	PVOID m_FunctionVariables;
-
-	YYGMLFuncs() : m_Name(""), m_CodeFunction(nullptr),  m_FunctionVariables(nullptr) {}
 };
 
 struct YYRoom
@@ -9541,7 +9572,7 @@ namespace Organik
 			static bool g_EnableMultiplayerCompat; // Enable compatibility with 26.1 multiplayer;
 			static bool g_EnableInvincibility; // Enable invincibility in the game; 
 			static inline bool* GetEnableBugWebhook() {// Enable bug reporting webhook;
-				static bool g_EnableBugWebhook = false;
+				static bool g_EnableBugWebhook = true;
 				return &g_EnableBugWebhook;
 			}; 
 			#include "GuiSettingsInline.h"
@@ -9672,5 +9703,6 @@ static void DoBuiltinRef(T fn, RValue &out, std::vector<RValue> args)
 }
 #endif // DO_BUILTIN_REF_H
 #pragma auto_inline(on)
+
 #include "DefinitionHelpers/InstanceHelper.h"
 #include "DefinitionHelpers/VariableHelper.h"

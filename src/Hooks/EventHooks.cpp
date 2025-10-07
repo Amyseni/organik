@@ -8,24 +8,23 @@
 #include "Variant.h"
 #include "Action.h"
 #include "stack"
-#include "Hooks.h"
-#include "Events.h"
-
-// HOOK_GLOBAL(gml_Object_obj_chest_weapon_wood_arena_Create_0, (CInstance* Self, CInstance* Other) -> void)
+#include "zhl.h"
+ 
+// HOOK_GLOBAL(gml_Object_obj_chest_weapon_wood_arena_Create_0, (CInstance* self, CInstance* other) -> void)
 // {
-/*     Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 called: %p", Self);
-    super(Self, Other);
-    Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 after super: %p", Self->m_ID);
+/*     Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 called: %p", self);
+    super(self, other);
+    Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 after super: %p", self->m_ID);
 
-    if (!Self)
+    if (!self)
         return;
     RValue dummy;
     auto rng = Utils::getrng();
     int chestType = (*rng)() % getNonArenaChests().size();
-    RValue x = parseRValueNumber<double>(*Self->InternalGetYYVarRef(VAR_HASH(x)));
-    RValue y = parseRValueNumber<double>(*Self->InternalGetYYVarRef(VAR_HASH(y)));
+    RValue x = parseRValueNumber<double>(*self->InternalGetYYVarRef(VAR_HASH(x)));
+    RValue y = parseRValueNumber<double>(*self->InternalGetYYVarRef(VAR_HASH(y)));
     RValue newChestType = RValue(static_cast<double>(getNonArenaChests()[chestType]));
-    RValue selfID = Self->m_ID;
+    RValue selfID = self->m_ID;
     std::vector<RValue*> args = {
         &x,
         &y,
@@ -34,127 +33,129 @@
 
     RValue newChest;
 //     gml_Script_scr_instance_create(GetGlobalInstance(), GetGlobalInstance(), &newChest, static_cast<int>(args.size()), args.data());
-//     gml_instance_destroy(&dummy, Self, Self, 1, &selfID); */
+//     gml_instance_destroy(&dummy, self, self, 1, &selfID); */
 
 // }
-// HOOK_GLOBAL(gml_Object_obj_weapon_DE_61_Step_0, (CInstance * Self, CInstance *Other)->void)
-// {
-//     RValue result;
-//     gml_event_inherited(&result, Self, Other, 0, nullptr);
-//     CInstance *objStats = CInstance::FirstOrDefault([&](CInstance *instance)
-//                                                     { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_stats]; });
-//     CInstance *objStatistics = CInstance::FirstOrDefault([&](CInstance *instance)
-//                                                          { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
-//     RValue *giveEffect = Self->InternalGetYYVarRef(VAR_HASH(giveeffect));
-//     RValue *removeEffect = Self->InternalGetYYVarRef(VAR_HASH(removeeffect));
-//     RValue *effectHoldActive = Self->InternalGetYYVarRef(VAR_HASH(effectholdactive));
-//     RValue *spread = Self->InternalGetYYVarRef(VAR_HASH(spread));
-//     RValue *spreadMinimum = Self->InternalGetYYVarRef(VAR_HASH(spreadminimum));
-//     RValue *bulletDamageModifier = Self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier));
-//     RValue *stacks = Self->InternalGetYYVarRef(VAR_HASH(stacks));
-//     RValue *bulletDamageModifier2 = Self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier2));
-//     RValue *prevStat = Self->InternalGetYYVarRef(VAR_HASH(prevstat));
-//     RValue *runHeadshotKills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
-//     RValue *modHeadshot = objStats->InternalGetYYVarRef(VAR_HASH(mod_headshotmultiplier));
-//     if (giveEffect && giveEffect->ToBoolean())
-//     {
-//         if (objStats)
-//             *modHeadshot = modHeadshot->ToDouble() + 0.8f;
-//         *giveEffect = RValue(false);
-//     }
-//     else if (removeEffect && removeEffect->ToBoolean())
-//     {
-//         if (objStats)
-//             *modHeadshot = modHeadshot->ToDouble() - 0.8f;
-//         *removeEffect = RValue(false);
-//     }
-//     if (effectHoldActive && effectHoldActive->ToBoolean())
-//     {
-//         if (runHeadshotKills->ToDouble() > prevStat->ToDouble())
-//         {
-//             *stacks = stacks->ToDouble() + 1.0;
-//             *bulletDamageModifier2 = bulletDamageModifier2->ToDouble() + 0.0125f;
-//             *spread = *spreadMinimum;
-//             if ((static_cast<int>(stacks->ToDouble()) % 10) == 0)
-//             {
-//                 RValue scrResult;
-//                 RValue strStacks = DoBuiltin(&gml_string, {*stacks});
-//                 RValue popupColor = RValue(Rarities::RarityColor[Rarities::LEGENDARY]);
-//                 RValue two = RValue(2.0);
-//                 RValue twoAgain = RValue(2.0);
-//                 std::vector<RValue *> args = {
-//                     &strStacks,
-//                     &popupColor,
-//                     &two,
-//                     &twoAgain};
-//                 gml_Script_scr_popup(Self, Self, &scrResult, static_cast<int>(args.size()), args.data());
-//             }
-//             *prevStat = runHeadshotKills->ToDouble();
-//         }
-//     }
-// }
+HOOK_EVENT(obj_weapon_DE_61, EVENT_STEP, 0)
+{
+    RValue result;
+    gml_event_inherited(&result, self, other, 0, nullptr);
+    CInstance *objStats = CInstance::FirstOrDefault([&](CInstance *instance)
+                                                    { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_stats]; });
+    CInstance *objStatistics = CInstance::FirstOrDefault([&](CInstance *instance)
+                                                         { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
+    RValue *giveEffect = self->InternalGetYYVarRef(VAR_HASH(giveeffect));
+    RValue *removeEffect = self->InternalGetYYVarRef(VAR_HASH(removeeffect));
+    RValue *effectHoldActive = self->InternalGetYYVarRef(VAR_HASH(effectholdactive));
+    RValue *spread = self->InternalGetYYVarRef(VAR_HASH(spread));
+    RValue *spreadMinimum = self->InternalGetYYVarRef(VAR_HASH(spreadminimum));
+    RValue *bulletDamageModifier = self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier));
+    RValue *stacks = self->InternalGetYYVarRef(VAR_HASH(stacks));
+    RValue *bulletDamageModifier2 = self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier2));
+    RValue *prevStat = self->InternalGetYYVarRef(VAR_HASH(prevstat));
+    RValue *runHeadshotKills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
+    RValue *modHeadshot = objStats->InternalGetYYVarRef(VAR_HASH(mod_headshotmultiplier));
+    if (giveEffect && giveEffect->ToBoolean())
+    {
+        if (objStats)
+            *modHeadshot = modHeadshot->ToDouble() + 0.8f;
+        *giveEffect = RValue(false);
+    }
+    else if (removeEffect && removeEffect->ToBoolean())
+    {
+        if (objStats)
+            *modHeadshot = modHeadshot->ToDouble() - 0.8f;
+        *removeEffect = RValue(false);
+    }
+    if (effectHoldActive && effectHoldActive->ToBoolean())
+    {
+        if (runHeadshotKills->ToDouble() > prevStat->ToDouble())
+        {
+            *stacks = stacks->ToDouble() + 1.0;
+            *bulletDamageModifier2 = bulletDamageModifier2->ToDouble() + 0.0125f;
+            *spread = *spreadMinimum;
+            if ((static_cast<int>(stacks->ToDouble()) % 10) == 0)
+            {
+                RValue scrResult;
+                RValue strStacks = DoBuiltin(&gml_string, {*stacks});
+                RValue popupColor = RValue(Rarities::RarityColor[Rarities::LEGENDARY]);
+                RValue two = RValue(2.0);
+                RValue twoAgain = RValue(2.0);
+                std::vector<RValue *> args = {
+                    &strStacks,
+                    &popupColor,
+                    &two,
+                    &twoAgain};
+                gml_Script_scr_popup(self, self, &scrResult, static_cast<int>(args.size()), args.data());
+            }
+            *prevStat = runHeadshotKills->ToDouble();
+        }
+    }
+}
 
-// HOOK_GLOBAL(gml_Object_obj_enm_workerbot_MOBA_Alarm_11, (CInstance * Self, CInstance *Other)->void)
-// {
-//     Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_workerbot_MOBA_Alarm_11 called: %p", Self);
-//     return;
-// }
-// HOOK_GLOBAL(gml_Object_obj_enm_turret_MOBA_Base_Alarm_11, (CInstance * Self, CInstance *Other)->void)
-// {
-//     Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_MOBA_Base_Alarm_11 called: %p", Self);
-//     return;
-// }
-// HOOK_GLOBAL(gml_Object_obj_weapon_PARENT_Step_0, (CInstance * Self, CInstance *Other)->void)
-// {
-//     if (!Self)
-//     {
-//         super(Self, Other);
-//         return;
-//     }
+HOOK_EVENT(obj_enm_workerbot_MOBA, EVENT_ALARM, 11)
+{
+    Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_workerbot_MOBA_Alarm_11 called: %p", self);
+    return;
+}
+HOOK_EVENT(obj_enm_turret_MOBA_Base, EVENT_ALARM, 11)
+{
+    Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_MOBA_Base_Alarm_11 called: %p", self);
+    return;
+}
 
-//     if (!Self->InternalGetYYVarRef(VAR_HASH(isLocal))->ToBoolean())
-//     {
-//         super(Self, Other);
-//         return;
-//     }
+HOOK_EVENT(obj_weapon_PARENT, EVENT_STEP, 0)
+{
+    if (!self)
+    {
+        super(self, other);
+        return;
+    }
 
-//     RValue *organikPerfReload = Self->InternalReadYYVar(VAR_HASH(Organik_ArtifactPerfReload));
-//     RValue *organikOnkillFx = Self->InternalReadYYVar(VAR_HASH(Organik_Onkill));
-//     if (organikPerfReload)
-//     {
-//         RValue *perfectActiveReloadBuffShots = Self->InternalGetYYVarRef(VAR_HASH(perfectactivereloadbuffshots));
-//         if (perfectActiveReloadBuffShots->ToDouble() > 0.0)
-//         {
-//             double perfectReloadScaling = organikPerfReload->ToDouble();
-//             *perfectActiveReloadBuffShots = 0.0;
-//             *Self->InternalGetYYVarRef(VAR_HASH(Organik_ArtifactNextShot)) = RValue(true);
-//         }
-//     }
-//     CInstance *objStatistics = CInstance::FirstOrDefault([&](CInstance *instance)
-//                                                          { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
-//     if (organikOnkillFx)
-//     {
-//         RValue *organikOnkillFxTrigger = DoBuiltin(&gml_ds_map_copy, {}).ToObject()->InternalGetYYVarRef(VAR_HASH(Organik_HeadshotStackingTemp));
-//         RValue *runheadshotkills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
-//         RValue *prevkills = Self->InternalGetYYVarRef(VAR_HASH(prevkills));
-//         RValue *damageBuffTemp = Self->InternalGetYYVarRef(VAR_HASH(Organik_DamageBuffTemp));
-//         // if (!damageBuffTemp->ToPointer())
-//         // {
+    if (!self->InternalGetYYVarRef(VAR_HASH(isLocal))->ToBoolean())
+    {
+        super(self, other);
+        return;
+    }
 
-//         // }
-//         // if (headshotStackingTemp->ToDouble() > 0.0)
-//         // {
-//         //     if (runheadshotkills->ToDouble() > prevkills->ToDouble())
-//         //     {
+    RValue *organikPerfReload = self->InternalReadYYVar(VAR_HASH(Organik_ArtifactPerfReload));
+    RValue *organikOnkillFx = self->InternalReadYYVar(VAR_HASH(Organik_Onkill));
+    if (organikPerfReload)
+    {
+        RValue *perfectActiveReloadBuffShots = self->InternalGetYYVarRef(VAR_HASH(perfectactivereloadbuffshots));
+        if (perfectActiveReloadBuffShots->ToDouble() > 0.0)
+        {
+            double perfectReloadScaling = organikPerfReload->ToDouble();
+            *perfectActiveReloadBuffShots = 0.0;
+            *self->InternalGetYYVarRef(VAR_HASH(Organik_ArtifactNextShot)) = RValue(true);
+        }
+    }
+    CInstance *objStatistics = CInstance::FirstOrDefault([&](CInstance *instance)
+                                                         { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
+    if (organikOnkillFx)
+    {
+        RValue *organikOnkillFxTrigger = DoBuiltin(&gml_ds_map_copy, {}).ToObject()->InternalGetYYVarRef(VAR_HASH(Organik_HeadshotStackingTemp));
+        RValue *runheadshotkills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
+        RValue *prevkills = self->InternalGetYYVarRef(VAR_HASH(prevkills));
+        RValue *damageBuffTemp = self->InternalGetYYVarRef(VAR_HASH(Organik_DamageBuffTemp));
+        // if (!damageBuffTemp->ToPointer())
+        // {
 
-//         //     }
-//         // }
-//     }
-//     super(Self, Other);
-// }
-// HOOK_GLOBAL(gml_Object_obj_boss_parent_Destroy_0, (CInstance * Self, CInstance *Other)->void)
+        // }
+        // if (headshotStackingTemp->ToDouble() > 0.0)
+        // {
+        //     if (runheadshotkills->ToDouble() > prevkills->ToDouble())
+        //     {
+
+        //     }
+        // }
+    }
+    super(self, other);
+}
+
+// HOOK_GLOBAL(gml_Object_obj_boss_parent_Destroy_0, (CInstance * self, CInstance *other)->void)
 // {
-//     super(Self, Other);
+//     super(self, other);
 //     CInstance::ForEach([&](CInstance *instance)
 //                        {
 //         if (!instance) return;
@@ -170,16 +171,16 @@
 //             {
 //                 RValue *weaponvariantname = instance->InternalGetYYVarRef(VAR_HASH(weaponvariantname));
 //                 RValue *weaponvariantnameshort = instance->InternalGetYYVarRef(VAR_HASH(weaponvariantnameshort));
-                
+
 //                 *instance->InternalGetYYVarRef(VAR_HASH(rollvariant)) = RValue(static_cast<double>(Variant::DIVINE));
 //                 *instance->InternalGetYYVarRef(VAR_HASH(variantcolor)) = RValue(static_cast<double>(Rarities::RarityColor[Rarities::LEGENDARY]));
 //                 *instance->InternalGetYYVarRef(VAR_HASH(tooltip_rarity)) = RValue(static_cast<double>(Rarities::LEGENDARY));
 //                 *timedtime = RValue(-1.0);
 
-//                 *instance->InternalGetYYVarRef(VAR_HASH(timed)) = RValue(false); 
+//                 *instance->InternalGetYYVarRef(VAR_HASH(timed)) = RValue(false);
 //                 *instance->InternalGetYYVarRef(VAR_HASH(timedtimer)) = RValue(false);
 //                 *instance->InternalGetYYVarRef(VAR_HASH(timedbuffspawned)) = RValue(false);
-                
+
 //                 RValue wepX = RValue(static_cast<double>(instance->m_X));
 //                 RValue wepY = RValue(static_cast<double>(instance->m_Y));
 //                 Variant timelessV = (*getUserVariants())[Code_Variable_FindAlloc_Slot_From_Name(nullptr, const_cast<char*>("T I M E L E S S"))];
@@ -200,33 +201,33 @@
 //             }
 //         } });
 // }
-// HOOK_GLOBAL(gml_Object_obj_MOBA_ctrl_PreCreate_0, (CInstance * Self, CInstance *Other)->void)
+// HOOK_GLOBAL(gml_Object_obj_MOBA_ctrl_PreCreate_0, (CInstance * self, CInstance *other)->void)
 // {
 //     // *GetLogAllCalls() = true;
-//     super(Self, Other);
+//     super(self, other);
 // }
-// HOOK_GLOBAL(gml_Object_obj_enm_turret_MOBA_Base_Step_0, (CInstance * Self, CInstance *Other)->void)
+// HOOK_GLOBAL(gml_Object_obj_enm_turret_MOBA_Base_Step_0, (CInstance * self, CInstance *other)->void)
 // {
 //     RValue result;
-//     gml_event_inherited(&result, Self, Other, 0, nullptr);
+//     gml_event_inherited(&result, self, other, 0, nullptr);
 //     return;
 // }
-// HOOK_GLOBAL(gml_Object_obj_enm_turret_parent_Other_24, (CInstance * Self, CInstance *Other)->void)
+// HOOK_GLOBAL(gml_Object_obj_enm_turret_parent_other_24, (CInstance * self, CInstance *other)->void)
 // {
-//     RValue *path = Self ? Self->InternalReadYYVar(VAR_HASH(path)) : nullptr;
-//     if (Self->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_enm_turret_MOBA_Base])
+//     RValue *path = self ? self->InternalReadYYVar(VAR_HASH(path)) : nullptr;
+//     if (self->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_enm_turret_MOBA_Base])
 //     {
-//         Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_Other_24 detected turret_MOBA_Base");
+//         Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_other_24 detected turret_MOBA_Base");
 //         return;
 //     }
 //     if (path)
 //     {
-//         Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_Other_24 deleting path %p", path);
+//         Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_other_24 deleting path %p", path);
 //         if (path->ToDouble() != 0.0)
 //         {
 //             if (DoBuiltin(&gml_path_exists, {*path}).ToBoolean())
 //             {
-//                 Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_Other_24 deleting path %p", path);
+//                 Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_other_24 deleting path %p", path);
 //                 DoBuiltin(&gml_path_delete, {*path});
 //             }
 //         }
@@ -235,21 +236,21 @@
 // }
 int callstackLen = 0;
 std::unordered_map<int32_t, bool> eventsHandled = {};
-HOOK_GLOBAL(Perform_Event_Object, (CInstance * Self, CInstance *Other, int objIndex, int eventCode, int subEventCode)->void)
+HOOK_GLOBAL(Perform_Event_Object, (CInstance * self, CInstance *other, int objIndex, int eventCode, int subEventCode)->void)
 {
 
-    if (!UIManager::isImGuiInitialized())
+    if (!(ImGui::GetCurrentContext()))
     {
-        super(Self, Other, objIndex, eventCode, subEventCode);
+        super(self, other, objIndex, eventCode, subEventCode);
         return;
     }
-    super(Self, Other, objIndex, eventCode, subEventCode);
+    super(self, other, objIndex, eventCode, subEventCode);
 
-    // RValue *rvTriggersVec = Self->InternalReadYYVar(VAR_HASH(event_triggers));
+    // RValue *rvTriggersVec = self->InternalReadYYVar(VAR_HASH(event_triggers));
 
     // if (!rvTriggersVec || !(rvTriggersVec->GetKind() == VALUE_ARRAY))
     // {
-    //     super(Self, Other, objIndex, eventCode, subEventCode);
+    //     super(self, other, objIndex, eventCode, subEventCode);
     //     return;
     // }
 
@@ -262,7 +263,7 @@ HOOK_GLOBAL(Perform_Event_Object, (CInstance * Self, CInstance *Other, int objIn
     //     Action* p_Action = p_Trigger->GetActions();
     //     while (p_Action) {
     //         if (p_Action->pfnAction) {
-    //             (*p_Action)(Self, Other, 0, &out);
+    //             (*p_Action)(self, other, 0, &out);
     //         }
     //         p_Action = (p_Action->m_Next != p_Action) ? p_Action->m_Next : nullptr;
     //     }
@@ -324,168 +325,73 @@ HOOK_GLOBAL(Script_Perform, (int index, CInstance *self, CInstance *other, int a
     //     }
     // }
 }
-// HOOK_METHOD(CObjectGM, GetEventRecursive, (int32_t index, int32_t number) -> CEvent*)
-// {
-//     auto self = this;
-//     auto myID = this->m_ID;
-//     auto mask = this->m_Mask;
-//     auto depth = this->m_Depth;
-//     CEvent* event = super(index, number);
-//     if (event)
-//     {
-//         if (!UIManager::isImGuiInitialized())
-//             return event;
-//         if ((myID >> 2) == 0xE8)
-//         {
-//             Organik::GetLogger()->LogFormatted(
-//                 "CObjectGM::GetEventRecursive: found event %s (%d) for object %d (mask 0x%X, depth %d) at %p", 
-//                 this->m_Name, number, myID, mask, depth, event, event->m_Code ? event->m_Code->m_Functions->m_CodeFunction : nullptr
-//             );
-//         }
-//     }
-//     return event;
-// }
-auto Direktor::EventHook::s_EventToHookMap = std::unordered_map<CCode*, Direktor::EventHook*>();
-auto Direktor::EventHook::s_InstalledHooks = std::vector<Direktor::EventHook*>();
-auto Direktor::GMHook::HooksByType = std::unordered_map<int32_t, std::vector<Direktor::GMHook*>>();
-std::shared_mutex Direktor::GMHook::s_HookMutex;
-std::string eventSpecficName(int32_t eventCode, int32_t subCode, EventDetailType detailType = EV_WEAPON)
-{
-    char subCodeBuf[] = { static_cast<char>(subCode & 0xFF), '\0' };
-    switch(eventCode)
-    {
-        case 2: return "Alarm " + std::to_string(subCode);
-        case 3:
-        {
-            switch(subCode)
-            {
-                case 0: return "Step - Begin";
-                case 1: return "Step - Normal";
-                case 2: return "Step - End";
-                default: return "Step " + std::to_string(subCode);
-            }
-        }
-        case 5: return "Key " + std::string(subCodeBuf) + " Press";
-        case 6:
-        {
-            switch(subCode)
-            {
-                case 0: return "Mouse Left Button";
-                case 1: return "Mouse Right Button";
-                case 2: return "Mouse Middle Button";
-                case 3: return "Mouse Wheel Up";
-                case 4: return "Mouse Wheel Down";
-                default: return "Mouse Button " + std::to_string(subCode);
-            }
-        }
-        case 7:
-        {
-            switch(subCode)
-            {
-                case 4: return "Other - Room Start";
-                case 5: return "Other - Room End";
-                case 10: return "Other - User 1";
-                case 11: return "Other - User 1";
-                case 12: return "Other - User 2";
-                case 13: return "Other - User 3";
-                case 14: return "Other - Apply Variant (User 4)";
-                case 15: return "Other - User 5";
-                case 16: return "Other - User 6";
-                case 17: return "Other - User 7";
-                case 18: return "Other - User 8";
-                case 19: return "Other - User 9";
-                case 20: return "Other - User 10";
-                case 21: return "Other - User 11";
-                case 22: return "Other - User 12 (Network)";
-                case 23: return "Other - User 13";
-                case 24: return "Other - User 14";
-                case 25: return "Other - User 15";
-                default: return "Other " + std::to_string(subCode);
-            }
-        }
-        case 9: return "Key " + std::string(subCodeBuf) + " Press";
-        case 10: return "Key " + std::string(subCodeBuf) + " Release";
-        default: return eventTypeName(eventCode) + " (" + std::to_string(subCode) + ")";
-    }
-}
-
-// HOOK_GLOBAL_PRIORITY(ExecuteIt, -9999, (CInstance* Self, CInstance* Other, CCode* code, RValue* res, int flags) -> bool)
-// {
-//     std::shared_lock<std::shared_mutex> lock(Direktor::GMHook::AcquireSharedLock());
-//     if (Direktor::GMHook::HasHooksToInstall<Direktor::EventHook>())
-//     {
-        
-//     }
-// }
 
 std::stack<Action *> actionStack;
-HOOK_GLOBAL(ExecuteIt, (CInstance * Self, CInstance *Other, CCode *Code, RValue *Result, int flags)->bool)
+HOOK_GLOBAL(ExecuteIt, (CInstance * self, CInstance *other, CCode *Code, RValue *Result, int flags)->bool)
 {
-    if (!UIManager::isImGuiInitialized())
-    {
-        return super(Self, Other, Code, Result, flags);
-    }
-    if (!Code)
-    {
-        Organik::GetLogger()->LogFormatted("ExecuteIt: CCode is null!!!");
-        return super(Self, Other, Code, Result, flags);
-    }
-    bool result = true;
-    if (Code->m_Token.m_AfterLength + Code->m_Token.m_BeforeLength >= 1)
-    {
-        Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- %d, %d", (Code->m_Name ? Code->m_Name : (Code->m_Functions ? Code->m_Functions->m_Name : "NameErr")), Code->m_Token.m_BeforeLength, Code->m_Token.m_AfterLength);
-        // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value.GetKindName()), Code->m_Token.m_Value.GetArrayLength());
-        // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[0].GetKindName()), Code->m_Token.m_Value[0].GetArrayLength());
-        // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[1].GetKindName()), Code->m_Token.m_Value[1].GetArrayLength());
-        RValue out;
-        for (int i=0;i<Code->m_Token.m_BeforeLength;i++)
-        {
-            auto val = Code->m_Token.m_BeforeArray[i];
-            Organik::GetLogger()->LogFormatted("ExecuteIt: -- %p, %p", val.first, val.second);
-            if (val.first && val.second)
-            {
-                if (out.GetKind() != VALUE_UNDEFINED)
-                    *(val.second->InternalGetYYVarRef(VAR_HASH(input))) = out;
-                if (!val.first(Self, Other, val.second))
-                    break;
-                out = *val.second->InternalGetYYVarRef(VAR_HASH(result));
-            }
-            else
-            {
-                Organik::GetLogger()->LogFormatted("ExecuteIt: Before token %d has null function or context! (%p, %p)", 
-                    i, val.first, val.second);
-            }
-        }
-        
-        Code->m_Functions->m_CodeFunction(Self, Other);
-        out = RValue();
-        for (int i=0;i<Code->m_Token.m_AfterLength;i++)
-        {
-            auto val = Code->m_Token.m_AfterArray[i];
-            if (val.first && val.second)
-            {
-                if (out.GetKind() != VALUE_UNDEFINED)
-                    *(val.second->InternalGetYYVarRef(VAR_HASH(input))) = out;
-                if (!val.first(Self, Other, val.second))
-                    return true;
-                out = *val.second->InternalGetYYVarRef(VAR_HASH(result));
-            }
-            else
-            {
-                Organik::GetLogger()->LogFormatted("ExecuteIt: Before token %d has null function or context! (%p, %p)", 
-                    i, val.first, val.second);
-            }
-        }
-        return true;
-    }
-    result = super(Self, Other, Code, Result, flags);
-    return result;
+    // if (!(ZHL::Init()))
+    // {
+    return super(self, other, Code, Result, flags);
+    // }
+    // if (!Code)
+    // {
+    //     Organik::GetLogger()->LogFormatted("ExecuteIt: CCode is null!!!");
+    //     return super(self, other, Code, Result, flags);
+    // }
+    // bool result = true;
+    // if (Code->m_Token.m_AfterLength + Code->m_Token.m_BeforeLength >= 1)
+    // {
+    //     Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- %d, %d", (Code->m_Name ? Code->m_Name : (Code->m_Functions ? Code->m_Functions->m_Name : "NameErr")), Code->m_Token.m_BeforeLength, Code->m_Token.m_AfterLength);
+    //     // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value.GetKindName()), Code->m_Token.m_Value.GetArrayLength());
+    //     // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[0].GetKindName()), Code->m_Token.m_Value[0].GetArrayLength());
+    //     // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[1].GetKindName()), Code->m_Token.m_Value[1].GetArrayLength());
+    //     RValue out;
+    //     for (int i=0;i<Code->m_Token.m_BeforeLength;i++)
+    //     {
+    //         auto val = Code->m_Token.m_BeforeArray[i];
+    //         Organik::GetLogger()->LogFormatted("ExecuteIt: -- %p, %p", val.first, val.second);
+    //         if (val.first && val.second)
+    //         {
+    //             if (out.GetKind() != VALUE_UNDEFINED)
+    //                 *(val.second->InternalGetYYVarRef(VAR_HASH(input))) = out;
+    //             if (!val.first(self, other, val.second))
+    //                 break;
+    //             out = *val.second->InternalGetYYVarRef(VAR_HASH(result));
+    //         }
+    //         else
+    //         {
+    //             Organik::GetLogger()->LogFormatted("ExecuteIt: Before token %d has null function or context! (%p, %p)",
+    //                 i, val.first, val.second);
+    //         }
+    //     }
+
+    //     Code->m_Functions->m_CodeFunction(self, other);
+    //     out = RValue();
+    //     for (int i=0;i<Code->m_Token.m_AfterLength;i++)
+    //     {
+    //         auto val = Code->m_Token.m_AfterArray[i];
+    //         if (val.first && val.second)
+    //         {
+    //             if (out.GetKind() != VALUE_UNDEFINED)
+    //                 *(val.second->InternalGetYYVarRef(VAR_HASH(input))) = out;
+    //             if (!val.first(self, other, val.second))
+    //                 return true;
+    //             out = *val.second->InternalGetYYVarRef(VAR_HASH(result));
+    //         }
+    //         else
+    //         {
+    //             Organik::GetLogger()->LogFormatted("ExecuteIt: Before token %d has null function or context! (%p, %p)",
+    //                 i, val.first, val.second);
+    //         }
+    //     }
+    //     return true;
+    // }
+    // result = super(self, other, Code, Result, flags);
+    // return result;
 }
-//     // if (!Organik::UIManager::isImGuiInitialized())
-//     //     return result;
 
 //     if (!Code)
-//         return super(Self, Other, Code, Result, flags);
+//         return super(self, other, Code, Result, flags);
 
 //     static auto eventHandlersMap = std::unordered_map<void*, void*>();
 //     if (eventHandlersMap.empty())
@@ -520,6 +426,6 @@ HOOK_GLOBAL(ExecuteIt, (CInstance * Self, CInstance *Other, CCode *Code, RValue 
 //     {
 //         Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%p", (Code->m_Name ? Code->m_Name : (Code->m_Functions ? Code->m_Functions->m_Name : "NameErr")), Code->m_Functions->m_CodeFunction);
 //     }
-//     bool result = super(Self, Other, Code, Result, flags);
+//     bool result = super(self, other, Code, Result, flags);
 //     return result;
 // }

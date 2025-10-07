@@ -1,5 +1,4 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "Globals.h"
 #include "Variant.h"
 #include "Action.h"

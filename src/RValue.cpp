@@ -1,5 +1,4 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "zhl.h"
 #include "Globals.h"
 #include "Action.h"
@@ -20,7 +19,6 @@
 // 	}
 // 	throw std::bad_cast();
 // }
-
 #define ARRAY_OFFSET 0x6c
 const char* RValue::GetKindName() const
 {
@@ -457,10 +455,10 @@ RValue::RValue(std::string_view Value)
 
 	// Initialize it to just empty stuff
 	FREE_RValue(this);
-
 	// We can ignore this, because if it fails, we're just initialized to UNSET
 
 	YYCreateString(this, Value.data());
+	this->m_Kind = VALUE_STRING;
 }
 
 RValue::RValue(bool Value)
@@ -469,9 +467,9 @@ RValue::RValue(bool Value)
 //Organik::GetLogger()->LogFormatted("RValue::RValue: Value=%d", Value);
 	FREE_RValue(this);
 
-	*reinterpret_cast<double*>(std::launder(&this->m_Real)) = static_cast<double>(Value);
-	this->m_Flags = 0;
+	*reinterpret_cast<int64_t*>(std::launder(&this->m_i64)) = static_cast<int64_t>(Value);
 	this->m_Kind = VALUE_BOOL;
+	this->m_Flags = 0;
 }
 
 RValue::RValue(const RValue& Other)
@@ -485,51 +483,22 @@ RValue::RValue(const RValue& Other)
 		this,
 		&Other
 	);
-}
-void RValue::operator()(CInstance* self, CInstance* other)
-{
-	if (this->m_Kind != VALUE_ACTION) {
-		Error_Show_Action(
-			GetLogger()->ParseFormatting("RValue::operator(): Expected VALUE_ACTION, got %s with flag %d", GetKindName(), m_Flags).c_str(), 
-			true, true
-		);
+
+	if (this->m_Kind == VALUE_UNDEFINED || this->m_Kind == VALUE_NULL || this->m_Kind == VALUE_UNSET) {
+		this->m_Kind = VALUE_REAL;
+		this->m_Real = 0.0;
+		this->m_Flags = 0;
 	}
-	if (!this->ToPointer())
-	{
-		Error_Show_Action(
-			"RValue::operator(): Action pointer is null", 
-			true, true
-		);
-	}
-
-	Action* tmp = nullptr;
-	Action* me = reinterpret_cast<Action*>(this->ToPointer());
-	if (*CurrentActionGlobal())
-		tmp = (*CurrentActionGlobal());
-	(*CurrentActionGlobal()) = me;
-	me->GetEventFunction()(self, other);
-	(*CurrentActionGlobal()) = tmp;
-	
-	return;
 }
-RValue::RValue(RValue&& Other) noexcept
-{
-	FREE_RValue(this);
-	////Organik::GetLogger()->LogFormatted("setting value of %p to %s: %lld", this, GetKindName(), Other.ToInt64());
 
-	COPY_RValue(
-		this,
-		&Other
-	);
-
-	FREE_RValue(&Other);
-}
 
 RValue& RValue::operator=(const std::vector<RValue>& Values)
 {
 //Organik::GetLogger()->LogFormatted("RValue::operator= called for RValue at %p", this);
 //Organik::GetLogger()->LogFormatted("RValue::operator=: Other.m_Kind=%d", Other.m_Kind);
 	FREE_RValue(this);
+	this->m_Kind = VALUE_ARRAY;
+	this->m_Flags = 0;
 	std::vector<double> dummy_array(Values.size(), 0.0);
 
 	YYCreateArray(
@@ -576,21 +545,28 @@ RValue& RValue::operator=(const RValue& Other)
 		this,
 		&Other
 	);
-
+	if (this->m_Kind == VALUE_UNDEFINED || this->m_Kind == VALUE_NULL || this->m_Kind == VALUE_UNSET) {
+		this->m_Kind = VALUE_REAL;
+		this->m_Real = 0.0;
+		this->m_Flags = 0;
+	}
 	return *this;
 }
-RValue& RValue::operator=(RValue&& Other) noexcept
-{
-	FREE_RValue(this);
+// RValue& RValue::operator=(RValue&& Other) noexcept
+// {
+// 	FREE_RValue(this);
 
-	COPY_RValue(
-		this,
-		&Other
-	);
-
-	FREE_RValue(&Other);
-	return *this;
-}
+// 	COPY_RValue(
+// 		this,
+// 		&Other
+// 	);
+// 	if (this->m_Kind == VALUE_UNDEFINED || this->m_Kind == VALUE_NULL || this->m_Kind == VALUE_UNSET) {
+// 		this->m_Kind = VALUE_REAL;
+// 		this->m_Real = 0.0;
+// 		this->m_Flags = 0;
+// 	}
+// 	return *this;
+// }
 
 RValue::RValue(const std::map<std::string, RValue>& Values)
 {
@@ -599,6 +575,8 @@ RValue::RValue(const std::map<std::string, RValue>& Values)
 	StructCreate(
 		this
 	);
+	this->m_Kind = VALUE_OBJECT;
+	this->m_Flags = 0;
 	YYObjectBase* pObj = reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
 	for (auto [key, value] : Values)
 	{
@@ -617,7 +595,8 @@ RValue::RValue(const std::unordered_map<int32_t, RValue>& Values)
 	StructCreate(
 		this
 	);
-	
+	this->m_Kind = VALUE_OBJECT;
+	this->m_Flags = 0;
 	YYObjectBase* pObj = reinterpret_cast<YYObjectBase*>(*(std::launder(&this->m_Pointer)));
 
 	for (auto [key, value] : Values)
@@ -737,5 +716,6 @@ void RValue::__Free()
 	//if (this->m_Kind == VALUE_UNDEFINED) return;
 //Organik::GetLogger()->LogFormatted("__Free: Freeing RValue of kind %s at %p", this->GetKindName(), this);
 	FREE_RValue(reinterpret_cast<RValue*>(std::launder(this)));
+	this->m_Kind = VALUE_UNDEFINED;
 //Organik::GetLogger()->LogFormatted("__Free: Freed");
 }

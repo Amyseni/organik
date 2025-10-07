@@ -6,74 +6,67 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
+#include "zhl.h" 
 static int32_t packetsToHandleDSList = 0;
 static bool chatExists = false;
-// HOOK_GLOBAL(gml_Object_obj_chat_parent_Create_0, (CInstance* Self, CInstance* Other) -> void)
-// {
-//     super(Self, Other);
-
-//     if (UIManager::isImGuiInitialized())
-//         GetLogger()->LogFormatted("%s: chat_parent_Create called", __FILE__);
+HOOK_EVENT(obj_chat_parent, EVENT_CREATE, 0)
+{
+    super(self, other);
     
-//     if (chatExists)
-//         return true;
-
-//     ChatBox::GetInstance();
-//     chatExists = true;
-//         return true;
-// }
+    ChatBox::GetInstance();
+    chatExists = true;
+}
 
 PartyChatTab* pcTab = nullptr;
 GlobalChatTab* gcTab = nullptr;
-bool ChatParentCreate(CInstance* Self, CInstance* Other, YYObjectBase* Result)
+bool ChatParentCreate(CInstance* self, CInstance* other, YYObjectBase* Result)
 {
     if (!chatExists)
     {
         ChatBox::GetInstance();
         chatExists = true;
     }
-        return true;
+    return true;
 }
-bool NetChatCreate(CInstance* Self, CInstance* Other, YYObjectBase* Result)
+HOOK_EVENT(obj_net_chat, EVENT_CREATE, 0)
 {
-    if (UIManager::isImGuiInitialized())
+    if (ImGui::GetCurrentContext())
         GetLogger()->LogFormatted("%s: net_chat_Create called", __FILE__);
-    else
-        return true;
-    if (Self)
+    
+    super(self, other);
+
+    if (self)
     {
-        GetLogger()->LogFormatted("Creating PartyChatTab with instance ID: %d", Self->m_ID);
-        pcTab = new PartyChatTab(Self->m_ID);
+        GetLogger()->LogFormatted("Creating PartyChatTab with instance ID: %d", self->m_ID);
+        pcTab = new PartyChatTab(self->m_ID);
         GetLogger()->LogFormatted("PartyChatTab created successfully");
         ChatBox::GetInstance()->AddTab(pcTab);
         GetLogger()->LogFormatted("PartyChatTab added to ChatBox");
-        RValue* show = Self->InternalReadYYVar(VAR_HASH(show));
+        RValue* show = self->InternalReadYYVar(VAR_HASH(show));
         if (show)
             *show = RValue(false);
-        return true;
+        return;
     }
-        return true;
 }
 
-bool  GlobalChatCreate(CInstance* Self, CInstance* Other, YYObjectBase* Result)
+HOOK_EVENT(obj_net_global_chat, EVENT_CREATE, 0)
 {
-    if (UIManager::isImGuiInitialized())
+    if (ImGui::GetCurrentContext())
         GetLogger()->LogFormatted("%s: global_chat_Create called", __FILE__);
-    if (Self)
+    super(self, other);
+    if (self)
     {
-        gcTab = new GlobalChatTab(Self->m_ID);
+        gcTab = new GlobalChatTab(self->m_ID);
         ChatBox::GetInstance()->AddTab(gcTab);
-        RValue* show = Self->InternalReadYYVar(VAR_HASH(show));
+        RValue* show = self->InternalReadYYVar(VAR_HASH(show));
         if (show)
             *show = RValue(false);
-        return true;
     }
-        return true;
 }
-HOOK_GLOBAL(gml_Script_scr_send_MS_packet, (CInstance* Self, CInstance* Other, RValue* Result, int ArgumentCount, RValue** Arguments) -> RValue*)
+HOOK_GLOBAL(gml_Script_scr_send_MS_packet, (CInstance* self, CInstance* other, RValue* Result, int ArgumentCount, RValue** Arguments) -> RValue*)
 {
-    Result = super(Self, Other, Result, ArgumentCount, Arguments);
-    if (!Organik::UIManager::isImGuiInitialized()  || (packetsToHandleDSList != 0))
+    Result = super(self, other, Result, ArgumentCount, Arguments);
+    if (!(ImGui::GetCurrentContext()) || (packetsToHandleDSList != 0))
         return Result;
 
     CInstance* MSClient = CInstance::FirstOrDefault(
@@ -97,12 +90,7 @@ HOOK_GLOBAL(gml_Script_scr_send_MS_packet, (CInstance* Self, CInstance* Other, R
 }
 void ChatAddHooks()
 {
-    auto chatParentObj = Object_Data(Organik::Objects::ObjIndexes[Organik::Objects::obj_chat_parent]);
-    auto netChatObj = Object_Data(Organik::Objects::ObjIndexes[Organik::Objects::obj_net_chat]);
-    auto globalChatObj = Object_Data(Organik::Objects::ObjIndexes[Organik::Objects::obj_net_global_chat]);
-    CEvent::InsertIntoMap(chatParentObj->m_EventsMap, 0, 0, &ChatParentCreate, new YYObjectBase(), chatParentObj->m_ID, true);
-    CEvent::InsertIntoMap(netChatObj->m_EventsMap, 0, 0, &NetChatCreate, new YYObjectBase(), netChatObj->m_ID, true);
-    CEvent::InsertIntoMap(globalChatObj->m_EventsMap, 0, 0, &GlobalChatCreate, new YYObjectBase(), globalChatObj->m_ID, true);
+    return;
 }
 // arguments:
 // 0: Some weird timestamp - don't care
@@ -110,7 +98,7 @@ void ChatAddHooks()
 // 2: char* message 
 // 3: Icon to use 
 // 4: remoteAdd (send network packets)
-HOOK_GLOBAL(gml_Script_scr_add_chat_entry, (CInstance* Self, CInstance* Other, RValue* Result, int ArgumentCount, RValue** Arguments) -> RValue*)
+HOOK_SCRIPT(scr_add_chat_entry)
 {
     // Ensure the chat box is initialized
     ChatBox* chatBox = ChatBox::GetInstance();
@@ -152,17 +140,17 @@ HOOK_GLOBAL(gml_Script_scr_add_chat_entry, (CInstance* Self, CInstance* Other, R
     pcTabLock.unlock();
     return Result;
 }
-HOOK_GLOBAL(gml_ds_list_add, (CInstance* Self, CInstance* Other, RValue* Result, int ArgumentCount, RValue* Arguments) -> void)
+HOOK_GLOBAL(gml_ds_list_add, (CInstance* self, CInstance* other, RValue* Result, int ArgumentCount, RValue* Arguments) -> void)
 {
     if (!packetsToHandleDSList)
     {
-        super(Self, Other, Result, ArgumentCount, Arguments);
+        super(self, other, Result, ArgumentCount, Arguments);
         return; // No packets to handle
     }
     int32_t listID = YYGetInt32(Arguments, 0);
     if (listID != packetsToHandleDSList)
     {
-        super(Self, Other, Result, ArgumentCount, Arguments);
+        super(self, other, Result, ArgumentCount, Arguments);
         return; // Not the packetsToHandle list
     }
     // Handle the packet
@@ -205,12 +193,12 @@ HOOK_GLOBAL(gml_ds_list_add, (CInstance* Self, CInstance* Other, RValue* Result,
                 globalChat->Receive(icon, name, message);
                 gcTabLock.unlock();
             }
-            super(Self, Other, Result, ArgumentCount, Arguments);
+            super(self, other, Result, ArgumentCount, Arguments);
             return;
         }
         default:
             break;
 
     }
-    super(Self, Other, Result, ArgumentCount, Arguments);
+    super(self, other, Result, ArgumentCount, Arguments);
 }

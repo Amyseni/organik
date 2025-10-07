@@ -1,5 +1,6 @@
-#include "zhl_internal.h"
-#include "zhl_private.h"
+
+#define ZHL_LOGGING 1
+#include "Synthetik.h"
 #include "detours.h"
 #include "SigScan.h"
 #include <unordered_map>
@@ -17,8 +18,8 @@
 #include <inttypes.h>
 #include <filesystem>
 #include <Windows.h>
-
-
+#include "Organik/UI/UIManager.h"
+#include "zhl.h"
 #define OUR_OWN_FUNCTIONS_CALLEE_DOES_CLEANUP 1
 #define PTR_PRINT_F "0x%08" PRIxPTR
 #define POINTER_BYTES 4
@@ -27,12 +28,21 @@
 
 using namespace ZHL;
 using namespace Organik;
-
-void ZHL::Init()
+//#define HOOK_LOG
+static inline bool FullInit = false;
+void ZHL::Done(bool status)
+{
+	FullInit = status;
+}
+bool ZHLDone () {
+	return ImGui::GetCurrentContext();
+}
+bool ZHL::Init()
 {
 	static bool initialized = false;
-	if(initialized) return;
-	
+	if(initialized) return initialized;
+	initialized = true;
+
 	std::cout << "ZHL::Init called, initializing ZHL..." << std::endl;
 	if(!Definition::Init())
 	{
@@ -49,19 +59,12 @@ void ZHL::Init()
 		ExitProcess(1);
 	}
 	Organik::GetLogger()->InitLogging();
-	initialized = true;
+	return initialized;
 }
 
-//#define HOOK_LOG
-void Log(const char *format, ...)
-{
-	va_list va;
-	va_start(va, format);
-	// printf_s(format, va);
-	va_end(va);
-}
 
-template <size_t Size> static const char *ConvertToUniqueName(char (&dst)[Size], const char *name, const char *type)
+template <size_t Size>
+static const char *ConvertToUniqueName(char (&dst)[Size], const char *name, const char *type)
 {
 	char tmp[128];
 	strncpy(tmp, type, 128);
@@ -116,6 +119,7 @@ int Definition::Init()
 	}
 	return 1;
 }
+
 
 Definition *Definition::Find(const char *name)
 {

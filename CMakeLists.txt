@@ -76,8 +76,6 @@ add_library(${PROJ_NAME} SHARED
 	"src/PALMemoryProtection.h"
 	"src/SigScan.h"
 	"src/zhl.h"
-	"src/zhl_internal.h"
-	"src/zhl_private.h"
 	"src/hde.h"
 	"include/imgui/imgui_demo.cpp"
 	"include/imgui/imgui_draw.cpp"
@@ -125,11 +123,14 @@ add_library(${PROJ_NAME} SHARED
 	"src/Organik/UI/MainMenu.cpp"
 	"src/Organik/UI/UIManager.cpp"
 	"src/SigScan.cpp"
-	"src/Events.h"
 	"src/Globals.h"
 	"src/Globals.cpp"
+	"src/RValueLock.cpp"
+	"src/HookLock.cpp"
 	"src/Organik/JSON/Action.cpp"
 	"src/Organik/JSON/Action.h"
+	"src/Organik/JSON/VariableDefHelper.h"
+	"src/Organik/JSON/VariableDefHelper.cpp"
 	"src/Organik/JSON/Variant.h"
 	"src/Organik/JSON/Variant.cpp"
 	"src/RValue.cpp"
@@ -230,10 +231,8 @@ target_compile_options(${PROJ_NAME} PRIVATE
 	/Ox;					#* MORE SPEED (implied by /O2)
     /arch:SSE2;             #! use the x86-SSE2 instruction set. (includes floating point opcodes)
     /Gr;                    #! use __fastcall for all functions except member functions
-    /Gm-;                   #! disable minimum rebuild because it KEEPS MESSING UP ALL MY FREAKIN BUILDS
-    /Oi-;                   #! disable intrinsic functions because THEY SUCK
-	/Oy-;
-	/Ob1;
+    /Oi-;                   #! disable intrinsic functions because THEY 
+	/Ob2;
     /MD;                    #* use the multithreaded DLL version of the C runtime library (msvcrt.dll)
     /std:c++23preview;      #* use latest (preview) C++ std 23
 	/Zc:inline-;			#! do not remove unreferenced data or functions

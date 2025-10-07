@@ -1,6 +1,5 @@
 #pragma once
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "Globals.h"
 #define FLAGS_MAP (1<<0)
 #define FLAGS_ACTION (1<<2)

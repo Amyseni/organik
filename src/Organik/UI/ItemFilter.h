@@ -1,5 +1,4 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "zhl.h"
 #include <vector>
 #include <string>

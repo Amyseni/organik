@@ -1,11 +1,10 @@
 #include "Synthetik.h"
-#include "zhl_internal.h"
 #include "zhl.h"
 
 #include <unordered_map>
 #include "DefinitionHelpers/InstanceHelper.h"
 
-
+ 
 // HOOK_METHOD(CInstance, Activate, (void) -> void)
 // {
 //     std::cout << "Activating instance" << std::endl;
