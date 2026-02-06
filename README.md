@@ -32,8 +32,7 @@ Other Projects / Libraries / Art & Audio / Special Thanks
   - @en.ge ( [ART (cara.app) ](https://cara.app/enge) ) - Banner art (Patreon, Youtube), Concept art, (actual, serious) idea creator/organizer/filter and backboard, inspirer of the improbable. Did I mention art? Also an artist. A really good one. Like dam.<br>
   - NotYourSagittarius ([tweeter](https://x.com/NY_Sagittarius )) - The Robo-Mushroom profile-pic/icon art (MushBot). Also just a very cool person (insanely talented)<br>
   - @simonsis (AGAIN??) - The only reason I got good enough at Synthetik to care about modding it.<br>
-  - @tactu - Keeping me on track, "that one guy from synthcord from way back when", maybe the person outside myself who cares most deeply about this mod being done "right," and not just "done." (Beau is also in the running)<br>
-  - @beauregarde_35490 - "lunatic on-call," known weapon kit enjoyer. Can occasionally be found in a multiplayer lobby. I wonder why we never see him in global chat? I THINK HIS LSHIFT KEY MIGHT BE BROKEN<br>
+  - @tactu - Keeping my head on straight. Maybe the person outside myself who cares most deeply about this mod being done "right," and not just "done."<br>
   - @omnx - ADHD Squirrel/DistractionFactory::Create()/"I bet you could train an LLM to do this" incarnate. Also saved me countless hours of spinning in circles/weeks of potential dev time<br>
 
 ### Projects
@@ -42,8 +41,10 @@ Other Projects / Libraries / Art & Audio / Special Thanks
   - [Tiny Mod Injector](https://github.com/YAL-Game-Tools/TinyModInjector)<br> -- Freed me from the peril of trying to support a launcher .exe / installer package for both Proton AND Windows itself. (effectively saving me from writing TinyModInjector)
   - [CallbackManagerMod - hooking/callbacks library.](https://github.com/PippleCultist/CallbackManagerMod) -- **The** "it just works" callbacks/hooking package for YYToolkit and GameMaker games. Seriously, it just does the thing and that is magical all by itself.<br>
       - (and other [PippleCultist](https://github.com/PippleCultist) works (incl. HolocureMultiplayerMod): inspiration and code references.)<br>
-  - LibZHL/LibZHLGen (now Direktor and Komposer) - The "Magic Sauce" that defines, locates, and creates hooks / definitions for detouring or even just calling ANY function. Does raw assembly and/or typedef function trampoline hax to allow defined functions to be called the same way they were originally defined, as well as hooks executing under their *original* context (including `thiscall`, `fastcall`, even `userpurge`).
-     - Created by [Kilburn (@FixItVinh)](https://x.com/FixItVinh/) (see above) for his mod Antibirth (later Repentance). Modified briefly by myself and TheSwiftTiger, then by the [FTL Hyperspace](https://github.com/FTL-Hyperspace/FTL-Hyperspace) team, then back to me as I combined bits from across all of these iterations, hopefully towards a release for GameMaker games specifically and compatibility for doing things the hard way for any game.
+  - LibZHL/LibZHLGen (now Arkitekt) - The "Magic Sauce" that binds and hooks functions and variables using to make everything else about the mod work. Without this, Organik would not be. <br>
+     - Created by [Kilburn (@FixItVinh)](https://x.com/FixItVinh/) (see above) for his mod Antibirth (later Repentance). Modified briefly by myself and TheSwiftTiger, then by the [FTL Hyperspace](https://github.com/FTL-Hyperspace/FTL-Hyperspace) team, then back to me as I rewrote the whole thing using LuaJIT's DynASM to dynamically emit hook code at runtime.<br>
+  - DynASM - as mentioned above, Arkitekt now uses DynASM (but not the rest of LuaJIT) to dynamically generate x86 assembly for hooking functions at runtime. It's insane, it's stupid, no one should ever try it. It's really fast.<br>
+     - Written by the [LuaJIT](https://luajit.org) team. Licensed under MIT.<br>
     
 # Licensing
 [Organik - GPL3](https://github.com/Amyseni/organik/blob/master/LICENSE)<br>
@@ -52,6 +53,7 @@ Other Projects / Libraries / Art & Audio / Special Thanks
 [Tiny Mod Injector - MIT](https://github.com/YAL-Game-Tools/TinyModInjector/blob/main/LICENSE)<br>
 [CallbackManagerMod - No licensing info provided](https://github.com/PippleCultist/CallbackManagerMod)<br>
 [ImGui - MIT](https://github.com/ocornut/imgui/blob/master/LICENSE.txt)<br>
+[DynASM - MIT](https://luajit.org/dynasm.html)
 
 ## Take My Money! (Donations/Support)
 If you insist, I have money pits provided for you:<br>
