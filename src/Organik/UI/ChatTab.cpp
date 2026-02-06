@@ -34,7 +34,7 @@ namespace Organik
     void ChatTab::Draw(bool& out_mousedOver, bool* p_open)
     {
         ImGui::PushFont(Organik::UIManager::GetInstance()->GetConsoleFont());
-//        Organik::GetLogger()->LogFormatted("%s(%s): #%d", __FILE__, __FUNCTION__, __LINE__);
+//        Log("%s(%s): #%d", __FILE__, __FUNCTION__, __LINE__);
         if (ImGui::BeginChild(ImGuiID(this), ImVec2(0.0, -24.0), ImGuiChildFlags_Borders | ImGuiChildFlags_AlwaysUseWindowPadding))
         {
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlapped | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
@@ -84,7 +84,7 @@ namespace Organik
         Message* msg = new Message(icon, name, message);
         messages.push_back(std::move(msg));
         messagesLock.unlock();
-        double soundID = static_cast<double>(DoBuiltin(gml_asset_get_index, {RValue("sound_chat_message")}).ToInt32());
+        double soundID = static_cast<double>(DoBuiltin(&gml_asset_get_index, {RValue("sound_chat_message")}).ToInt32());
         DoBuiltin(&gml_audio_play_sound, {
             RValue(soundID),
             RValue(18), // ???

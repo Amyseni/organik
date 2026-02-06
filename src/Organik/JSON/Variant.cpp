@@ -73,7 +73,7 @@ const int32_t Variant::VariantIcon[VARIANTS_END] = {
 
 
 
-// Organik::GetLogger()->LogSimple("gml_window_set_fullscreen called, initializing action handlers and variants.");
+// GetLogger()->LogSimple("gml_window_set_fullscreen called, initializing action handlers and variants.");
 // RegisterActionTypeHandler(Code_Variable_FindAlloc_Slot_From_Name(nullptr, "apply_variables"), new DoAction([&](CInstance* self, CInstance* other, VariableMap* map, RValue* out) ->bool {
 //     return doApplyVariables(self, other, map, out);
 // }));
@@ -103,7 +103,7 @@ const int32_t Variant::VariantIcon[VARIANTS_END] = {
 void LoadVariants() {
     getUserVariants()->clear();
     auto pwd = std::filesystem::current_path();
-    Organik::GetLogger()->LogFormatted("Current working directory (variant init/reload start): %s", pwd.generic_string().c_str());
+    Log("Current working directory (variant init/reload start): %s", pwd.generic_string().c_str());
     if (!std::filesystem::exists(pwd / "Mods"))
     {
         std::filesystem::create_directory(pwd / "Mods");
@@ -136,15 +136,15 @@ void LoadVariants() {
                     //! program terminates
                 }
             }
-            Organik::GetLogger()->LogFormatted("Loading variant from %s", entry.path().generic_string().c_str());
+            Log("Loading variant from %s", entry.path().generic_string().c_str());
             
             {
-                Organik::GetLogger()->LogFormatted("Variant object kind: %d", variantObject.m_Kind);
+                Log("Variant object kind: %d", variantObject.m_Kind);
                 auto UserVariants = (getUserVariants());
                 if (variantObject.m_Kind == VALUE_ARRAY)
                 {
 
-                    Organik::GetLogger()->LogFormatted("Loading variants from array, current size: %d", (int) UserVariants->size());
+                    Log("Loading variants from array, current size: %d", (int) UserVariants->size());
                     auto arr = variantObject.ToRefVector();
                     int32_t count = variantObject.GetArrayLength();
                     for (int i = 0; i < count; i++)
@@ -152,7 +152,7 @@ void LoadVariants() {
                         auto item = arr[i];
                         if (!item) break;
 
-                        Organik::GetLogger()->LogFormatted("Checking item kind: %d", item->GetKind());
+                        Log("Checking item kind: %d", item->GetKind());
                         if (item->GetKind() == VALUE_OBJECT)
                         {
                             Variant::LoadVariant(*item, UserVariants);
@@ -177,7 +177,7 @@ void LoadVariants() {
                 else if (variantObject.m_Kind == VALUE_OBJECT)
                 {
 
-                    Organik::GetLogger()->LogFormatted("Loading variant from: %s", (entry.path() / "variant.json").parent_path().generic_string().c_str());
+                    Log("Loading variant from: %s", (entry.path() / "variant.json").parent_path().generic_string().c_str());
                     Variant::LoadVariant(variantObject, UserVariants);
                     if (variantObject.ToObject()->InternalReadYYVar(
                         VAR_HASH(triggers)))
@@ -201,7 +201,7 @@ void LoadVariants() {
                 }
             }
             
-            Organik::GetLogger()->LogFormatted("Finished loading variant from %s", entry.path().generic_string().c_str());
+            Log("Finished loading variant from %s", entry.path().generic_string().c_str());
                 
         }
     }
@@ -233,13 +233,13 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
     {
         if (!(meta->GetKind() == VALUE_OBJECT))
         {
-            GetLogger()->LogFormatted("Variant meta is not an object, got kind %d", meta->GetKind());
+            Log("Variant meta is not an object, got kind %d", meta->GetKind());
             Error_Show_Action("Variant meta must be an object.", true, true);
             return -1;
         }
-        Organik::GetLogger()->LogSimple("Loading variant metadata...");
+        GetLogger()->LogSimple("Loading variant metadata...");
         YYObjectBase* metaObj = meta->ToObject();
-        Organik::GetLogger()->LogSimple("Loading variant metadata...");
+        GetLogger()->LogSimple("Loading variant metadata...");
         RValue *replaceVariantRV = metaObj->InternalReadYYVar(
             Code_Variable_FindAlloc_Slot_From_Name(
 				nullptr, const_cast<char*>("replace_variant")
@@ -254,7 +254,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
         {
             if (!nameRV)
             {
-                GetLogger()->LogFormatted("Variant in %p is missing a name.", (void*)metaObj);
+                Log("Variant in %p is missing a name.", (void*)metaObj);
                 Error_Show_Action("Variant must have a name.", true, true);
                 return -1;
             }
@@ -275,7 +275,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
             (*variantList)[variantHash] = Variant();
             newVariantPtr = &((*variantList)[variantHash]);
         }
-        Organik::GetLogger()->LogFormatted("Creating variant with hash %d", variantHash);
+        Log("Creating variant with hash %d", variantHash);
         if (!newVariantPtr)
         {
             Error_Show_Action("Failed to create variant.", true, true);
@@ -368,7 +368,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
         {
             newVariantPtr->spriteID = -1;
         }
-        Organik::GetLogger()->LogFormatted("Loaded variant icon: %f", newVariantPtr->spriteID);
+        Log("Loaded variant icon: %f", newVariantPtr->spriteID);
         if (replaceVariantRV)
         {
             newVariantPtr->variantHash = parseRValueNumber<int32_t>(replaceVariantRV);
@@ -387,7 +387,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
         {
             newVariantPtr->soundID = -1;
         }
-        Organik::GetLogger()->LogFormatted("Loaded variant sound: %f", newVariantPtr->soundID);
+        Log("Loaded variant sound: %f", newVariantPtr->soundID);
         if (spawnRV)
         {
             int32_t spawnID = DoBuiltin(&gml_asset_get_index, { *spawnRV }).ToInt32();
@@ -397,7 +397,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
         {
             newVariantPtr->spawnID = -1;
         }
-        Organik::GetLogger()->LogFormatted("Loaded variant spawn: %f", newVariantPtr->spawnID);
+        Log("Loaded variant spawn: %f", newVariantPtr->spawnID);
         if (rarityRV)
         {
             newVariantPtr->rarity = parseRValueNumber<double>(rarityRV);
@@ -406,7 +406,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
         {
             newVariantPtr->rarity = 1.0;
         }
-        Organik::GetLogger()->LogFormatted("Loaded variant rarity: %f", newVariantPtr->rarity);
+        Log("Loaded variant rarity: %f", newVariantPtr->rarity);
         if (colorRV)
         {
             newVariantPtr->color = parseRValueNumber<double>(colorRV);
@@ -419,7 +419,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
         newVariantPtr->name = name;
         newVariantPtr->desc = desc;
         newVariantPtr->manufacturer = manufacturer;
-        Organik::GetLogger()->LogFormatted("Loaded variant: %s -- %s, %s, %f %f %f", name.c_str(), desc.c_str(), manufacturer.c_str(), newVariantPtr->rarity, newVariantPtr->color, newVariantPtr->spriteID);
+        Log("Loaded variant: %s -- %s, %s, %f %f %f", name.c_str(), desc.c_str(), manufacturer.c_str(), newVariantPtr->rarity, newVariantPtr->color, newVariantPtr->spriteID);
     }
     
     if (statMultipliers)
@@ -432,7 +432,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
             int32_t hash = Code_Variable_FindAlloc_Slot_From_Name(nullptr, const_cast<char*>(name->ToCString()));
             double value = parseRValueNumber<double>(statMultipliersObj->InternalGetYYVarRef(hash));
             newVariantPtr->statMultipliers[hash] = value;
-            Organik::GetLogger()->LogFormatted("  Stat multiplier: %s -- %f", name->ToCString(), value);
+            Log("  Stat multiplier: %s -- %f", name->ToCString(), value);
         }
     }
     
@@ -446,7 +446,7 @@ int32_t Variant::LoadVariant(const RValue& variantObject, std::unordered_map<int
             int32_t hash = Code_Variable_FindAlloc_Slot_From_Name(nullptr, const_cast<char*>(name->ToCString()));
             double value = parseRValueNumber<double>(statIncreasesObj->InternalGetYYVarRef(hash));
             newVariantPtr->statIncreases[hash] = value;
-            Organik::GetLogger()->LogFormatted("  Stat increase: %s -- %f", name->ToCString(), value);
+            Log("  Stat increase: %s -- %f", name->ToCString(), value);
         }
     }
     
@@ -464,7 +464,7 @@ void ParseEventTriggers(const RValue& trigger, const std::filesystem::directory_
     RValue objParsed;
     StructCreate(&objParsed); // not a memory leak, we keep the yyobjectbase pointer
 
-    Organik::GetLogger()->LogFormatted("ParseTriggers: Parsing trigger of type %s (flags=%d)", 
+    Log("ParseTriggers: Parsing trigger of type %s (flags=%d)", 
         trigger.GetKindName(), trigger.m_Flags);
 
     YYObjectBase* triggersObj = trigger.ToObject();
@@ -477,7 +477,7 @@ void ParseEventTriggers(const RValue& trigger, const std::filesystem::directory_
     int32_t typeHash = Code_Variable_FindAlloc_Slot_From_Name(nullptr, typeRV.ToCString());
 
     if (typeHash == VAR_HASH(event)) {
-        Organik::GetLogger()->LogFormatted("ParseTriggers: Trigger is an event trigger");
+        Log("ParseTriggers: Trigger is an event trigger");
     }
     else {
         Error_Show_Action("ParseTriggers: 'type' is not a valid trigger type.", true, true);
@@ -519,7 +519,7 @@ void ParseEventTriggers(const RValue& trigger, const std::filesystem::directory_
     RValue actionsRV = *(triggersObj->InternalGetYYVarRef(VAR_HASH(action)));
     if (actionsRV.GetKind() == VALUE_STRING)
     {
-        Organik::GetLogger()->LogFormatted("ParseTriggers: Parsing single action for object %d, event %d/%d, when %s", 
+        Log("ParseTriggers: Parsing single action for object %d, event %d/%d, when %s", 
             objectHash, eventCodePair.first, eventCodePair.second, after ? "after" : "before");
         
         RValue variantObject;

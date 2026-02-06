@@ -250,7 +250,7 @@ struct Action : public CCode
     {
         if (!eventMap) return;
         auto hash = CalculateEventHash(eventCode, eventSubCode);
-        eventMap->InsertOrAssign(hash, new CEvent(this, objectOwner));
+        // eventMap->InsertOrAssign(hash, new CEvent(this, objectOwner));
     }
     operator RValue() {
         RValue ret = RValue();
@@ -269,9 +269,9 @@ inline int32_t GetEventHash(std::pair<int32_t, int32_t> eventLookup)
 {
     return CalculateEventHash(eventLookup.first, eventLookup.second);
 }
-bool doApplyVariables(CInstance* self, CInstance* other, YYObjectBase* context);
-bool doCallScript(CInstance* self, CInstance* other, YYObjectBase* context);
-bool doCallBuiltin(CInstance* self, CInstance* other, YYObjectBase* context);
-bool doRequiresVars(CInstance* self, CInstance* other, YYObjectBase* context);
-bool doGetFrom(CInstance* self, CInstance* other, YYObjectBase* context);
-bool doRequiresChance(CInstance* self, CInstance* other, YYObjectBase* context);
+// bool doApplyVariables(CInstance* self, CInstance* other, YYObjectBase* context);
+// bool doCallScript(CInstance* self, CInstance* other, YYObjectBase* context);
+// bool doCallBuiltin(CInstance* self, CInstance* other, YYObjectBase* context);
+// bool doRequiresVars(CInstance* self, CInstance* other, YYObjectBase* context);
+// bool doGetFrom(CInstance* self, CInstance* other, YYObjectBase* context);
+// bool doRequiresChance(CInstance* self, CInstance* other, YYObjectBase* context);

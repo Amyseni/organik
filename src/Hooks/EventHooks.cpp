@@ -8,13 +8,13 @@
 #include "Variant.h"
 #include "Action.h"
 #include "stack"
-#include "zhl.h"
+
  
 // HOOK_GLOBAL(gml_Object_obj_chest_weapon_wood_arena_Create_0, (CInstance* self, CInstance* other) -> void)
 // {
-/*     Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 called: %p", self);
+/*     Log("gml_Object_obj_chest_weapon_wood_arena_Create_0 called: %p", self);
     super(self, other);
-    Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 after super: %p", self->m_ID);
+    Log("gml_Object_obj_chest_weapon_wood_arena_Create_0 after super: %p", self->m_ID);
 
     if (!self)
         return;
@@ -95,12 +95,12 @@ HOOK_EVENT(obj_weapon_DE_61, EVENT_STEP, 0)
 
 HOOK_EVENT(obj_enm_workerbot_MOBA, EVENT_ALARM, 11)
 {
-    Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_workerbot_MOBA_Alarm_11 called: %p", self);
+    Log("gml_Object_obj_enm_workerbot_MOBA_Alarm_11 called: %p", self);
     return;
 }
 HOOK_EVENT(obj_enm_turret_MOBA_Base, EVENT_ALARM, 11)
 {
-    Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_MOBA_Base_Alarm_11 called: %p", self);
+    Log("gml_Object_obj_enm_turret_MOBA_Base_Alarm_11 called: %p", self);
     return;
 }
 
@@ -217,17 +217,17 @@ HOOK_EVENT(obj_weapon_PARENT, EVENT_STEP, 0)
 //     RValue *path = self ? self->InternalReadYYVar(VAR_HASH(path)) : nullptr;
 //     if (self->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_enm_turret_MOBA_Base])
 //     {
-//         Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_other_24 detected turret_MOBA_Base");
+//         Log("gml_Object_obj_enm_turret_parent_other_24 detected turret_MOBA_Base");
 //         return;
 //     }
 //     if (path)
 //     {
-//         Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_other_24 deleting path %p", path);
+//         Log("gml_Object_obj_enm_turret_parent_other_24 deleting path %p", path);
 //         if (path->ToDouble() != 0.0)
 //         {
 //             if (DoBuiltin(&gml_path_exists, {*path}).ToBoolean())
 //             {
-//                 Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_parent_other_24 deleting path %p", path);
+//                 Log("gml_Object_obj_enm_turret_parent_other_24 deleting path %p", path);
 //                 DoBuiltin(&gml_path_delete, {*path});
 //             }
 //         }
@@ -255,7 +255,7 @@ HOOK_GLOBAL(Perform_Event_Object, (CInstance * self, CInstance *other, int objIn
     // }
 
     // for (RValue* trigger : triggerList) {
-    //     Organik::GetLogger()->LogFormatted("Checking event trigger: %p", trigger);
+    //     Log("Checking event trigger: %p", trigger);
 
     //     auto p_Trigger = trigger->ToEventTrigger();
 
@@ -335,21 +335,21 @@ HOOK_GLOBAL(ExecuteIt, (CInstance * self, CInstance *other, CCode *Code, RValue 
     // }
     // if (!Code)
     // {
-    //     Organik::GetLogger()->LogFormatted("ExecuteIt: CCode is null!!!");
+    //     Log("ExecuteIt: CCode is null!!!");
     //     return super(self, other, Code, Result, flags);
     // }
     // bool result = true;
     // if (Code->m_Token.m_AfterLength + Code->m_Token.m_BeforeLength >= 1)
     // {
-    //     Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- %d, %d", (Code->m_Name ? Code->m_Name : (Code->m_Functions ? Code->m_Functions->m_Name : "NameErr")), Code->m_Token.m_BeforeLength, Code->m_Token.m_AfterLength);
-    //     // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value.GetKindName()), Code->m_Token.m_Value.GetArrayLength());
-    //     // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[0].GetKindName()), Code->m_Token.m_Value[0].GetArrayLength());
-    //     // Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[1].GetKindName()), Code->m_Token.m_Value[1].GetArrayLength());
+    //     Log("ExecuteIt: %s -- %d, %d", (Code->m_Name ? Code->m_Name : (Code->m_Functions ? Code->m_Functions->m_Name : "NameErr")), Code->m_Token.m_BeforeLength, Code->m_Token.m_AfterLength);
+    //     // Log("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value.GetKindName()), Code->m_Token.m_Value.GetArrayLength());
+    //     // Log("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[0].GetKindName()), Code->m_Token.m_Value[0].GetArrayLength());
+    //     // Log("ExecuteIt: %s -- 0x%d", (Code->m_Token.m_Value[1].GetKindName()), Code->m_Token.m_Value[1].GetArrayLength());
     //     RValue out;
     //     for (int i=0;i<Code->m_Token.m_BeforeLength;i++)
     //     {
     //         auto val = Code->m_Token.m_BeforeArray[i];
-    //         Organik::GetLogger()->LogFormatted("ExecuteIt: -- %p, %p", val.first, val.second);
+    //         Log("ExecuteIt: -- %p, %p", val.first, val.second);
     //         if (val.first && val.second)
     //         {
     //             if (out.GetKind() != VALUE_UNDEFINED)
@@ -360,7 +360,7 @@ HOOK_GLOBAL(ExecuteIt, (CInstance * self, CInstance *other, CCode *Code, RValue 
     //         }
     //         else
     //         {
-    //             Organik::GetLogger()->LogFormatted("ExecuteIt: Before token %d has null function or context! (%p, %p)",
+    //             Log("ExecuteIt: Before token %d has null function or context! (%p, %p)",
     //                 i, val.first, val.second);
     //         }
     //     }
@@ -380,7 +380,7 @@ HOOK_GLOBAL(ExecuteIt, (CInstance * self, CInstance *other, CCode *Code, RValue 
     //         }
     //         else
     //         {
-    //             Organik::GetLogger()->LogFormatted("ExecuteIt: Before token %d has null function or context! (%p, %p)",
+    //             Log("ExecuteIt: Before token %d has null function or context! (%p, %p)",
     //                 i, val.first, val.second);
     //         }
     //     }
@@ -424,7 +424,7 @@ HOOK_GLOBAL(ExecuteIt, (CInstance * self, CInstance *other, CCode *Code, RValue 
 //     }
 //     if (*GetLogAllCalls() || false)
 //     {
-//         Organik::GetLogger()->LogFormatted("ExecuteIt: %s -- 0x%p", (Code->m_Name ? Code->m_Name : (Code->m_Functions ? Code->m_Functions->m_Name : "NameErr")), Code->m_Functions->m_CodeFunction);
+//         Log("ExecuteIt: %s -- 0x%p", (Code->m_Name ? Code->m_Name : (Code->m_Functions ? Code->m_Functions->m_Name : "NameErr")), Code->m_Functions->m_CodeFunction);
 //     }
 //     bool result = super(self, other, Code, Result, flags);
 //     return result;

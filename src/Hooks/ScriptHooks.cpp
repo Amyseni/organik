@@ -5,7 +5,7 @@
 #include "Action.h"
 #include "Organik/UI/UIManager.h"
 #include "Variant.h"
-#include "zhl.h"
+
 
 RValue playerID;
 RValue playerName;
@@ -41,11 +41,11 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
         LoadVariants();
     if (!getUserVariants()->size())
         Error_Show_Action("No variants loaded. Please check your Mods/Variants folder. \n\nIf Mods/Variants/BASEGAME/variants.json is not present, reinstall the mod.\nIf issue persists please report this bug on GitHub or Discord.", true, true);
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
     RValue* isLocal = Self->InternalReadYYVar(VAR_HASH(isLocal));
     RValue* variantpredestined = Self->InternalReadYYVar(VAR_HASH(variantpredestined));
     RValue* variantInit = Self->InternalReadYYVar(VAR_HASH(variantInit));
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
 
     bool isLocalBool = false;
     if (isLocal != nullptr)
@@ -60,13 +60,13 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
     }).ToBoolean()) {
         return super(Self, Other, Result, ArgumentCount, Arguments);
     }
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
     if ((!isLocalBool && (variantpredestinedInt == -1)) || variantInitBool)
     {
         *Result = RValue(0);
         return Result;
     }
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
 
     CInstance* outgameObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool {
         return ci && ci->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::outgame];
@@ -86,7 +86,7 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
     CInstance* bossroomObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool {
         return ci && ci->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_bossroom];
     });
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
 
     auto luckRV = statsObj->InternalGetYYVarRef(VAR_HASH(mod_luck));
 
@@ -100,7 +100,7 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
         Error_Show_Action("Outgame object not found", true, true);
     }
 
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
 
     *Self->InternalGetYYVarRef(VAR_HASH(variantInit)) = RValue(true);
     auto rng = Utils::getrng();
@@ -108,10 +108,10 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
     for (const auto [variantHash, variant] : *getUserVariants())
     {
         variantChoices.push_back(variantHash);
-        GetLogger()->LogFormatted("Variant possible rolls: adding %d - %s", variantHash, variant.name.c_str());
+        Log("Variant possible rolls: adding %d - %s", variantHash, variant.name.c_str());
     }
     int32_t rollRng = (*rng)() % variantChoices.size();
-    GetLogger()->LogFormatted("Variant roll rng: %d / %d", rollRng, variantChoices.size());
+    Log("Variant roll rng: %d / %d", rollRng, variantChoices.size());
     int32_t rollVariant = variantChoices[rollRng];
     // Variant kit 1 = 5 and 16
     // Variant kit 2 = 9 and 12
@@ -126,7 +126,7 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
         *toolTipRarity = RValue(1.0);
     int32_t tooltipRarity = parseRValueNumber<int32_t>(Self->InternalGetYYVarRef(VAR_HASH(tooltip_rarity)));
 
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
     
     CInstance* pistolExtender = CInstance::FirstOrDefault([&](CInstance* ci) -> bool {
         bool ret = ci && ci->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_perk_pistolextender];
@@ -139,7 +139,7 @@ HOOK_GLOBAL(gml_Script_scr_weapon_variants_init_ultimate, (CInstance* Self, CIns
     });
     
     Variant v = (*getUserVariants()).contains(rollVariant) ? (*getUserVariants())[rollVariant] : Variant();
-    //     GetLogger()->LogFormatted("Pistol Extender found: %d (%p)", pistolExtender ? pistolExtender->m_ID : -1, pistolExtender ? pistolExtender : 0x0);
+    //     Log("Pistol Extender found: %d (%p)", pistolExtender ? pistolExtender->m_ID : -1, pistolExtender ? pistolExtender : 0x0);
     CInstance* ultradrop = CInstance::FirstOrDefault([&](CInstance* ci) -> bool {
         bool ret = ci && ci->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_artefact_ultradrop];
         if (!ret) return ret;
@@ -286,7 +286,7 @@ HOOK_GLOBAL(gml_Script_scr_create_bullet, (CInstance* self, CInstance* other, RV
 }
 HOOK_GLOBAL(gml_Script_scr_instance_create, (CInstance * Self, CInstance * Other, RValue * Result, int ArgumentCount, RValue * * Arguments) -> RValue*)
 {
-    //  Organik::GetLogger()->LogFormatted(
+    //  Log(
     //     "gml_Script_scr_instance_create called to create: %d (%p), ArgumentCount: %d",
     if (!Organik::Utils::isInitializationDone())
         return super(Self, Other, Result, ArgumentCount, Arguments);
@@ -309,7 +309,7 @@ HOOK_GLOBAL(gml_Script_scr_instance_create, (CInstance * Self, CInstance * Other
                     &y,
                     &newChestType
                 };
-                Organik::GetLogger()->LogFormatted("Replacing arena chest with non-arena chest of type %d", newChestType.ToInt32());
+                Log("Replacing arena chest with non-arena chest of type %d", newChestType.ToInt32());
                 return gml_Script_scr_instance_create(GetGlobalInstance(), GetGlobalInstance(), Result, static_cast<int>(args.size()), args.data());
         }
     }
@@ -317,7 +317,7 @@ HOOK_GLOBAL(gml_Script_scr_instance_create, (CInstance * Self, CInstance * Other
     CInstance* newSelf = CInstance::FirstOrDefault([Result](CInstance* ci) -> bool { return ci->m_ID == Result->ToInt32(); });
     if (!newSelf)
     {
-         Organik::GetLogger()->LogFormatted("gml_Script_scr_instance_create: Failed to find instance with ID %d", Result->ToInt32());
+         Log("gml_Script_scr_instance_create: Failed to find instance with ID %d", Result->ToInt32());
         return Result;
     }
 
@@ -327,10 +327,10 @@ HOOK_GLOBAL(gml_Script_scr_instance_create, (CInstance * Self, CInstance * Other
     // int32_t objectIndex = newSelf->m_ObjectIndex;
     // while (objectIndex > 0)
     // {
-    //     Organik::GetLogger()->LogFormatted("Checking object %d for triggers", objectIndex);
+    //     Log("Checking object %d for triggers", objectIndex);
     //     if (EventMap::ObjectHasTriggers(objectIndex))
     //     {
-    //         Organik::GetLogger()->LogFormatted("Object %d has triggers", objectIndex);
+    //         Log("Object %d has triggers", objectIndex);
             
     //         auto TriggersMap = EventMap::GetGlobal()->ApplyTriggers(Self);
             
@@ -382,7 +382,7 @@ HOOK_GLOBAL(gml_Script_scr_instance_create, (CInstance * Self, CInstance * Other
     //     }
     //     else
     //     {
-    //         Organik::GetLogger()->LogFormatted("Object %d has NO triggers", objectIndex);
+    //         Log("Object %d has NO triggers", objectIndex);
     //     }
     //     objectIndex = parseRValueNumber<int32_t>(DoBuiltin(&gml_object_get_parent, { RValue(objectIndex) }));
     // }
@@ -400,35 +400,35 @@ HOOK_GLOBAL(gml_Script_scr_enemy_set_stateChanged, (CInstance* Self, CInstance* 
         RValue* enemyID = Arguments[0];
         if (!Arguments[1])
         {
-//             Organik::GetLogger()->LogFormatted("ARG1 Error in gml_Script_scr_enemy_set_stateChanged %p", Arguments[0]);
+//             Log("ARG1 Error in gml_Script_scr_enemy_set_stateChanged %p", Arguments[0]);
         }
-//         Organik::GetLogger()->LogFormatted("Enemy ID: %d, newState: %d", enemyID->ToDouble(), Arguments[1]->ToDouble());
+//         Log("Enemy ID: %d, newState: %d", enemyID->ToDouble(), Arguments[1]->ToDouble());
         CInstance* enemyInstance = CInstance::FirstOrDefault([&](CInstance* ci) -> bool {
             return ci && ci->m_ID == parseRValueNumber<int32_t>(enemyID);
         });
         if (!enemyInstance)
         {
-//             Organik::GetLogger()->LogFormatted("Enemy instance not found for ID: %d", enemyID->ToDouble());
+//             Log("Enemy instance not found for ID: %d", enemyID->ToDouble());
             return super(Self, Other, Result, ArgumentCount, Arguments);
         }
-//         Organik::GetLogger()->LogFormatted("Setting instance %d of %s to state %d", enemyInstance->m_ID, enemyInstance->m_Object->m_Name, Arguments[1]->ToDouble());
+//         Log("Setting instance %d of %s to state %d", enemyInstance->m_ID, enemyInstance->m_Object->m_Name, Arguments[1]->ToDouble());
         *enemyInstance->InternalGetYYVarRef(VAR_HASH(stateChanged)) = *(Arguments[1]);
         return Result;
     }
     if (!Self)
     {
-//         Organik::GetLogger()->LogFormatted("Self is null in gml_Script_scr_enemy_set_stateChanged");
+//         Log("Self is null in gml_Script_scr_enemy_set_stateChanged");
         return super(Self, Other, Result, ArgumentCount, Arguments);
     }
     if (!Arguments[0])
     {
-//         Organik::GetLogger()->LogFormatted("ARG0 Error in gml_Script_scr_enemy_set_stateChanged %p", Arguments[0]);
+//         Log("ARG0 Error in gml_Script_scr_enemy_set_stateChanged %p", Arguments[0]);
     }
     
-//     Organik::GetLogger()->LogFormatted("Setting instance %d to state %d", Self->m_ID, (Arguments[0])->ToDouble());
+//     Log("Setting instance %d to state %d", Self->m_ID, (Arguments[0])->ToDouble());
     if (Self->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_enm_turret_MOBA_Base])
     {
-//         Organik::GetLogger()->LogFormatted("Turret state change detected.");
+//         Log("Turret state change detected.");
         return Result;
     }
     *Self->InternalGetYYVarRef(VAR_HASH(stateChanged)) = *(Arguments[0]);
@@ -472,7 +472,7 @@ HOOK_GLOBAL(gml_Script_scr_enemy_set_stateChanged, (CInstance* Self, CInstance* 
 //     }
 //     if (*GetLogAllCalls() || true)
 //     {
-// //         Organik::GetLogger()->LogFormatted("DoCallScript: %s -- 0x%p", ("NameErr"), ccode_index);
+// //         Log("DoCallScript: %s -- 0x%p", ("NameErr"), ccode_index);
 //     }
 //     return result;
 // }

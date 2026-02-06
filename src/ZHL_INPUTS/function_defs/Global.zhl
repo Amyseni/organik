@@ -2,7 +2,7 @@ struct GlobalPre
 {{
 	#define _WINSOCKAPI_
     #include <Windows.h>
-    #include "zhl.h"
+    
     #include <d3d11.h>
     #include <iostream>
     #include <vector>
@@ -372,7 +372,6 @@ struct GlobalPost {{
 	};
 	using namespace Organik;
 
-	#include "Logging.h"
 
 	inline static CInstance *GetGlobalInstance() 
 	{
@@ -413,7 +412,7 @@ struct GlobalPost {{
 		PFN_Builtin func = reinterpret_cast<PFN_Builtin>(fn);
 		if (!func || !GetGlobalInstance())
 		{
-			std::string errorTxt = Organik::GetLogger()->ParseFormatting("DoBuiltin (@ %p), GetGlobalInstance() or func is nullptr.\nGetGlobalInstance(): %p\nOriginal args: %p\nargs.data(): %p", 
+			std::string errorTxt = GetLogger()->ParseFormatting("DoBuiltin (@ %p), GetGlobalInstance() or func is nullptr.\nGetGlobalInstance(): %p\nOriginal args: %p\nargs.data(): %p", 
 																				(void*)fn,                                              (void*)GetGlobalInstance(),  (void*)&args,   (void*)args.data());
 			
 			Error_Show_Action(errorTxt.c_str(), true, true);
@@ -433,7 +432,7 @@ struct GlobalPost {{
 		PFN_Builtin func = reinterpret_cast<PFN_Builtin>((PVOID)fn);
 		if (!func || !GetGlobalInstance())
 		{
-			std::string errorTxt = Organik::GetLogger()->ParseFormatting("DoBuiltin (@ %p), GetGlobalInstance() or func is nullptr.\nGetGlobalInstance(): %p\nOriginal args: %p\nargs.data(): %p", 
+			std::string errorTxt = GetLogger()->ParseFormatting("DoBuiltin (@ %p), GetGlobalInstance() or func is nullptr.\nGetGlobalInstance(): %p\nOriginal args: %p\nargs.data(): %p", 
 																				(void*)fn,                                              (void*)GetGlobalInstance(),  (void*)&args,   (void*)args.data());
 			
 			Error_Show_Action(errorTxt.c_str(), true, true);

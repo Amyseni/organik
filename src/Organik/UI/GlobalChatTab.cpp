@@ -51,7 +51,7 @@ namespace Organik {
         Message* msg = new Message(color, name, message);
         messages.push_back(msg);
         lock.unlock();
-        double soundID = static_cast<double>(DoBuiltin(gml_asset_get_index, {RValue("sound_chat_message")}).ToInt32());
+        double soundID = static_cast<double>(DoBuiltin(&gml_asset_get_index, {RValue("sound_chat_message")}).ToInt32());
         DoBuiltin(&gml_audio_play_sound, {
             RValue(soundID), 
             RValue(18), // ???

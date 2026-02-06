@@ -1,5 +1,4 @@
 #include "Synthetik.h"
-#include "zhl.h"
 #include <unordered_map>
 #include "InstanceHelper.h"
 #include "VariableHelper.h"
@@ -53,7 +52,7 @@ void Organik::DoHelperSetup()
     Organik::Variables::HashToVariableMap.reserve(variableCount);
     Organik::Variables::varToIndexMap.reserve(variableCount);
     Organik::Variables::Hashes.reserve(variableCount);
-    Organik::GetLogger()->LogSimple("Setting up helper definitions...");
+    GetLogger()->LogSimple("Setting up helper definitions...");
     for (int i=0;i<variableCount;i++)
     {
         int32_t hash = Code_Variable_FindAlloc_Slot_From_Name(
@@ -65,7 +64,7 @@ void Organik::DoHelperSetup()
         Organik::Variables::Hashes[i] = hash;
         Organik::Variables::HashToVariableMap.insert_or_assign(hash, reinterpret_cast<const char*>(Organik::Variables::VariableNamesArr[i]));
     }
-    Organik::GetLogger()->LogSimple("Setting up object indexes...");
+    GetLogger()->LogSimple("Setting up object indexes...");
     for (int i=0;i<objectCount;i++)
     {
         RValue r = DoBuiltin(&gml_asset_get_index, { RValue(Organik::Objects::ObjectNamesArr[i]) });
@@ -75,8 +74,8 @@ void Organik::DoHelperSetup()
             iVal
         );
     }
-    Organik::GetLogger()->LogSimple("Object indexes initialized.");
-    Organik::GetLogger()->LogSimple("Setting up sound indexes...");
+    GetLogger()->LogSimple("Object indexes initialized.");
+    GetLogger()->LogSimple("Setting up sound indexes...");
     for (int i=0;i<soundCount;i++)
     {
         RValue r = DoBuiltin(&gml_asset_get_index, { RValue(Organik::Sounds::SoundNamesArr[i]) });
@@ -86,8 +85,8 @@ void Organik::DoHelperSetup()
             iVal
         );
     }
-    Organik::GetLogger()->LogSimple("Sound indexes initialized.");
-    Organik::GetLogger()->LogSimple("Setting up room indexes...");
+    GetLogger()->LogSimple("Sound indexes initialized.");
+    GetLogger()->LogSimple("Setting up room indexes...");
 
     for (int i=0;i<roomCount;i++)
     {
@@ -98,8 +97,8 @@ void Organik::DoHelperSetup()
             iVal
         );
     }
-    Organik::GetLogger()->LogSimple("Room indexes initialized.");
-    Organik::GetLogger()->LogSimple("Helper definitions set up successfully.");
+    GetLogger()->LogSimple("Room indexes initialized.");
+    GetLogger()->LogSimple("Helper definitions set up successfully.");
     #ifndef OBJ_HASH
     #define OBJ_HASH(obj) Organik::Objects::ObjIndexes[Organik::Objects::##obj]
     #endif
@@ -244,7 +243,7 @@ void Organik::DoHelperSetup()
         OBJ_HASH(obj_bullet_laser_beam_item),
     };
     
-    Organik::GetLogger()->LogFormatted("%s, %d: %s",
+    Log("%s, %d: %s",
         __FILE__, __LINE__, "Initializing Variable Definitions..."
     );
     auto* test1 = VariableDefHelper::Get();
@@ -252,11 +251,11 @@ void Organik::DoHelperSetup()
     test1->Load();
     auto test2 = VariableDefHelper::Get()->IsLoaded();
     auto test3 = VariableDefHelper::Get()->GetVariableDefinitions()->size();
-    Organik::GetLogger()->LogFormatted("%s, %d: %s",
+    Log("%s, %d: %s",
         test2 ? "Variable Definitions Initialized" : "Variable Definitions Not Initialized", test3, "Checking Variable Definitions"
     );
-    Organik::GetLogger()->LogFormatted("%s, %d: %s",
+    Log("%s, %d: %s",
         test1->m_DefFilePath.generic_string().c_str(), test1->GetVarDefForID(VAR_HASH(bulletdamagemodifier2)).m_ID, "Variable Definitions Checked"
     );
-    ZHL::Done(true);
+    Arkitekt::Done(true);
 } 

@@ -19,7 +19,6 @@
 #include <filesystem>
 #include <Windows.h>
 #include "Organik/UI/UIManager.h"
-#include "zhl.h"
 #define OUR_OWN_FUNCTIONS_CALLEE_DOES_CLEANUP 1
 #define PTR_PRINT_F "0x%08" PRIxPTR
 #define POINTER_BYTES 4
@@ -58,7 +57,7 @@ bool ZHL::Init()
 		MessageBoxA(0, FunctionHook_private::GetLastError(), "Error", MB_ICONERROR);
 		ExitProcess(1);
 	}
-	Organik::GetLogger()->InitLogging();
+	GetLogger()->InitLogging();
 	return initialized;
 }
 
@@ -194,8 +193,8 @@ int VariableDefinition::Load()
         memcpy(_outVar, m.address, m.length);
     else
         *(void**)_outVar = (void*)m.address;
-
-	std::cout << "Found value for " << _name << ": @" << _outVar << ", dist " << std::to_string(sig.GetDistance());
+	static auto moduleBase = (uintptr_t) GetModuleHandleA(nullptr);
+	Log("Found value for %s @ %p with distance %08x",  _name, (uintptr_t) _outVar -moduleBase, sig.GetDistance());
 
 	return 1;
 }
@@ -243,6 +242,8 @@ int NoOpDefinition::Load()
 FunctionDefinition::FunctionDefinition(const char *name, const std::type_info &type, const char* sig, const short *argdata, int nArgs, unsigned int flags, void **outfunc):
 	_sig(sig),
 	_argdata(argdata),
+	type_name(type.name()),
+	type_name_raw(type.raw_name()),	
 	_nArgs(nArgs),
 	_flags(flags),
 	_outFunc(outfunc)
@@ -259,6 +260,8 @@ FunctionDefinition::FunctionDefinition(const char *name, const std::type_info &t
 FunctionDefinition::FunctionDefinition(const char *name, const std::type_info &type, void* addr, const short *argdata, int nArgs, unsigned int flags, void **outfunc):
 	_address(addr),
 	_argdata(argdata),
+	type_name(type.name()),
+	type_name_raw(type.raw_name()),	
 	_nArgs(nArgs),
 	_flags(flags),
 	_outFunc(outfunc)
@@ -274,6 +277,7 @@ FunctionDefinition::FunctionDefinition(const char *name, const std::type_info &t
 
 int FunctionDefinition::Load()
 {
+	static uintptr_t moduleBase=(uintptr_t)GetModuleHandleA(nullptr);
 	if (_address)
 	{
 		std::cout << "Function " << _name << " has predefined address: " << std::hex << _address << std::dec << std::endl;
@@ -290,6 +294,8 @@ int FunctionDefinition::Load()
 	}
 
 	_address = sig.GetAddress<void*>();
+	
+	Log("%s|%s|%p\n", this->_name , this->type_name.data() , (void*)((uintptr_t) sig.GetAddress<void*>() - moduleBase));
 	*_outFunc = _address;
 	std::cout << "Found address for " << _name  << " @ " << std::hex << _address << " after " << std::dec << sig.GetDistance() << " bytes" << std::endl;
 

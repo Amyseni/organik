@@ -6,7 +6,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
-#include "zhl.h" 
+ 
 static int32_t packetsToHandleDSList = 0;
 static bool chatExists = false;
 HOOK_EVENT(obj_chat_parent, EVENT_CREATE, 0)
@@ -31,17 +31,17 @@ bool ChatParentCreate(CInstance* self, CInstance* other, YYObjectBase* Result)
 HOOK_EVENT(obj_net_chat, EVENT_CREATE, 0)
 {
     if (ImGui::GetCurrentContext())
-        GetLogger()->LogFormatted("%s: net_chat_Create called", __FILE__);
+        Log("%s: net_chat_Create called", __FILE__);
     
     super(self, other);
 
     if (self)
     {
-        GetLogger()->LogFormatted("Creating PartyChatTab with instance ID: %d", self->m_ID);
+        Log("Creating PartyChatTab with instance ID: %d", self->m_ID);
         pcTab = new PartyChatTab(self->m_ID);
-        GetLogger()->LogFormatted("PartyChatTab created successfully");
+        Log("PartyChatTab created successfully");
         ChatBox::GetInstance()->AddTab(pcTab);
-        GetLogger()->LogFormatted("PartyChatTab added to ChatBox");
+        Log("PartyChatTab added to ChatBox");
         RValue* show = self->InternalReadYYVar(VAR_HASH(show));
         if (show)
             *show = RValue(false);
@@ -52,7 +52,7 @@ HOOK_EVENT(obj_net_chat, EVENT_CREATE, 0)
 HOOK_EVENT(obj_net_global_chat, EVENT_CREATE, 0)
 {
     if (ImGui::GetCurrentContext())
-        GetLogger()->LogFormatted("%s: global_chat_Create called", __FILE__);
+        Log("%s: global_chat_Create called", __FILE__);
     super(self, other);
     if (self)
     {
@@ -85,7 +85,7 @@ HOOK_GLOBAL(gml_Script_scr_send_MS_packet, (CInstance* self, CInstance* other, R
         return Result; // No packetsToHandle list found
     }
     packetsToHandleDSList = static_cast<int32_t>(listID->ToDouble());
-    Organik::GetLogger()->LogFormatted("Packets to handle DS list set to: %d", packetsToHandleDSList);
+    Log("Packets to handle DS list set to: %d", packetsToHandleDSList);
     return Result;
 }
 void ChatAddHooks()
@@ -104,14 +104,14 @@ HOOK_SCRIPT(scr_add_chat_entry)
     ChatBox* chatBox = ChatBox::GetInstance();
     if (!chatBox)
         return Result;
-//    Organik::GetLogger()->LogFormatted("%s(%s): #%d", __FILE__, __FUNCTION__, __LINE__);
+//    Log("%s(%s): #%d", __FILE__, __FUNCTION__, __LINE__);
 
     // Get the sender's name from the arguments
     std::string senderName = (Arguments[1])->ToString();
     // Get the message from the arguments
     std::string message = (Arguments[2])->ToString();
     int32_t icon = 0;
-//    Organik::GetLogger()->LogFormatted("%s(%s): #%d", __FILE__, __FUNCTION__, __LINE__);
+//    Log("%s(%s): #%d", __FILE__, __FUNCTION__, __LINE__);
 
     if (ArgumentCount > 3)
     {

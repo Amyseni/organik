@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl.h"
+
 #include <unordered_map>
 
  
@@ -42,5 +42,5 @@ HOOK_METHOD(CRoom, UpdateActive, (void) -> void)
     m_RunRoom = this;
     if (!Organik::Utils::isInitializationDone())
         return;
-//     Organik::GetLogger()->LogFormatted("Updated active instances in the room. Total count: %d", m_Active.m_Count);
+//     Log("Updated active instances in the room. Total count: %d", m_Active.m_Count);
 }

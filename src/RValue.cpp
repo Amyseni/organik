@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl.h"
+
 #include "Globals.h"
 #include "Action.h"
 #include "DefinitionHelpers/VariableHelper.h"
@@ -22,8 +22,7 @@
 #define ARRAY_OFFSET 0x6c
 const char* RValue::GetKindName() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::GetKindName called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::GetKindName: m_Kind=%d", this->m_Kind);
+	
 	switch (this->m_Kind & MASK_KIND_RVALUE) {
 	case 0:
 		return "number";
@@ -187,8 +186,7 @@ bool RValue::ContainsValue(int32_t idx) const
 
 double RValue::ToDouble() const
 {
-	//Organik::GetLogger()->LogFormatted("RValue::ToDouble called for RValue at %p", this);
-	//Organik::GetLogger()->LogFormatted("RValue::ToDouble: m_Real=%f", this->m_Real);
+	
 	if (m_Kind == VALUE_REAL)
 	{
 		const double* d_Rv = reinterpret_cast<const double*>(std::launder(&this->m_Real));
@@ -199,8 +197,7 @@ double RValue::ToDouble() const
 
 int32_t RValue::ToInt32() const
 {
-//Organik::GetLogger()->LogFormatted("RValue::ToInt32 called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::ToInt32: m_i32=%d", this->m_i32);
+	
 
 	if (m_Kind == VALUE_INT32 || m_Kind == VALUE_INT64 || m_Kind == VALUE_REAL)
 	{
@@ -283,8 +280,8 @@ std::vector<RValue*> RValue::ToRefVector()
 
 int32_t RValue::GetArrayLength() const
 {
-	// Organik::GetLogger()->LogFormatted("RValue::GetArrayLength called for RValue at %p", this);
-	// Organik::GetLogger()->LogFormatted("RValue::GetArrayLength: m_RefArray->length=%d", this->m_RefArray->length);
+	// Log("RValue::GetArrayLength called for RValue at %p", this);
+	// Log("RValue::GetArrayLength: m_RefArray->length=%d", this->m_RefArray->length);
 	if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) {
 		Error_Show_Action(
 			GetLogger()->ParseFormatting("RValue::GetArrayLength: Expected VALUE_ARRAY, got %s", GetKindName()).c_str(), 
@@ -298,8 +295,6 @@ int32_t RValue::GetArrayLength() const
 
 int32_t RValue::GetArrayLength()
 {
-	//Organik::GetLogger()->LogFormatted("RValue::GetArrayLength called for RValue at %p", this);
-	//Organik::GetLogger()->LogFormatted("RValue::GetArrayLength: m_RefArray->length=%d", this->m_RefArray->length);
 	if ((m_Kind & MASK_KIND_RVALUE) != VALUE_ARRAY) {
 		Error_Show_Action(
 			GetLogger()->ParseFormatting("RValue::GetArrayLength: Expected VALUE_ARRAY, got %s", GetKindName()).c_str(), 
@@ -319,7 +314,7 @@ int32_t RValue::GetArrayLength()
 	// 		true, true
 	// 	);
 	// }
-	// Organik::GetLogger()->LogFormatted("RValue::GetArrayLength (the \"correct way\"): %d", length.ToInt32);
+	// Log("RValue::GetArrayLength (the \"correct way\"): %d", length.ToInt32);
 	// return len;
 }
 
@@ -332,36 +327,10 @@ RValue* RValue::ToArray()
 
 void* RValue::ToPointer() const
 {
-	// Organik::GetLogger()->LogFormatted("RValue::ToPointer called for RValue at %p", this);
-	// Organik::GetLogger()->LogFormatted("RValue::ToPointer: m_Pointer=%p", this->m_Pointer);
+	// Log("RValue::ToPointer called for RValue at %p", this);
+	// Log("RValue::ToPointer: m_Pointer=%p", this->m_Pointer);
 	const PVOID* d_Ptr = reinterpret_cast<const PVOID*>(std::launder(&this->m_Pointer));
 	return *d_Ptr;
-}
-RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> RValue::ToActionPair() const
-{
-	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, ((char*)&this->m_Pointer) + 4);
-	const PFN_ACTIONHANDLER* d_Ptr = reinterpret_cast<const PFN_ACTIONHANDLER*>(std::launder(&this->m_Pointer));
-	const YYObjectBase* d_Ptr2 = reinterpret_cast<const YYObjectBase*>(std::launder(((char*)&this->m_Pointer) + 4));
-	return RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>{*d_Ptr, const_cast<YYObjectBase*>(d_Ptr2)};
-}
-RValuePair<PFN_ACTIONHANDLER, YYObjectBase*> RValue::ToActionPair()
-{
-	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, ((char*)&this->m_Pointer) + 4);
-	PFN_ACTIONHANDLER const* d_Ptr = reinterpret_cast<PFN_ACTIONHANDLER const*>(std::launder(&this->m_Pointer));
-	YYObjectBase* const* d_Ptr2 = reinterpret_cast<YYObjectBase* const*>(std::launder(((char*)&this->m_Pointer) + 4));
-	return RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>{*d_Ptr, const_cast<YYObjectBase*>(*d_Ptr2)};
-}
-const RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& RValue::ToRefActionPair() const
-{
-	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, &this->m_i64);
-	const RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& d_Ptr = *reinterpret_cast<const RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>*>(std::launder(&this->m_i64));
-	return d_Ptr;
-}
-RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& RValue::ToRefActionPair()
-{
-	GetLogger()->LogFormatted("RValue::ToActionPair %p, %p", &this->m_Pointer, &this->m_i64);
-	RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>& d_Ptr = *reinterpret_cast<RValuePair<PFN_ACTIONHANDLER, YYObjectBase*>*>(std::launder(&this->m_i64));
-	return d_Ptr;
 }
 
 RValue& RValue::push_back(const RValue& value)
@@ -377,7 +346,7 @@ RValue& RValue::push_back(const RValue& value)
 		*reinterpret_cast<RefDynamicArrayOfRValue* const*>(std::launder(&this->m_RefArray));
 
 	arrayRef->m_Length += 1;
-	YYArrayResize(&arrayRef->m_Array, (arrayRef->m_Length) << 4, __FILE__, 0x4a7);
+	YYArrayResize((void**) &arrayRef->m_Array, (arrayRef->m_Length) << 4, __FILE__, 0x4a7);
 
 	COPY_RValue(
 		&arrayRef->m_Array[arrayRef->m_Length - 1],
@@ -409,8 +378,7 @@ std::vector<RValue> RValue::ToVector()
 
 RValue::RValue()
 {
-//Organik::GetLogger()->LogFormatted("RValue::RValue() called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::RValue: m_Kind=%d", this->m_Kind);
+	
 	*std::launder(&this->m_Real) = 0;
 	this->m_Flags = 0;
 	this->m_Kind = VALUE_UNDEFINED;
@@ -420,8 +388,7 @@ RValue::RValue()
 
 RValue::RValue(const std::vector<RValue>& Values)
 {
-// 	Organik::GetLogger()->LogFormatted("RValue::RValue(const std::vector<RValue>& Values) called for RValue at %p", this);
-// 	Organik::GetLogger()->LogFormatted("RValue::RValue: Values.size()=%zu", Values.size());
+	
 	// Initialize to undefined
 	*reinterpret_cast<RValue*>(std::launder(this)) = RValue();
 
@@ -450,8 +417,7 @@ RValue::RValue(const std::vector<RValue>& Values)
 
 RValue::RValue(std::string_view Value)
 {
-//Organik::GetLogger()->LogFormatted("RValue::RValue(std::string_view Value) called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::RValue: Value=%s", Value.data());
+	
 
 	// Initialize it to just empty stuff
 	FREE_RValue(this);
@@ -463,8 +429,7 @@ RValue::RValue(std::string_view Value)
 
 RValue::RValue(bool Value)
 {
-//Organik::GetLogger()->LogFormatted("RValue::RValue(bool Value) called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::RValue: Value=%d", Value);
+	
 	FREE_RValue(this);
 
 	*reinterpret_cast<int64_t*>(std::launder(&this->m_i64)) = static_cast<int64_t>(Value);
@@ -474,10 +439,9 @@ RValue::RValue(bool Value)
 
 RValue::RValue(const RValue& Other)
 {
-//Organik::GetLogger()->LogFormatted("RValue::RValue(const RValue& Other) called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::RValue: Other.m_Kind=%d", Other.m_Kind);
+	
 	FREE_RValue(this);
-	////Organik::GetLogger()->LogFormatted("setting value of %p to %s: %lld", this, GetKindName(), Other.ToInt64());
+	
 
 	COPY_RValue(
 		this,
@@ -494,8 +458,6 @@ RValue::RValue(const RValue& Other)
 
 RValue& RValue::operator=(const std::vector<RValue>& Values)
 {
-//Organik::GetLogger()->LogFormatted("RValue::operator= called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("RValue::operator=: Other.m_Kind=%d", Other.m_Kind);
 	FREE_RValue(this);
 	this->m_Kind = VALUE_ARRAY;
 	this->m_Flags = 0;
@@ -506,7 +468,6 @@ RValue& RValue::operator=(const std::vector<RValue>& Values)
 		static_cast<int>(Values.size()),
 		dummy_array.data()
 	);
-
 	for (size_t index = 0; index < Values.size(); index++)
 	{
 		COPY_RValue(
@@ -528,10 +489,10 @@ RValue& RValue::back()
 }
 // RValue& RValue::operator=(Action* actionPointer)
 // {
-// //Organik::GetLogger()->LogFormatted("RValue::operator= called for RValue at %p", this);
-// //Organik::GetLogger()->LogFormatted("RValue::operator=: Other.m_Kind=%d", Other.m_Kind);
+// Log("RValue::operator= called for RValue at %p", this);
+// Log("RValue::operator=: Other.m_Kind=%d", Other.m_Kind);
 // 	FREE_RValue(this);
-// 	////Organik::GetLogger()->LogFormatted("setting value of %p to %s: %lld", this, GetKindName(), Other.ToInt64());
+// 	Log("setting value of %p to %s: %lld", this, GetKindName(), Other.ToInt64());
 // 	memcpy(this, actionPointer, sizeof(RValue));
 // 	this->m_Kind = static_cast<RValueType>(VALUE_ACTION);
 // 	return *this;
@@ -609,7 +570,7 @@ RValue::RValue(const std::unordered_map<int32_t, RValue>& Values)
 
 RValue& RValue::operator[](size_t Index)
 {
-// 	Organik::GetLogger()->LogFormatted("RValue::operator[] called for RValue at %p, Index=%zu", this, Index);
+// 	Log("RValue::operator[] called for RValue at %p, Index=%zu", this, Index);
 	
 	if (!((this->m_Kind & MASK_KIND_RVALUE) == VALUE_ARRAY))
 		Error_Show_Action(
@@ -636,7 +597,7 @@ RValue& RValue::operator[](size_t Index)
 }
 RValue& RValue::operator[](RValue Index)
 {
-// 	Organik::GetLogger()->LogFormatted("RValue::operator[] called for RValue at %p, Index=%d", this, idx);
+// 	Log("RValue::operator[] called for RValue at %p, Index=%d", this, idx);
 	size_t idx = parseRValueNumber<size_t>(Index);
 	switch(Index.m_Kind & MASK_KIND_RVALUE) {
 		case VALUE_ARRAY:
@@ -657,7 +618,7 @@ RValue& RValue::operator[](RValue Index)
 // RValue RValue::operator[](RValue Index) const
 // {
 // 	int32_t idx = parseRValueNumber<int32_t>(Index);
-// // 	Organik::GetLogger()->LogFormatted("RValue::operator[] called for RValue at %p, Index=%d", this, idx);
+// // 	Log("RValue::operator[] called for RValue at %p, Index=%d", this, idx);
 
 // 	switch(m_Kind & MASK_KIND_RVALUE) {
 // 		case VALUE_ARRAY:
@@ -708,14 +669,7 @@ RValue& ReadStructValue(RValue* p_Struct, RValue index)
 }
 void RValue::__Free()
 {
-//Organik::GetLogger()->LogFormatted("RValue::__Free called for RValue at %p", this);
 	if (this == nullptr) return;
-//Organik::GetLogger()->LogFormatted("RValue::__Free: m_Kind=%d", this->m_Kind);
-//Organik::GetLogger()->LogFormatted("__Free called for RValue at %p", this);
-//Organik::GetLogger()->LogFormatted("__Free: Checking if RValue is undefined");
-	//if (this->m_Kind == VALUE_UNDEFINED) return;
-//Organik::GetLogger()->LogFormatted("__Free: Freeing RValue of kind %s at %p", this->GetKindName(), this);
 	FREE_RValue(reinterpret_cast<RValue*>(std::launder(this)));
 	this->m_Kind = VALUE_UNDEFINED;
-//Organik::GetLogger()->LogFormatted("__Free: Freed");
 }

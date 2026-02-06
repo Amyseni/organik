@@ -88,7 +88,7 @@ std::unordered_map<int32_t, CInstance*>* GetGlobalInstances()
 }
 void Variant::Apply(CInstance* instance, int variant, int sClass, int subclass, int subclassLevel)
 {
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
     if (!instance)
    	return;
         CInstance* statsObj = CInstance::FirstOrDefault([](CInstance* ci) -> bool {
@@ -96,7 +96,7 @@ void Variant::Apply(CInstance* instance, int variant, int sClass, int subclass, 
     });
     if (!statsObj)
         return;
-	GetLogger()->LogFormatted("Applying variant %d to instance %d (class %d, subclass %d, subclass level %d)", variant, instance->m_ID, sClass, subclass, subclassLevel);
+	Log("Applying variant %d to instance %d (class %d, subclass %d, subclass level %d)", variant, instance->m_ID, sClass, subclass, subclassLevel);
     RValue* weaponvarianticon = instance->InternalGetYYVarRef(VAR_HASH(weaponvarianticon));
     if ((weaponvarianticon->GetKind() & MASK_KIND_RVALUE)== VALUE_UNDEFINED)
         *weaponvarianticon = RValue(-1.0);
@@ -183,7 +183,7 @@ void Variant::Apply(CInstance* instance, int variant, int sClass, int subclass, 
     std::vector<RValue*> args;
     std::unordered_map<int32_t, double> statIncreases;
     std::unordered_map<int32_t, double> statMultipliers;
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
 
     doLocalizationScriptAlt(localizationText, arg1, localizationArgs, variantmanufacturer, "@1", "ORGANIK");
     std::string variantDesc = "ORGANIK\n";
@@ -191,7 +191,7 @@ void Variant::Apply(CInstance* instance, int variant, int sClass, int subclass, 
     {
         Variant userVariant = (*getUserVariants())[variant];
         // Organik::ActionRegistry::GetInstance()->ActivateActionsForVariant(variant, instance);
-        // Organik::GetLogger()->LogFormatted("Activated triggers for user variant '%s' on instance %d", 
+        // Log("Activated triggers for user variant '%s' on instance %d", 
         //     userVariant.name.c_str(), instance->m_ID);
         doLocalizationScriptAlt(localizationText, arg1, localizationArgs, weaponvariantname, "@1", userVariant.name.c_str());
         doLocalizationScriptAlt(arg2, arg1, localizationArgs, weaponvariantnameshort, "@1", userVariant.name.substr(0, 5).c_str());
@@ -239,7 +239,7 @@ void Variant::Apply(CInstance* instance, int variant, int sClass, int subclass, 
         }
     }
 
-	GetLogger()->LogFormatted("%s -- %d", __FUNCTION__, __LINE__);
+	Log("%s -- %d", __FUNCTION__, __LINE__);
     std::string variant_text;
     for (const auto& [statHash, increase] : statIncreases)
     {

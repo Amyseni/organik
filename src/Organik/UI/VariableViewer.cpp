@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl.h"
+
 #include "DefinitionHelpers/InstanceHelper.h"
 #include "VariableHelper.h"
 #include "VariableViewer.h"
@@ -13,7 +13,6 @@
 #include "imgui/imgui_stdlib.h"
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_internal.h"
-#include "Logging.h"
 #include "imgui/imgui_impl_dx11.h"
 
 struct ActionVar;
@@ -367,7 +366,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                         int32_t subcode = key & 0xFFFFFFFF;
                         ImGui::SetItemTooltip("Click for details");
                         ImGui::SameLine(0,0);
-                        ImGui::Text("%s", eventSpecificName(code, subcode).c_str());
+                        ImGui::Text("%s", "CRINGE");
                         ImGui::TableNextColumn();
 
                         ImGui::Text("%s", Object_Data(value->m_OwnerObjectID)->m_Name);
@@ -391,7 +390,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                                     ? (Object_Data(value->m_OwnerObjectID)->m_Name 
                                     ? Object_Data(value->m_OwnerObjectID)->m_Name : "<no_name>") : "<no_object>");
                             ImGui::Text("Event Code: (%d, %d)", code, subcode);
-                            ImGui::Text("Event Name: %s", eventSpecificName(code, subcode).c_str());
+                            ImGui::Text("Event Name: %s", "CRINGE");
 
                             if (value->m_Code)
                             {
@@ -868,7 +867,7 @@ void InstanceVariableViewer::DisplayEditDetailsPopup()
 }
 void InstanceVariableViewer::DrawInner()
 {
-//     Organik::GetLogger()->LogFormatted("DrawInner: Starting");
+//     Log("DrawInner: Starting");
     static std::regex pattern("", std::regex_constants::match_continuous | std::regex_constants::icase | std::regex_constants::optimize);
     static CInstance* viewingInstance = nullptr;
 

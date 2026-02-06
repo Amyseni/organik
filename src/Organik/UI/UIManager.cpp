@@ -1,6 +1,6 @@
 #include "Synthetik.h"
 
-#include "zhl.h"
+
 #include "UIManager.h"
 #include "MainMenu.h"
 #include "ChatBox.h"
@@ -110,10 +110,10 @@ namespace Organik
 
 bool doImGuiInit(ID3D11Device* d3d11device, ID3D11DeviceContext* d3d11context)
 {
-//     Organik::GetLogger()->LogFormatted("Initializing ImGui... (d3d pointers): %p, %p ", d3d11device, d3d11context);
+//     Log("Initializing ImGui... (d3d pointers): %p, %p ", d3d11device, d3d11context);
     if (!d3d11device || !d3d11context)
     {
-//         Organik::GetLogger()->LogSimple("D3D11 device or context is not set.");
+//         GetLogger()->LogSimple("D3D11 device or context is not set.");
         return false;
     }
     if (!(Organik::UIManager::isImGuiInitialized()))
@@ -134,7 +134,7 @@ bool doImGuiInit(ID3D11Device* d3d11device, ID3D11DeviceContext* d3d11context)
         Organik::UIManager::isImGuiInitialized(true);
         
         // t.detach();
-//         Organik::GetLogger()->LogSimple("ImGui setup context grabbed successfully");
+//         GetLogger()->LogSimple("ImGui setup context grabbed successfully");
         // UIManager::GetInstance()->SetConsoleFont(ImGui::GetIO().Fonts->AddFontFromFileTTF("./Inconsolata.ttf", 16.0f));
 
     }
@@ -178,20 +178,20 @@ HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
         {
 
             frameCount++;
-//             Organik::GetLogger()->LogFormatted("Waiting for ImGui to be initialized. Frame count: %d", frameCount);
+//             Log("Waiting for ImGui to be initialized. Frame count: %d", frameCount);
             return super(present);
         }
-//         Organik::GetLogger()->LogSimple("Waiting for context to be ready...");
-//         Organik::GetLogger()->LogSimple("Checking window handle.");
+//         GetLogger()->LogSimple("Waiting for context to be ready...");
+//         GetLogger()->LogSimple("Checking window handle.");
         static std::mutex installMutex; 
         std::unique_lock<std::mutex> lock(installMutex); Organik::UIManager::g_hWnd = GetWindowHandle();
         if (Organik::UIManager::g_hWnd == NULL)
         {
-//             Organik::GetLogger()->LogSimple("Window handle is NULL, waiting for it to be set.");
+//             GetLogger()->LogSimple("Window handle is NULL, waiting for it to be set.");
             return super(present);
         }
         
-//         Organik::GetLogger()->LogSimple("Window is not minimized.");
+//         GetLogger()->LogSimple("Window is not minimized.");
         RValue infoDSMap = RValue(-4ll); 
         DoBuiltinRef(&gml_os_get_info, infoDSMap, {});
         int infoDSMapID = infoDSMap.ToInt32();
@@ -208,22 +208,22 @@ HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
         ID3D11Device* d3d11device = reinterpret_cast<ID3D11Device*>(d3d11deviceRV.ToPointer());
         ID3D11DeviceContext* d3d11context = reinterpret_cast<ID3D11DeviceContext*>(d3d11contextRV.ToPointer());
         
-//         Organik::GetLogger()->LogFormatted("D3D11 RValues: 0x%p, 0x%p", (d3d11device), (d3d11context));
+//         Log("D3D11 RValues: 0x%p, 0x%p", (d3d11device), (d3d11context));
         if (!d3d11device || !d3d11context)
         {
-// 	        Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
+// 	        Log("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
             Error_Show_Action("D3D device or context is not set in the DS map.", true, true);
         }
-// 	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
+// 	    Log("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         doImGuiInit(d3d11device, d3d11context);
-// 	    Organik::GetLogger()->LogFormatted("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
+// 	    Log("%s:%d --- %s", __FILE__, __LINE__, __FUNCTION__);
         bool ret = super(present);
         return super(present);
     }
     
     if(ImGui::GetCurrentContext() == nullptr)
     {
-//         Organik::GetLogger()->LogSimple("ImGui context is null.");
+//         GetLogger()->LogSimple("ImGui context is null.");
         return super(present);
     }
     if (g_chatOpenCloseDelay)
@@ -235,7 +235,7 @@ HOOK_GLOBAL(GR_D3D_Finish_Frame, (bool present) -> bool)
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     
     bool ret = super(present);
-    GetLogger()->LogFormatted("D3D frame finished. returned %s", (ret ? "true" : "false"));
+    Log("D3D frame finished. returned %s", (ret ? "true" : "false"));
     return ret;
 }
 
@@ -244,13 +244,13 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 static bool isFirstPresent = true;
 HOOK_GLOBAL(WndProc, (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT)
 {
-// 	Organik::GetLogger()->LogFormatted("WndProc called with message: %d", msg);
+// 	Log("WndProc called with message: %d", msg);
     if (!Organik::g_UIManager)
         return super(hWnd, msg, wParam, lParam);
 
     if(ImGui::GetCurrentContext() == nullptr)
     {
-//         Organik::GetLogger()->LogSimple("ImGui context is null.");
+//         GetLogger()->LogSimple("ImGui context is null.");
         return super(hWnd,msg,wParam,lParam);
     }
 

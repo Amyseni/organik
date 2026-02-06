@@ -1,7 +1,6 @@
 #include "Synthetik.h"
 #include "VariableDefHelper.h"
-#include "Globals.h"    
-#include "Logging.h"
+#include "Globals.h"
 #include <unordered_map>
 #include <filesystem>
 #include <fstream>
@@ -91,7 +90,7 @@ bool VariableDefHelper::Init()
         varDef.m_ID = varID;
         varDef.m_DisplayFlags = (VariableDef::DisplayFlags) 0;
         varDef.m_Name = Variables::VariableNamesArr[i];
-        GetLogger()->LogFormatted("VariableDefHelper: Initialized empty definition for varID %d: %s, %s",
+        Log("VariableDefHelper: Initialized empty definition for varID %d: %s, %s",
             varID, varDef.m_Name.c_str(), varDef.m_Description.c_str()
         );
         ::new (&(*variableDefs)[varID]) VariableDef(std::forward<const VariableDef&>(varDef));
@@ -109,7 +108,7 @@ bool VariableDefHelper::Load()
     auto *definitionsMap = GetVariableDefinitions();
     if (!std::filesystem::exists(m_DefFilePath))
     {
-        Error_Show_Action(true, true, "VariableDefHelper: No variable definition file found at %s", m_DefFilePath.string().c_str());
+        Error_Show_Action_Alt(true, true, "VariableDefHelper: No variable definition file found at %s", m_DefFilePath.string().c_str());
         return false;
     }
     
@@ -117,7 +116,7 @@ bool VariableDefHelper::Load()
         std::ifstream inFile(m_DefFilePath.generic_string());
         if (!inFile.is_open())
         {
-            Error_Show_Action(true, true, "VariableDefHelper: Failed to open variable definition file at %s", m_DefFilePath.string().c_str());
+            Error_Show_Action_Alt(true, true, "VariableDefHelper: Failed to open variable definition file at %s", m_DefFilePath.string().c_str());
             return false;
         }
         std::string line;
@@ -132,17 +131,17 @@ bool VariableDefHelper::Load()
     }
 
     if (variableDefObj.m_Kind != VALUE_OBJECT && variableDefObj.m_Kind != VALUE_ARRAY) {
-        GetLogger()->LogFormatted("VariableDefHelper: Failed to parse variable definition file at %s. Expected %s, got %s", m_DefFilePath.string().c_str()
+        Log("VariableDefHelper: Failed to parse variable definition file at %s. Expected %s, got %s", m_DefFilePath.string().c_str()
             , "object or array", variableDefObj.GetKindName());
         return false;
     }
 
-    GetLogger()->LogFormatted("VariableDefHelper: Loaded variable definition file. Object result kind: %s.", variableDefObj.GetKindName());
+    Log("VariableDefHelper: Loaded variable definition file. Object result kind: %s.", variableDefObj.GetKindName());
     
     YYObjectBase *defObj = (YYObjectBase*) variableDefObj.ToPointer();
     if (!defObj)
     {
-        GetLogger()->LogFormatted("VariableDefHelper: Failed to parse variable definition file at %s. Expected %s, got %s", m_DefFilePath.string().c_str()
+        Log("VariableDefHelper: Failed to parse variable definition file at %s. Expected %s, got %s", m_DefFilePath.string().c_str()
             , "object", variableDefObj.GetKindName());
         return false;
     }
@@ -157,7 +156,7 @@ bool VariableDefHelper::Load()
 
         if (!varID || !varDefRV || (varDefRV->m_Kind != VALUE_OBJECT))
         {
-            GetLogger()->LogFormatted("VariableDefHelper: Skipping invalid variable definition for varID %d", varID);
+            Log("VariableDefHelper: Skipping invalid variable definition for varID %d", varID);
             continue;
         }
 
@@ -167,27 +166,27 @@ bool VariableDefHelper::Load()
         
         if (!varDefObj)
         {
-            GetLogger()->LogFormatted("VariableDefHelper: Skipping invalid variable definition for varID %d: not an object", varID);
+            Log("VariableDefHelper: Skipping invalid variable definition for varID %d: not an object", varID);
             continue;
         }
-        GetLogger()->LogFormatted("VariableDefHelper: Loaded variable definition for varID %d", varID);
+        Log("VariableDefHelper: Loaded variable definition for varID %d", varID);
         
         varDef.m_ID = varID;
         varDef.m_Name = Code_Variable_Find_Name(nullptr, 5, varID);
-        GetLogger()->LogFormatted("VariableDefHelper: Loaded variable name for varID %d: %s", varID, varDef.m_Name.c_str());
+        Log("VariableDefHelper: Loaded variable name for varID %d: %s", varID, varDef.m_Name.c_str());
         RValue* nameRV = varDefObj->InternalReadYYVar(VAR_HASH(vardisplayname));
         if (nameRV && nameRV->m_Kind == VALUE_STRING)
             varDef.m_Name = nameRV->ToCString();
-        GetLogger()->LogFormatted("VariableDefHelper: Loaded variable name for varID %d: %s", varID, varDef.m_Name.c_str());
+        Log("VariableDefHelper: Loaded variable name for varID %d: %s", varID, varDef.m_Name.c_str());
         RValue* descRV = varDefObj->InternalReadYYVar(VAR_HASH(vardisplaydesc));
         if (descRV && descRV->m_Kind == VALUE_STRING)
             varDef.m_Description = descRV->ToCString();
         RValue* typeRV = varDefObj->InternalReadYYVar(VAR_HASH(vardisplaytype));
-        GetLogger()->LogFormatted("VariableDefHelper: Loaded variable type for varID %d: %s", varID, typeRV ? typeRV->ToCString() : "null");
+        Log("VariableDefHelper: Loaded variable type for varID %d: %s", varID, typeRV ? typeRV->ToCString() : "null");
         RValue* fmtRV = varDefObj->InternalReadYYVar(VAR_HASH(vardisplayformat));
-        GetLogger()->LogFormatted("VariableDefHelper: Loaded variable format for varID %d: %s", varID, fmtRV ? fmtRV->ToCString() : "null");
+        Log("VariableDefHelper: Loaded variable format for varID %d: %s", varID, fmtRV ? fmtRV->ToCString() : "null");
         RValue* specRV = varDefObj->InternalReadYYVar(VAR_HASH(vardisplayspecial));
-        GetLogger()->LogFormatted("VariableDefHelper: Loaded variable special for varID %d: %s", varID, specRV ? specRV->ToCString() : "null");
+        Log("VariableDefHelper: Loaded variable special for varID %d: %s", varID, specRV ? specRV->ToCString() : "null");
         if (
             (typeRV && typeRV->m_Kind == VALUE_STRING)
             && (fmtRV && fmtRV->m_Kind == VALUE_STRING)
@@ -202,7 +201,7 @@ bool VariableDefHelper::Load()
             const auto& typeMapCache = *gsGetDisplayTypeMap(true);
             if (intType <= 0 || intFmt < 0 || intSpc < 0)
             {
-                GetLogger()->LogFormatted("VariableDefHelper: Skipping invalid variable definition for varID %d: invalid type/format/special (%s:%d, %s:%d, %s:%d)", 
+                Log("VariableDefHelper: Skipping invalid variable definition for varID %d: invalid type/format/special (%s:%d, %s:%d, %s:%d)", 
                         varID,
                         typeRV->ToCString(), intType,
                         fmtRV->ToCString(), intFmt,
@@ -210,21 +209,21 @@ bool VariableDefHelper::Load()
                     );
                 continue;
             }
-            GetLogger()->LogFormatted("VariableDefHelper: Loaded variable type for varID %d: %s", varID, typeRV ? typeRV->ToCString() : "null");
-            GetLogger()->LogFormatted("VariableDefHelper: Loaded variable format for varID %d: %s", varID, fmtRV ? fmtRV->ToCString() : "null");
-            GetLogger()->LogFormatted("VariableDefHelper: Loaded variable special for varID %d: %s", varID, specRV ? specRV->ToCString() : "null");
+            Log("VariableDefHelper: Loaded variable type for varID %d: %s", varID, typeRV ? typeRV->ToCString() : "null");
+            Log("VariableDefHelper: Loaded variable format for varID %d: %s", varID, fmtRV ? fmtRV->ToCString() : "null");
+            Log("VariableDefHelper: Loaded variable special for varID %d: %s", varID, specRV ? specRV->ToCString() : "null");
             if (typeMapCache.size() > 0 && typeMapCache.contains(intType)
                 && typeMapCache.contains(intFmt)
                 && typeMapCache.contains(intSpc))
             {
-                GetLogger()->LogFormatted("VariableDefHelper: Loaded variable definition for varID %d: %s (%s, %s, %s)", 
+                Log("VariableDefHelper: Loaded variable definition for varID %d: %s (%s, %s, %s)", 
                     varID, varDef.m_Name.c_str(), typeRV->ToCString(), fmtRV->ToCString(), specRV->ToCString()
                 );
                 varDef.m_DisplayFlags = (VariableDef::DisplayFlags) (typeMapCache.at(intType) | typeMapCache.at(intFmt) | typeMapCache.at(intSpc));
             }
             else
             {
-                GetLogger()->LogFormatted("VariableDefHelper: Skipping invalid variable definition for varID %d: invalid type/format/special (%s:%d, %s:%d, %s:%d)", 
+                Log("VariableDefHelper: Skipping invalid variable definition for varID %d: invalid type/format/special (%s:%d, %s:%d, %s:%d)", 
                         varID,
                         typeRV->ToCString(), intType,
                         fmtRV->ToCString(), intFmt,
@@ -232,7 +231,7 @@ bool VariableDefHelper::Load()
                     );
                 continue;
             }
-            GetLogger()->LogFormatted("VariableDefHelper: Loaded variable definition for varID %d: %s (%s, %s, %s)", 
+            Log("VariableDefHelper: Loaded variable definition for varID %d: %s (%s, %s, %s)", 
                 varID, varDef.m_Name.c_str(), typeRV->ToCString(), fmtRV->ToCString(), specRV->ToCString()
             );
             
@@ -308,7 +307,7 @@ bool VariableDefHelper::Save()
 {
     for (const auto& [varID, varDef] : *GetVariableDefinitions())
     {
-        GetLogger()->LogFormatted("VariableDefHelper: Saving variable definition for varID %d: %s (%s, 0x%X)", 
+        Log("VariableDefHelper: Saving variable definition for varID %d: %s (%s, 0x%X)", 
             varID, varDef.m_Name.c_str(), varDef.m_Description.c_str(), varDef.m_DisplayFlags
         );
         YYObjectBase* objStruct = (YYObjectBase*) Alloc(sizeof(YYObjectBase), __FILE__, __LINE__, false);

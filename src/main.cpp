@@ -29,11 +29,49 @@
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 #include <chrono>
-#include "zhl.h"
+#include "detours.h"
+constinit static bool FullInit = false;
+void Arkitekt::Done(bool status)
+{
+	FullInit = status;
+}
+bool ZHLDone () {
+	return ImGui::GetCurrentContext();
+}
+const std::string_view& FunctionHook::GetName() const noexcept {
+	return name;
+}
+
+void * FunctionHook::GetAddress() const noexcept {
+	return def->GetAddress();
+}
+
+void FunctionHook::Install ()
+{
+	_detour = new MologieDetours::Detour<void*>(def->GetAddress(), def->GetHook(_hook));
+	*_outInternalSuper = _detour->GetOriginalFunction();
+}
+
+FunctionHook::~FunctionHook()
+{
+	if (_detour)
+		delete _detour;
+};
+
+inline static std::shared_mutex& ArkitektHookMutex() {
+	static std::shared_mutex m;
+	return m;
+}
 
 using namespace Organik;
-using namespace ZHL;
-
+void Arkitekt::Init()
+{
+	for (auto &[key,value] : FunctionHook::GetHookMap())
+	{
+		GetLogger()->LogFormatted("Registering hook %s address %p hook %p",value->GetName(),value->def->GetAddress(), value->_hook);
+		value->Install();
+	}
+}
 HINSTANCE hModule_Dupe = nullptr;
 HMODULE D3D11Dll = nullptr;
 ID3D11Device** gD3DDevice;
@@ -158,7 +196,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
             
             // gamer multithreading. way too early to initialize imgui
             
-            std::thread t(ZHL::Init);
+            std::thread t(Arkitekt::Init);
 			t.detach();
 			std::cout << "Created thread with ID: " << t.get_id() << std::endl;
 		}

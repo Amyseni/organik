@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl.h"
+
 
 #include <unordered_map>
 #include "DefinitionHelpers/InstanceHelper.h"
@@ -26,11 +26,11 @@
 //     super(_x, _y, _id, _objectIndex, _hasObjectParent);
 //     if (_objectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_net_global_chat])
 //     {
-//         Organik::GetLogger()->LogFormatted("GlobalChat Instance created with ID: %d", m_ID);
+//         Log("GlobalChat Instance created with ID: %d", m_ID);
 //     }
 //     if (!this)
 //     {
-//         Organik::GetLogger()->LogSimple("CInstance constructor returned null instance.");
+//         GetLogger()->LogSimple("CInstance constructor returned null instance.");
 //         return;
 //     }
     

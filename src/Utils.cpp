@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl.h"
+
 #include "Organik/UI/UIManager.h"
 #include "windows.h"
 
@@ -135,7 +135,7 @@ std::string Organik::Utils::SendHTTPSPost(
                     
                     if (HttpQueryInfoA(hRequest, HTTP_QUERY_STATUS_CODE, statusCode, &statusCodeSize, &index))
                     {
-//                         GetLogger()->LogFormatted("HTTP Status: %s", statusCode);
+//                         Log("HTTP Status: %s", statusCode);
                     }
                     
                     char szData[1024];
@@ -151,12 +151,12 @@ std::string Organik::Utils::SendHTTPSPost(
                         szData[dwByteRead] = '\0';
                         responseStr += std::string(szData, dwByteRead);
                     }
-//                     GetLogger()->LogFormatted("Response length: %d", responseStr.length());
+//                     Log("Response length: %d", responseStr.length());
                 }
                 else
                 {
                     DWORD error = GetLastError();
-//                     GetLogger()->LogFormatted("HttpSendRequestA failed with error: %d", error);
+//                     Log("HttpSendRequestA failed with error: %d", error);
                 }
                 
                 ::InternetCloseHandle(hRequest);
@@ -213,13 +213,13 @@ HOOK_GLOBAL(Error_Show_Action, (char* message, bool mustCrash, bool manualError)
     MessageBoxA(NULL, formattedMessage.c_str(), manualError ? "Organik Error" : "Synthetik Error", MB_ICONERROR | MB_OK);
     if (mustCrash)
     {
-        Organik::GetLogger()->Cleanup();
+        GetLogger()->Cleanup();
         Organik::UIManager::GetInstance()->Shutdown();
         ExitProcess(1);
     }
     super(message, mustCrash, manualError);
 }
-void Error_Show_Action(bool mustCrash, bool manualError, const char* fmt, ...)
+void Error_Show_Action_Alt(bool mustCrash, bool manualError, const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);

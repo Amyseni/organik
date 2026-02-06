@@ -135,14 +135,14 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                         if (i == 0)
                         {
                             double newPerk = corePerks[(*mt)() % corePerks.size()].ToDouble();
-//                             Organik::GetLogger()->LogFormatted("Setting core perk slot %d to %f", i, newPerk);
+//                             Log("Setting core perk slot %d to %f", i, newPerk);
                             *perk = RValue(newPerk);
                             continue;
                         }
                         if (i == subclassPerkSet.size() - 1)
                         {
                             double newPerk = pistolPerks[(*mt)() % pistolPerks.size()].ToDouble();
-//                             Organik::GetLogger()->LogFormatted("Setting pistol perk slot %d to %f", i, newPerk);
+//                             Log("Setting pistol perk slot %d to %f", i, newPerk);
                             *perk = RValue(newPerk);
                             continue;
                         }
@@ -152,7 +152,7 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
                             continue;
                         }
                         double newPerk = otherPerks[(*mt)() % otherPerks.size()].ToDouble();
-//                         Organik::GetLogger()->LogFormatted("Setting other perk slot %d to %f", i, newPerk);
+//                         Log("Setting other perk slot %d to %f", i, newPerk);
                         *perk = RValue(newPerk);
                     }
                 }
@@ -202,7 +202,7 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
             //         }
                     auto fn = [&] (int32_t objIndex) {
                         RValue result = RValue(-5);
-//                         Organik::GetLogger()->LogFormatted("Calling instance_create (%p) for object index %d", &gml_Script_instance_create, objIndex);
+//                         Log("Calling instance_create (%p) for object index %d", &gml_Script_instance_create, objIndex);
                         RValue posX = RValue(localPlayerObj->m_X);
                         RValue posY = RValue(localPlayerObj->m_Y);
                         RValue objIndexR = RValue(objIndex);
@@ -270,12 +270,12 @@ void MainMenu::Draw(bool& out_mousedOver, bool* p_open, const std::string &title
 
                             if (objControl == nullptr)
                             {
-//                                 GetLogger()->LogFormatted("obj_control instance not found.");
+//                                 Log("obj_control instance not found.");
                                 continue;
                             }
                             if (!isMultiplayer)
                             {
-//                                 GetLogger()->LogFormatted("%d not multiplayer", __LINE__);
+//                                 Log("%d not multiplayer", __LINE__);
                                 return;
 
                             }

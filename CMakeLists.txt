@@ -57,7 +57,6 @@ include_directories("include/imgui")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 add_library(${PROJ_NAME} SHARED 
-	"src/Logging.h"
 	"src/Logging.cpp"
 	"src/Synthetik.h"
 	"include/GameMaker_Defs.h"
@@ -74,8 +73,7 @@ add_library(${PROJ_NAME} SHARED
 	"src/main.cpp"
 	"src/detours.h"
 	"src/PALMemoryProtection.h"
-	"src/SigScan.h"
-	"src/zhl.h"
+#	"src/zhl.h"
 	"src/hde.h"
 	"include/imgui/imgui_demo.cpp"
 	"include/imgui/imgui_draw.cpp"
@@ -111,6 +109,13 @@ add_library(${PROJ_NAME} SHARED
 #	"src/Chat/IRCHandler.h"
 #	"src/Chat/IRCSocket.cpp"
 #	"src/Chat/IRCSocket.h"
+	"include/Arkitekt/Compiler.h"
+	"include/Arkitekt/Compiler.win32.cpp"
+	"include/Arkitekt/Shared.hpp"
+	"include/Arkitekt/SigScan.cpp"
+	"include/Arkitekt/SigScan.h"
+	"include/dynasm/dasm_x86.h"
+	"include/dynasm/dasm_proto.h"
 	"src/Organik/UI/PartyChatTab.h"
 	"src/Organik/UI/GlobalChatTab.h"
 	"src/Organik/UI/PartyChatTab.cpp"
@@ -122,7 +127,6 @@ add_library(${PROJ_NAME} SHARED
 	"src/Organik/UI/MainMenu.h"
 	"src/Organik/UI/MainMenu.cpp"
 	"src/Organik/UI/UIManager.cpp"
-	"src/SigScan.cpp"
 	"src/Globals.h"
 	"src/Globals.cpp"
 	"src/RValueLock.cpp"
@@ -136,7 +140,7 @@ add_library(${PROJ_NAME} SHARED
 	"src/RValue.cpp"
 	"src/Synthetik.cpp"
 	"src/hde.cpp"
-	"src/zhl.cpp"
+#	"src/zhl.cpp"
 	)
 
 set(CMAKE_SHARED_LIBRARY_PREFIX_CXX "")
@@ -230,7 +234,7 @@ target_compile_options(${PROJ_NAME} PRIVATE
     /Zc:wchar_t;            #* enable wchar_t as a built-in type (default, no other options disable this, listed for the sake of completeness of implied flag usage)
 	/Ox;					#* MORE SPEED (implied by /O2)
     /arch:SSE2;             #! use the x86-SSE2 instruction set. (includes floating point opcodes)
-    /Gr;                    #! use __fastcall for all functions except member functions
+    /Gz;                    #! use __fastcall for all functions except member functions
     /Oi-;                   #! disable intrinsic functions because THEY 
 	/Ob2;
     /MD;                    #* use the multithreaded DLL version of the C runtime library (msvcrt.dll)
