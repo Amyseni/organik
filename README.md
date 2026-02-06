@@ -1,5 +1,5 @@
 # How do I get started?
-This will always be [directly on the latest release.](https://github.com/Amyseni/organik/releases/latest) Need help/have a specific issue? [Discord is the place to be](https://discord.gg/KrTA2QkyCx)
+This will always be [directly on the latest release.](https://github.com/Amyseni/organik/releases/latest) Need help/have a specific issue? [Discord is the place to be](https://discord.gg/NX9bSSEq9v)
 
 ## ORGANIK is free and open source
 And always will be. In my opinion, open sourcing even the things you struggle to be proud of is the only way to truly reveal the space that would have been left `void` by your silence.
