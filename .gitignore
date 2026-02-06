@@ -4,7 +4,10 @@
 
 # Docker builds
 build/
-
+build.sh
+setup_cmake.sh
+manifest.json
+1
 # MVSC builds
 x64/
 x86/
