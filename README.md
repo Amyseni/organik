@@ -15,9 +15,10 @@ Money Givers
 
 ### "Big Money, Big Prizes"
 @suny_n - Power Grid Supervisor / "Let's play games" -> waits for me to start the call (true combo) - Direct Donation / PayPal
+@simonsis - "Big Tech"/Electrical Expert/Analyst ~~& secret backroom lover~~ (close friend, the definitive GOAT breacher, supported me since long before day 1) - Patreon
 
 ### Venture Capital / Tooltip Ignorer (Patreon)
-@simonsis - "Big Tech"/Electrical Expert/Analyst - Patreon ~~Simp~~
+TODO: find another @simonis
 
 ### Raider Enjoyer (Patreon)
 TODO: write a snappy one-liner
