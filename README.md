@@ -67,5 +67,5 @@ Truly, **the best way you can support** me/the project is by **sharing with anyo
 
 ### Social Media / Links
 [Patreon - Main Page / Feed](https://www.patreon.com/amyseni)<br>
-[Join Us on Discord - Official Organik Hangout](https://discord.gg/KrTA2QkyCx)<br>
+[Join Us on Discord - Official Organik Hangout](https://discord.amyseni.space/)<br>
 [YouTube - More coming soon here](https://www.youtube.com/@OrganikMod)
