@@ -1,0 +1,209 @@
+#if false
+|.if 1
+||#endif
+|.endif
+
+#include <Arkitekt/Shared.hpp>
+#include <Arkitekt/Compiler.h>
+#include <dynasm/dasm_proto.h>
+#include <dynasm/dasm_x86.h>
+
+|.arch x86
+|.section code
+|.globals lbl_
+|.actionlist compiler_actions
+
+
+
+using namespace Arkitekt;
+
+void Arkitekt::Assembler::EmitHookWrapper(FunctionDefinition* forFunction, void* _targetHook)
+{
+	dasm_State** Dst = &this->dasm;
+	const tCallFlags _callSig = forFunction->GetCallFlags();
+	|.code
+	|.align 0x10            // align for x86
+	|->_func:               // begin function
+	| push ebp              // saving our previous stack frame
+	| mov ebp, esp
+
+	// save edx if it is not needed for our return value
+	if ((_callSig & tCallFlags::_RETVOID) || not(_callSig & tCallFlags::_RETLONGLONG)) 
+	{
+		| push edx
+	}
+	if (_callSig & tCallFlags::_RETVOID) // save eax if it is not storing a return 
+	{
+		| push eax
+	}
+	| push ecx              // commonly clobbered registers
+	| push ebx
+	| push esi
+	| push edi
+	
+	// now the arguments are all out of order, so we push them to their correct locations
+	if (forFunction->GetArgCount() > 0) 
+	{
+		for (int32_t i = forFunction->GetArgCount() - 1;i >= 0;i--)
+		{
+			| push aword [ebp + 8 + (4 * i)]
+		}
+	}
+	if ((_callSig & tCallFlags::_THISCALL))
+	{
+		| push ecx
+	}
+
+	| call aword [_targetHook]     // call the hook (our hooks are all __stdcall so caller will cleanup the stack for us)
+
+	| pop edi                      // as above but in reverse
+	| pop esi
+	| pop ebx
+	| pop ecx
+
+	if ((_callSig & tCallFlags::_RETVOID))
+	{
+		| pop eax
+	}
+
+	if ((_callSig & tCallFlags::_RETVOID) || not(_callSig & tCallFlags::_RETLONGLONG))
+	{
+		| pop edx
+	}
+
+	| mov esp, ebp
+	| pop ebp
+
+	if (not(_callSig & tCallFlags::_CDECL) && (forFunction->GetArgCount() > 0))
+	{
+		| ret sizeof(uintptr_t) * forFunction->GetArgCount()
+	}
+	else
+	{
+		| ret
+	}
+
+}
+
+void Arkitekt::Assembler::EmitSuperWrapper(FunctionDefinition* forFunction, void* _targetSuper)
+{
+	dasm_State** Dst = &this->dasm;
+	const tCallFlags = forFunction->GetCallFlags();
+	|.code
+	|.align 0x10
+	|->_func:
+	| push ebp
+	| mov ebp, esp
+	
+	if ((_callSig & tCallFlags::_RETVOID) || !(_callSig & tCallFlags::_RETLONGLONG))
+	{
+		| push edx
+	}
+	if (_callSig & tCallFlags::_RETVOID)
+	{
+		| push eax
+	}
+
+	| push ecx
+	| push ebx
+	| push esi
+	| push edi
+
+	if (forFunction->GetArgCount() > 0)
+	{
+		for (int32_t i = forFunction->GetArgCount() - 1;i >= 0;i--)
+		{
+			| push aword [ebp + 8 + (4 * i)]
+		}
+	}
+
+	| call aword [_targetSuper]
+
+	if ((_callSig & tCallFlags::_CDECL))
+	{
+		| add esp, [sizeof(uintptr_t) * forFunction->GetArgCount()]
+	}
+
+	| pop edi
+	| pop esi
+	| pop ebx
+	| pop ecx
+
+	if ((_callSig & tCallFlags::_RETVOID))
+	{
+		| pop eax
+	}
+	if ((_callSig & tCallFlags::_RETVOID) || not(_callSig & tCallFlags::_RETLONGLONG))
+	{
+		| pop edx
+	}
+	| mov esp, ebp
+	| pop ebp
+	if (not(_callSig & tCallFlags::_CDECL) && (forFunction->GetArgCount() > 0))
+	{
+		| ret sizeof(uintptr_t) * forFunction->GetArgCount()
+	}	
+	else
+	{
+		| ret
+	}
+}
+
+FnBlock& FnBlock::Create(FnBlock* ptr, const std::string_view& name, void* _mem, size_t _sz, void* _fn, void**& labels)
+{
+	ptr = (FnBlock*) std::_Allocate<alignof(FnBlock)>(sizeof(FnBlock));
+	*ptr = FnBlock(_mem, _sz, _fn, &labels);
+	return *ptr;
+}
+
+Arkitekt::Assembler* Arkitekt::Assembler::Get()
+{
+	static Arkitekt::Assembler C;
+	if (!C._blocks.size()) C.Init();
+	return &C;
+}
+
+FnBlock* Arkitekt::Assembler::FinalizeFunction(const std::string_view& name, void**& _labels)
+{
+	size_t _outSz;
+	dasm_link(&this->dasm, &_outSz);
+	const auto hash = CHashMapCalculateHash(name.data());
+	void* buf;
+#ifdef _WIN32
+	buf = VirtualAlloc(0, _outSz, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+#else
+	buf = mmap(0, _outSz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#endif
+	dasm_encode(&this->dasm, buf);
+#ifdef _WIN32
+	{ DWORD dwOld; VirtualProtect(buf, _outSz, PAGE_EXECUTE_READ, &dwOld); }
+#else
+	mprotect(buf, _outSz, PROT_READ | PROT_EXEC);
+#endif
+	_blocks.emplace(std::pair(hash, (FnBlock*) std::_Allocate<alignof(FnBlock)>(sizeof(FnBlock))));
+	return ::new(_blocks[hash]) FnBlock(buf, _outSz, _labels[lbl__func], &_labels);
+}
+
+void Arkitekt::Assembler::Begin(void*** _labels)
+{
+	void* labels[lbl__MAX];
+	dasm_init(&this->dasm, DASM_MAXSECTION);
+	dasm_setupglobal(&this->dasm, labels, lbl__MAX);
+	*_labels = labels;
+	dasm_setup(&this->dasm, compiler_actions);
+}
+
+void Arkitekt::Assembler::End()
+{
+	dasm_free(&this->dasm);
+}
+
+bool Arkitekt::Assembler::Init()
+{
+	this->_blocks = std::unordered_map<CHashMapHash, FnBlock*>();
+	return true;
+}
+|.if 1
+||#if 0
+|.endif
+#endif
