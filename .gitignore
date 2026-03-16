@@ -8,8 +8,7 @@ build/
 # MVSC builds
 x64/
 x86/
-.vscode
-*.code-workspace
+Direktor.code-workspace
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -23,20 +22,15 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 out/
-
 main.dir/
 Src.dir/
-
+yygml.zhl
 main.sln
-
+Synthetik_bleh.cpp
+Synthetik_bleh.h
 *.vcxproj
 *.vcxproj.filters
 
 # Visual Studio Code settings
 .vscode/
-
-# custom
 clean-and-debug.sh
-Direktor/src/Chat/IRCClient.cpp
-src/Chat/*
-src/UI/IRC*
