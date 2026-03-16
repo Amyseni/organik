@@ -32,6 +32,7 @@ check_and_install_dependency() {
     fi
 }
 
+
 # --- Dependency Checks ---
 echo "--- Checking for required tools ---"
 check_and_install_dependency "md5sum" "coreutils"

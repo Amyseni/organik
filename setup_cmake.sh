@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env zsh
 
 # Default build folder name
 build_folder="build"
@@ -30,7 +30,7 @@ version=$(./scripts/query_manifest.sh version)
 
 # Run CMake inside the build folder
 (
-    cd "$build_folder" || exit 1
+    pushd "$build_folder" || exit 1
 
     CC=cl CXX=cl cmake \
         -DCMAKE_BUILD_TYPE=Release \
@@ -38,11 +38,12 @@ version=$(./scripts/query_manifest.sh version)
         -DPROJ_NAME=$name \
         -DPROJECT_VERSION=$version \
         .. $fresh
-
+    sed -i -e "s@SHELL = /bin/sh@SHELL = /usr/bin/zsh@g;" "$PWD/../build/Makefile"
     # Check the exit code of the CMake command
     if [ $? -eq 0 ]; then
         echo "CMake configuration successful. Build folder: $PWD"
     else
         echo "CMake configuration failed."
     fi
+    popd
 )

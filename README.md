@@ -1,19 +1,9 @@
 # How do I get started?
 This will always be [directly on the latest release.](https://github.com/Amyseni/organik/releases/latest) Need help/have a specific issue? [Discord is the place to be](https://discord.gg/KrTA2QkyCx)
 
-## On Free Software
-Organik is free, open source, and will always be. I have a goal to make a tool which can be used to create a mod for Synthetik *while you play the game, in real time*... As if you were *playing* GameMaker itself. More on that to come.
-
-### Features?
-This mod is ultimately mostly focused on being a tool to enable others to make mods (well, a tool for me to make a mod, but why not share?) Currently, it is the only way you can:
- - add custom variants to SYNTHETIK: Legion Rising
- - spawn items/weapons/enemies/bosses and edit game objects at will
- - use the room teleporter to travel to various unused, beta, and test maps (that you can't even get to with devmode!)
-     - E.G. [MOBA_TEST](https://youtu.be/hjq89etbm0U) or the secret Mars base (both real. don't believe me? Come find out!
- - Play synthetik without existing issues in the base game (Heavy Gunner slowdown bug anyone?)
- - [Turn all the bullets into rockets!](https://youtu.be/MMm5oXy9WLw)
- - Use a custom chat box to talk in party chat AND global chat at the same time! For maximum questionable conversation topics at 3am.
- - Lots more on the way! Including custom Weapons very soon!
+## ORGANIK is free and open source
+And always will be. In my opinion, open sourcing even the things you struggle to be proud of is the only way to truly reveal the space that would have been left `void` by your silence.
+Basically, it's got some quirks but ORGANIK is really cool.
 
 # Credits
 So many people to thank... I really hope I got everyone, but **please** if your name is missing, reach out and let me know. 
@@ -37,26 +27,27 @@ Other Projects / Libraries / Art & Audio / Special Thanks
 *(any code included in any mod version, past or present--including code indirectly based on existing projects. Art, sfx, music--always used with permission. Active/involved community members. Anyone else Organik couldn't exist without). In no particular order.*
 
 ### People
-  - [Kilburn (@FixItVinh)](https://x.com/fixitvinh) (Creator of ZHL/[Antibirth](https://www.antibirth.com/)) - Genius/Brain person, inspired me to be more than I thought possible.
+  - [Kilburn (@FixItVinh)](https://x.com/fixitvinh) (Creator of ZHL/[Antibirth](https://www.antibirth.com/)) - Genius/Brain person, inspired me to be more than I thought possible, and who without meaning to, taught me that doubting your own work is just another thing made easier with greater skill.
   - [Archie](https://github.com/Archie-osu) (Creator of [Aurie](https://github.com/AurieFramework/Aurie) / [YYToolkit](https://github.com/AurieFramework/YYToolkit), oracle of gamemaker secrets/cool person extraordinaire) -- Saved me from an unknowable length of time reverse engineering an entire GameMaker.<br>
-  - @en.ge ( [ART (cara.app) ](https://cara.app/enge) ) - Concept art, Banner art (Patreon, Youtube), idea bouncer, inspirer of things. Did I mention art? Also an artist. A really good one. Like dam.<br>
-  - @NotYourSagittarius ([tweeter](https://x.com/NY_Sagittarius )) - The Mushroom profile-pic/icon art (MushBot). Also just a very cool person (insanely talented)<br>
+  - @en.ge ( [ART (cara.app) ](https://cara.app/enge) ) - Banner art (Patreon, Youtube), Concept art, (actual, serious) idea creator/organizer/filter and backboard, inspirer of the improbable. Did I mention art? Also an artist. A really good one. Like dam.<br>
+  - NotYourSagittarius ([tweeter](https://x.com/NY_Sagittarius )) - The Robo-Mushroom profile-pic/icon art (MushBot). Also just a very cool person (insanely talented)<br>
   - @simonsis (AGAIN??) - The only reason I got good enough at Synthetik to care about modding it.<br>
   - @tactu - Keeping me on track, "that one guy from synthcord from way back when", maybe the person outside myself who cares most deeply about this mod being done "right," and not just "done." (Beau is also in the running)<br>
   - @beauregarde_35490 - "lunatic on-call," known weapon kit enjoyer. Can occasionally be found in a multiplayer lobby. I wonder why we never see him in global chat? I THINK HIS LSHIFT KEY MIGHT BE BROKEN<br>
   - @omnx - ADHD Squirrel/DistractionFactory::Create()/"I bet you could train an LLM to do this" incarnate. Also saved me countless hours of spinning in circles/weeks of potential dev time<br>
 
 ### Projects
-  - LibZHL/LibZHLGen - Created by [Kilburn (@FixItVinh)](https://x.com/FixItVinh/). This is the "Magic Sauce" that sisgscans the game binary in memory and binds and hooks each function as if they existed in my own code.
-  - [Aurie](https://github.com/AurieFramework/Aurie)/[YYToolkit](https://github.com/AurieFramework/YYToolkit) - The rock solid foundation upon which I constructed this rickety 100ft ladder. The basis I've used for all gamemaker structs/types/YYC binary format (this cut at least a year of dev time, probably more).<br>
+  - Aurie/YYToolkit (links above) - The rock solid foundation upon which I constructed this rickety 100ft ladder to nowhere. The GOAT libraries that got me started understanding GameMaker/YYC to where I am now (aka--still clueless). The OG source for all gamemaker structs/types/the YYC binary format used in all my code here. (This saved at least a year of dev time, probably a lot more).<br>
   - [ImGui](https://github.com/ocornut) -- Does what it says on the tin. I don't even want to think about the reality where I kept on with my own GUI "solution" (read: problem)<br>
   - [Tiny Mod Injector](https://github.com/YAL-Game-Tools/TinyModInjector)<br> -- Freed me from the peril of trying to support a launcher .exe / installer package for both Proton AND Windows itself. (effectively saving me from writing TinyModInjector)
-  - [CallbackManagerMod - hooking/callbacks library.](https://github.com/PippleCultist/CallbackManagerMod) -- **The** "it just works" callbacks/hooking package for YYToolkit. Seriously, it just does the thing and that is magical all by itself.<br>
+  - [CallbackManagerMod - hooking/callbacks library.](https://github.com/PippleCultist/CallbackManagerMod) -- **The** "it just works" callbacks/hooking package for YYToolkit and GameMaker games. Seriously, it just does the thing and that is magical all by itself.<br>
       - (and other [PippleCultist](https://github.com/PippleCultist) works (incl. HolocureMultiplayerMod): inspiration and code references.)<br>
-      
+  - LIBARK/LIBARKGen (now Direktor and Komposer) - The "Magic Sauce" that defines, locates, and creates hooks / definitions for detouring or even just calling ANY function. Does raw assembly and/or typedef function trampoline hax to allow defined functions to be called the same way they were originally defined, as well as hooks executing under their *original* context (including `thiscall`, `fastcall`, even `userpurge`).
+     - Created by [Kilburn (@FixItVinh)](https://x.com/FixItVinh/) (see above) for his mod Antibirth (later Repentance). Modified briefly by myself and TheSwiftTiger, then by the [FTL Hyperspace](https://github.com/FTL-Hyperspace/FTL-Hyperspace) team, then back to me as I combined bits from across all of these iterations, hopefully towards a release for GameMaker games specifically and compatibility for doing things the hard way for any game.
+    
 # Licensing
 [Organik - GPL3](https://github.com/Amyseni/organik/blob/master/LICENSE)<br>
-[LibZHL,LibZHLGen - MIT](https://github.com/Amyseni/organik/blob/AmyDev/LICENSE-LibZHL) -- **Any future use** must be attributed to [Kilburn (@FixItVinh)](https://x.com/FixItVinh/) -- See above. 'Nuff said. <br>
+[LIBARK,LIBARKGen,Direktor,Komposer - MIT](https://github.com/Amyseni/organik/blob/AmyDev/LICENSE-LIBARK) -- **Any future use** must be attributed to [Kilburn (@FixItVinh)](https://x.com/FixItVinh/) -- See above. 'Nuff said. <br>
 [YYToolKit - AGPL3](https://github.com/AurieFramework/YYToolkit/blob/stable/LICENSE)/[Aurie Framework - AGPL3](https://github.com/AurieFramework/Aurie/blob/master/LICENSE)<br>
 [Tiny Mod Injector - MIT](https://github.com/YAL-Game-Tools/TinyModInjector/blob/main/LICENSE)<br>
 [CallbackManagerMod - No licensing info provided](https://github.com/PippleCultist/CallbackManagerMod)<br>

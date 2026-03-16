@@ -1,0 +1,343 @@
+struct YYGMLFuncs {{
+	const char *m_Name;
+	union
+	{
+		PFUNC_YYGMLScript m_ScriptFunction;
+		PFUNC_YYGML m_CodeFunction;
+		PFUNC_RAW m_RawFunction;
+	};
+	PVOID m_FunctionVariables;
+}};
+struct RefString {{
+    const char* m_String;
+    int32_t m_RefCount;
+    int32_t m_Length;
+}};
+
+struct RefObject depends (YYObjectBase) {{
+    YYObjectBase* m_Object;
+    int32_t m_RefCount;
+    int32_t m_Size;
+}};
+
+struct RValue depends (RefString) {{
+	// enum TIndex : uint8_t{
+	// 	OBJECT = 0,
+	// 	ARRAY  = 1,
+	// 	STRING = 2,
+	// 	ACTION = 3,
+	// };
+	//the function pointer
+	
+	// ########################################################################
+	// the following structure is replicated from the YoYo YYC runtime headers for GMS Runtime 2.3.6 and 2.3.7
+	// and I added some stuff
+	// ########################################################################
+	
+	union {
+		int32_t m_i32;
+		int64_t m_i64;
+		double m_Real;
+		union 
+		{
+			RefString* m_RefString;
+			RefDynamicArrayOfRValue* m_RefArray; // also actions array
+			YYObjectBase* m_Object;
+			CInstance* m_Instance;
+
+			// EventMap* m_EventMap; 		//? EventMap : public YYObjectBase
+		};
+		PVOID m_Pointer = nullptr;
+	};
+	uint32_t m_Flags = 0;
+	RValueType m_Kind = VALUE_UNDEFINED;
+
+	//? More fun stuff
+
+	// ########################################################################
+	// End of replicated structure
+	// ########################################################################
+
+	// the rest of RValue is heavily based on the work done by Archie, creator of YYToolkit and Aurie
+
+	/* Explicit conversions */
+	static RValue& ReadStructValue(RValue* p_Struct, RValue index);
+
+	int32_t GetArrayLength() const;
+	
+	// Converts the RValue to a double.
+	double ToDouble() const;
+
+	// Converts the RValue to a 32-bit integer.
+	int32_t ToInt32() const;
+
+	// Converts the RValue to a 64-bit integer.
+	int64_t ToInt64() const;
+
+	// Converts the RValue to a void*.
+	void* ToPointer() const;
+
+	// Converts the RValue to a boolean.
+	bool ToBoolean() const;
+
+	int32_t GetArrayLength();
+
+	// Returns the stringified kind of the RValue.
+	const char* GetKindName() const;
+
+	// Converts the RValue to an object.
+	YYObjectBase* ToObject() const;
+
+	// Converts the RValue to an instance.
+	CInstance* ToInstance() const;
+
+	// Converts the RValue to a C-style string.
+	const char* ToCString() const;
+
+	// Converts the RValue to a string.
+	std::string ToString() const;
+
+	// Converts the RValue to a UTF-8 string.
+	std::u8string ToUTF8String() const;
+
+	//! ACTION ARRAYS
+	RValue& GetMember2d(size_t index1, size_t index2);
+
+	//! OTHER ARRAYS
+	RValue& operator=(const RValue& Other);
+	RValue& push_back(const RValue& Other);
+	RValue& back();
+	std::vector<RValue*> ToRefVector();
+
+	std::unordered_map<std::string, RValue*> ToRefMap();
+
+
+	int32_t GetMemberCount() const;
+
+	RValue* ToArray();
+
+	RValueType GetKind() const;
+	
+	static RValueType GetKind(const RValue& rv);
+
+	RValue();
+
+	RValue(const RValue& Other);
+
+	
+
+	RValue(RValue&& Other) noexcept;
+
+	RValue& operator=(RValue&& Other) noexcept;
+
+	~RValue();
+
+	RValue(const int32_t Value)
+	{
+		*this = RValue();
+
+		*reinterpret_cast<int32_t*>(std::launder(&this->m_i32)) = static_cast<int32_t>(Value);
+		this->m_Kind = VALUE_INT32;
+	}
+	RValue(const int64_t Value)
+	{
+		*this = RValue();
+		*reinterpret_cast<int64_t*>(std::launder(&this->m_i64)) = static_cast<int64_t>(Value);
+		this->m_Kind = VALUE_INT64;
+	}
+	
+	RValue( const double Value)
+	{
+		*this = RValue();
+
+		*reinterpret_cast<double*>(std::launder(&this->m_Real)) = static_cast<double>(Value);
+		this->m_Kind = VALUE_REAL;
+	}
+	RValue( const float Value)
+	{
+		*this = RValue();
+
+		*reinterpret_cast<double*>(std::launder(&this->m_Real)) = static_cast<double>(Value);
+		this->m_Kind = VALUE_REAL;
+	}
+
+	RValue(CObjectGM *Value)
+	{
+		*this = RValue();
+
+		this->m_Pointer = (PVOID)(Value);
+		this->m_Kind = VALUE_OBJECT;
+	}
+	RValue(YYObjectBase *Value)
+	{
+		*this = RValue();
+
+		this->m_Pointer = (PVOID)(Value);
+		this->m_Kind = VALUE_OBJECT;
+	}
+	
+	RValue(CInstanceBase *Value)
+	{
+		*this = RValue();
+
+		this->m_Pointer = (PVOID)(Value);
+		this->m_Kind = VALUE_OBJECT;
+	}
+
+	RValue(CInstance *Value)
+	{
+		*this = RValue();
+
+		this->m_Pointer = (PVOID)(Value);
+		this->m_Kind = VALUE_OBJECT;
+	}
+
+	RValue(RValue* Pointer) = delete;
+
+	RValue(void* Pointer) = delete;
+	// {
+	// 	*this = RValue();
+	// 
+	// 	*reinterpret_cast<PVOID*>(std::launder(&this->m_Pointer)) = Pointer;
+	// 	this->m_Kind = VALUE_PTR;
+	// }
+
+	RValue(std::string_view Value);
+
+	RValue(std::u8string_view Value);
+
+	RValue(const char* Value);
+
+	RValue(const char8_t* Value);
+
+	RValue(bool Value);
+
+	// RValue(Action* actionPointer)
+	// {
+	// 	FREE_RValue(this);
+
+	// 	memcpy(this, actionPointer, sizeof(RValue));
+	// 	this->m_Kind = static_cast<RValueType>(VALUE_ACTION & MASK_KIND_RVALUE);
+	// }
+	
+	RValue(const std::map<std::string, RValue>& Values);
+	RValue(const std::unordered_map<int32_t, RValue>& Values);
+	RValue(const std::vector<RValue>& Values);
+	RValue(RefDynamicArrayOfRValue* actionArrayPointer);
+	RValue(EventMap* eventMapPointer) : RValue(reinterpret_cast<YYObjectBase*>(eventMapPointer)) {}
+	// RValue(Action* actionPointer);
+
+	RValue& operator=(const std::map<std::string, RValue>& Values);
+	RValue& operator=(const std::vector<RValue>& Values);
+	RValue& operator=(RefDynamicArrayOfRValue* actionPointer);
+	inline RValue& operator=(EventMap* eventMapPointer) {
+		return this->operator=(reinterpret_cast<YYObjectBase*>(eventMapPointer));
+	};
+	// RValue& operator=(Action* actionPointer);
+
+	std::vector<RValue> ToVector();
+	EventMap *ToEventMap();
+
+	RValue& operator[](size_t Index);
+	RValue& operator[](RValue Index);
+
+	RValue  operator[](size_t Index) const;
+	RValue  operator[](RValue Index) const;
+
+	RValue& operator[](std::string_view MemberName);
+
+	const RValue operator[](std::string_view MemberName) const;
+
+	bool ContainsValue(std::string_view MemberName) const;
+	bool ContainsValue(int32_t hash) const;
+
+	explicit operator bool();
+
+	explicit operator double();
+
+	explicit operator std::string();
+
+	explicit operator std::u8string();
+
+	explicit operator int32_t();
+
+	explicit operator int64_t();
+
+	bool operator()(RValue* in, RValue* out);
+
+	// operator Action*();
+
+	// operator Action&();
+
+	private:
+		void __Free();
+	public:
+	
+
+	LIBZHL_API RValue *GetVariable(RValue *var);
+}};
+struct RToken depends (RValue) {{
+	int m_Kind;
+    uint32_t m_Type;
+	int m_Index;
+	int m_Offset;
+	RValue m_Value;
+	int m_ArrLength;
+	RToken* m_Arr;
+	int m_Position;
+}};
+
+
+struct CDsMapEntry depends (RValue) {{
+	RValue m_Key;
+	RValue m_Value;
+
+    inline void Set(const RValue* key = nullptr, const RValue* value = nullptr) {
+        if (key)
+        {
+            FREE_RValue( &this->m_Key );
+            COPY_RValue( &this->m_Key, key );
+        }
+        if (value)
+        {
+            FREE_RValue( &this->m_Value );
+            COPY_RValue( &this->m_Value, value );
+        }
+    }
+
+    /// @brief Getter for key and/or value
+    /// @param outKey pointer to store key -- leave null to exclude
+    /// @param outValue pointer to store value -- leave null to exclude
+    inline void Get(const RValue* outKey = nullptr, const RValue* outValue = nullptr) {
+        if (outKey)
+        {
+            memcpy((void*)outKey, &this->m_Key, sizeof(RValue));
+        }
+        if (outValue)
+        {
+            memcpy((void*)outValue, &this->m_Value, sizeof(RValue));
+        }
+    }
+
+    RValue& GetKey() {
+        return this->m_Key;
+    }
+    RValue& GetValue() {
+        return this->m_Value;
+    }
+}};
+
+struct CDsMap {{
+    uint32_t *m_pHashTable;
+    uint32_t m_Unk;
+    PVOID m_pUnk;
+}};
+"558BEC568B75??6A00FF75??FF75??FF75":
+cleanup void YYArrayResize(RValue * *p_pArrayData, int memBlockSize, const char *file, int unk);
+"!C705(????????)0000000085F60F85":
+CInstance** g_pGetRValueContainer;
+"!.FF35(????????)E8????????EB??85DB":
+CInstance** g_pGlobalInstance;
+"!.8B0D(????????)A1(????????)23CB8B04??85C074??0F1F8000000000":
+CInstance** g_otherInstance;
+CInstance*** g_id2Instance;
