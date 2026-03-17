@@ -1043,7 +1043,7 @@ static FnBlock* CreateWrapper(const std::string_view& name, void* inPtrToWrap)
         ret()(&a);
 
     auto* fn = a.FinalizeFunction(name.data(), labels);
-    Log("%s %p", name.data(), fn);
+    Log("%s %p\n", name.data(), fn);
     a.End();
     return fn;
 }
@@ -1052,7 +1052,7 @@ template<typename TFn, bool NeedsCallerCleanup = true>
 static FnBlock* CreateWrapper(const std::string_view& name, TFn inPtrToWrap)
 {
     void* ptr;
-    memcpy_s(&ptr, 4u, &inPtrToWrap, 4u);
+    memcpy_s(&ptr, sizeof(void*), &inPtrToWrap, sizeof(void*));
     return CreateWrapper<TFn, NeedsCallerCleanup>(name.data(), ptr);
 }
 template<typename TFn, bool NeedsCallerCleanup = true>
