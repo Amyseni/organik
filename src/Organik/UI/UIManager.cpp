@@ -1,6 +1,6 @@
 #include "Synthetik.h"
 
-#include "zhl.h"
+#include "Arkitekt.h"
 #include "UIManager.h"
 #include "MainMenu.h"
 #include "ChatBox.h"

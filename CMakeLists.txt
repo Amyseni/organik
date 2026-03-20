@@ -75,7 +75,7 @@ add_library(${PROJ_NAME} SHARED
 	"src/detours.h"
 	"src/PALMemoryProtection.h"
 	"src/SigScan.h"
-	"src/zhl.h"
+	"src/Arkitekt.h"
 	"src/hde.h"
 	"include/imgui/imgui_demo.cpp"
 	"include/imgui/imgui_draw.cpp"
@@ -125,7 +125,6 @@ add_library(${PROJ_NAME} SHARED
 	"src/SigScan.cpp"
 	"src/Globals.h"
 	"src/Globals.cpp"
-	"src/RValueLock.cpp"
 	"src/HookLock.cpp"
 #	"src/Organik/JSON/Action.cpp"
 #	"src/Organik/JSON/Action.h"
@@ -136,7 +135,7 @@ add_library(${PROJ_NAME} SHARED
 	"src/RValue.cpp"
 	"src/Synthetik.cpp"
 	"src/hde.cpp"
-	"src/zhl.cpp"
+	"src/Arkitekt.cpp"
 	)
 
 set(CMAKE_SHARED_LIBRARY_PREFIX_CXX "")

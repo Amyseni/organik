@@ -79,7 +79,7 @@ GetLogger()->LogFormatted("%s:%s@%d -> " x, __FUNCTION__, __FILE__, __LINE__)
 
 #define _WINSOCKAPI_
 #include <Windows.h>
-#include "zhl.h"
+#include "Arkitekt.h"
 #include <d3d11.h>
 #include <iostream>
 #include <vector>

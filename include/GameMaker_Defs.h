@@ -277,7 +277,7 @@ typedef void(*PFUNC_YYGML)(CInstance* Self,CInstance* Other);
 
 using PFUNC_RAW = void(*)();
 
-using PFUNC_YYGMLScript = RValue & (__cdecl*)(
+using PFUNC_YYGMLScript = RValue * (__cdecl*)(
 		CInstance* Self,
 		CInstance* Other,
 		RValue* Result,

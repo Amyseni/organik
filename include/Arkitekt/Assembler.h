@@ -812,6 +812,32 @@ struct mov : public _Ins
     }
     constexpr  mov() {}
 };
+struct cmp : public _Ins
+{
+    void operator()(Arkitekt::Assembler* assembler, Operand auto op1, Operand auto op2)
+    {
+        auto Dst=&assembler->dasm;
+        if constexpr (is_register<decltype(op1)>)
+        {
+            if constexpr (std::same_as<std::remove_all_extents_t<decltype(op2)>, RegisterIndex>)
+            {
+
+            }
+            else if constexpr (is_register<decltype(op2)>)
+            {
+                |cmp Rd(op1.ToRegID()), Rd(op2.ToRegID())
+            }
+            else if constexpr (imm32<decltype(op1)>)
+            {
+
+            }
+            else if constexpr (is_address<decltype(op2)>)
+            {
+
+            }
+        }
+    }
+};
 struct pop : public _Ins
 {
     void operator()(Arkitekt::Assembler* assembler, Operand auto toPop)
@@ -990,7 +1016,6 @@ static FnBlock* CreateWrapper(const std::string_view& name, void* inPtrToWrap)
     if (!inPtrToWrap)
         throw new std::bad_weak_ptr; // need a strong pointer that goes to the gym and shit
 
-
     void** labels;
     a.Begin(&labels);
 
@@ -1018,6 +1043,7 @@ static FnBlock* CreateWrapper(const std::string_view& name, void* inPtrToWrap)
     }
 
     //TODO: handle non-MSVC compilers passing 'this' on the stack, vs. in ECX (only matters when our compiler differs from the target's compiler)
+    //TODO: or maybe don't
     call()(&a, inPtrToWrap);
 
     if constexpr (argc > 0 && NeedsCallerCleanup)

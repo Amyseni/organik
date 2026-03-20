@@ -41,7 +41,7 @@ enum {
 };
 #line 23 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
 //|.actionlist compiler_actions
-static const unsigned char compiler_actions[169] = {
+static const unsigned char compiler_actions[176] = {
   252,255,53,237,255,252,255,176,253,240,1,233,255,80,240,32,255,195,255,194,
   236,255,102,129,192,240,33,238,255,129,192,240,33,239,255,128,192,240,33,
   235,255,232,243,255,104,247,252,255,176,253,240,1,233,195,249,255,252,255,
@@ -50,7 +50,7 @@ static const unsigned char compiler_actions[169] = {
   252,255,176,253,240,1,233,143,5,237,255,139,128,253,240,129,240,1,233,255,
   137,192,240,129,240,33,255,184,240,32,237,255,139,5,240,129,237,255,252,255,
   53,237,143,128,253,240,1,233,255,137,5,240,129,237,255,199,5,237,237,255,
-  88,240,32,255,254,0,250,15,248,10,255
+  57,192,240,129,240,33,255,88,240,32,255,254,0,250,15,248,10,255
 };
 
 #line 24 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
@@ -895,6 +895,34 @@ struct mov : public _Ins
     }
     constexpr  mov() {}
 };
+struct cmp : public _Ins
+{
+    void operator()(Arkitekt::Assembler* assembler, Operand auto op1, Operand auto op2)
+    {
+        auto Dst=&assembler->dasm;
+        if constexpr (is_register<decltype(op1)>)
+        {
+            if constexpr (std::same_as<std::remove_all_extents_t<decltype(op2)>, RegisterIndex>)
+            {
+
+            }
+            else if constexpr (is_register<decltype(op2)>)
+            {
+                //|cmp Rd(op1.ToRegID()), Rd(op2.ToRegID())
+                dasm_put(Dst, 158, (op2.ToRegID()), (op1.ToRegID()));
+#line 829 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+            }
+            else if constexpr (imm32<decltype(op1)>)
+            {
+
+            }
+            else if constexpr (is_address<decltype(op2)>)
+            {
+
+            }
+        }
+    }
+};
 struct pop : public _Ins
 {
     void operator()(Arkitekt::Assembler* assembler, Operand auto toPop)
@@ -905,7 +933,7 @@ struct pop : public _Ins
             // immediate pop
             //|pop aword[toPop.value]
             dasm_put(Dst, 105, toPop.value);
-#line 824 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+#line 850 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
                 assembler->stackOffset -= sizeof(uintptr_t);
         }
         else if constexpr (std::same_as<std::remove_all_extents_t<decltype(toPop)>, RegisterIndex>)
@@ -913,11 +941,11 @@ struct pop : public _Ins
             if (0<toPop.GetValue())
                 //|pop aword[Rd(toPop.ToRegID())+toPop.GetValue()]
                 dasm_put(Dst, 74, (toPop.ToRegID()), toPop.GetValue());
-#line 830 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+#line 856 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
             else
                 //|pop aword[Rd(toPop.ToRegID())-toPop.GetValue()]
                 dasm_put(Dst, 74, (toPop.ToRegID()), -toPop.GetValue());
-#line 832 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+#line 858 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
 
                 assembler->stackOffset -= sizeof(uintptr_t);
         }
@@ -927,8 +955,8 @@ struct pop : public _Ins
             {
             case BITMASK_R32: // push r[0-7] (eax-esi)
                 //|pop Rd(toPop.ToRegID())
-                dasm_put(Dst, 158, (toPop.ToRegID()));
-#line 841 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+                dasm_put(Dst, 165, (toPop.ToRegID()));
+#line 867 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
                     assembler->stackOffset -= sizeof(uint32_t);
                 break;
             case BITMASK_XMM:// invalid in 32bit mode
@@ -942,7 +970,7 @@ struct pop : public _Ins
         {
             //|pop dword[uint32_t(toPop)]
             dasm_put(Dst, 105, uint32_t(toPop));
-#line 853 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+#line 879 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
                 assembler->stackOffset -= sizeof(uint32_t);
         }
     }
@@ -989,12 +1017,12 @@ inline void Assembler::Begin(void*** _labels)
     dasm_State** Dst = &(this->dasm);
 
     //|.code
-    dasm_put(Dst, 162);
-#line 899 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+    dasm_put(Dst, 169);
+#line 925 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
         //|.align 0x10
         //|->_func:
-        dasm_put(Dst, 164);
-#line 901 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
+        dasm_put(Dst, 171);
+#line 927 "/home/amyseni/organik/include/Arkitekt/Assembler.h"
 
     this->stackOffset = sizeof(uintptr_t);
 }
@@ -1087,7 +1115,6 @@ static FnBlock* CreateWrapper(const std::string_view& name, void* inPtrToWrap)
     if (!inPtrToWrap)
         throw new std::bad_weak_ptr; // need a strong pointer that goes to the gym and shit
 
-
     void** labels;
     a.Begin(&labels);
 
@@ -1115,6 +1142,7 @@ static FnBlock* CreateWrapper(const std::string_view& name, void* inPtrToWrap)
     }
 
     //TODO: handle non-MSVC compilers passing 'this' on the stack, vs. in ECX (only matters when our compiler differs from the target's compiler)
+    //TODO: or maybe don't
     call()(&a, inPtrToWrap);
 
     if constexpr (argc > 0 && NeedsCallerCleanup)
@@ -1140,7 +1168,7 @@ static FnBlock* CreateWrapper(const std::string_view& name, void* inPtrToWrap)
         ret()(&a);
 
     auto* fn = a.FinalizeFunction(name.data(), labels);
-    Log("%s %p", name.data(), fn);
+    Log("%s %p\n", name.data(), fn);
     a.End();
     return fn;
 }
@@ -1149,7 +1177,7 @@ template<typename TFn, bool NeedsCallerCleanup = true>
 static FnBlock* CreateWrapper(const std::string_view& name, TFn inPtrToWrap)
 {
     void* ptr;
-    memcpy_s(&ptr, 4u, &inPtrToWrap, 4u);
+    memcpy_s(&ptr, sizeof(void*), &inPtrToWrap, sizeof(void*));
     return CreateWrapper<TFn, NeedsCallerCleanup>(name.data(), ptr);
 }
 template<typename TFn, bool NeedsCallerCleanup = true>

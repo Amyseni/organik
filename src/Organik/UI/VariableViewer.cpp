@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl.h"
+#include "Arkitekt.h"
 #include "DefinitionHelpers/InstanceHelper.h"
 #include "VariableHelper.h"
 #include "VariableViewer.h"
@@ -385,7 +385,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                 if (ImGui::BeginTable("##events_table", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_HighlightHoveredColumn))
                 {
                     // ImGui::TableSetupColumn("##button", ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoHeaderLabel, 10.0f);
-                    ImGui::TableSetupColumn("Event Name", ImGuiTableColumnFlags_WidthFixed, 15.0f);
+                    ImGui::TableSetupColumn("Event Code", ImGuiTableColumnFlags_WidthFixed, 15.0f);
                     ImGui::TableSetupColumn("Owner", ImGuiTableColumnFlags_WidthFixed, 25.0f);
                     ImGui::TableSetupColumn("Event Function", ImGuiTableColumnFlags_WidthStretch, 160.0f);
                     ImGui::TableHeadersRow();
@@ -407,7 +407,7 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                         int32_t subcode = key & 0xFFFFFFFF;
                         ImGui::SetItemTooltip("Click for details");
                         ImGui::SameLine(0,0);
-                        ImGui::Text("%s", eventSpecificName(code, subcode).c_str());
+                        ImGui::Text("(%d, %d)", code, subcode);
                         ImGui::TableNextColumn();
 
                         ImGui::Text("%s", Object_Data(value->m_OwnerObjectID)->m_Name);
@@ -431,7 +431,6 @@ void InstanceVariableViewer::CObjectDetailsPane(CObjectGM* toggleObj)
                                 ? (Object_Data(value->m_OwnerObjectID)->m_Name
                                     ? Object_Data(value->m_OwnerObjectID)->m_Name : "<no_name>") : "<no_object>");
                             ImGui::Text("Event Code: (%d, %d)", code, subcode);
-                            ImGui::Text("Event Name: %s", eventSpecificName(code, subcode).c_str());
 
                             if (value->m_Code)
                             {

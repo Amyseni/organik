@@ -29,10 +29,10 @@
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 #include <chrono>
-#include "zhl.h"
+#include "Arkitekt.h"
 
 using namespace Organik;
-using namespace ZHL;
+using namespace Arkitekt;
 
 HINSTANCE hModule_Dupe = nullptr;
 HMODULE D3D11Dll = nullptr;
@@ -63,7 +63,7 @@ ID3D11DeviceContext** gD3DContext;
 
 
 // /*
-//   *#Define CreateDevice's original function type/calling convention and tell ZHL how to hook it (basically)
+//   *#Define CreateDevice's original function type/calling convention and tell Arkitekt.how to hook it (basically)
 //  * argdata = an array describing the arguments, their types, and what registers they use (if any, but for __stdcall, they are all on the stack)
 //  * InternalSuper = the original function pointer to an unmodified D3D11CreateDevice function.
 //  * Hook = the trampoline funtction that gets called instead of the original, with any number of other hooks installed into it.
@@ -155,7 +155,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
             
             // gamer multithreading. way too early to initialize imgui
             
-            std::thread t(ZHL::Init);
+            std::thread t(Arkitekt::Init);
 			t.detach();
 			std::cout << "Created thread with ID: " << t.get_id() << std::endl;
 		}

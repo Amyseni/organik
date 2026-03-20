@@ -7,199 +7,175 @@
 #include "Globals.h"
 #include "Variant.h"
 #include "stack"
-#include "zhl.h"
- 
-// HOOK_GLOBAL(gml_Object_obj_chest_weapon_wood_arena_Create_0, (CInstance* self, CInstance* other) -> void)
-// {
-/*     Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 called: %p", self);
-    super(self, other);
-    Organik::GetLogger()->LogFormatted("gml_Object_obj_chest_weapon_wood_arena_Create_0 after super: %p", self->m_ID);
+#include "Arkitekt.h"
 
+
+HOOK_EVENT(obj_weapon_DE_61, EVENT_STEP, 0)
+{
+    RValue result;
+    gml_event_inherited(&result, self, other, 0, nullptr);
+    CInstance* objStats = CInstance::FirstOrDefault([&](CInstance* instance)
+    { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_stats]; });
+    CInstance* objStatistics = CInstance::FirstOrDefault([&](CInstance* instance)
+    { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
+    RValue* giveEffect = self->InternalGetYYVarRef(VAR_HASH(giveeffect));
+    RValue* removeEffect = self->InternalGetYYVarRef(VAR_HASH(removeeffect));
+    RValue* effectHoldActive = self->InternalGetYYVarRef(VAR_HASH(effectholdactive));
+    RValue* spread = self->InternalGetYYVarRef(VAR_HASH(spread));
+    RValue* spreadMinimum = self->InternalGetYYVarRef(VAR_HASH(spreadminimum));
+    RValue* bulletDamageModifier = self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier));
+    RValue* stacks = self->InternalGetYYVarRef(VAR_HASH(stacks));
+    RValue* bulletDamageModifier2 = self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier2));
+    RValue* prevStat = self->InternalGetYYVarRef(VAR_HASH(prevstat));
+    RValue* runHeadshotKills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
+    RValue* modHeadshot = objStats->InternalGetYYVarRef(VAR_HASH(mod_headshotmultiplier));
+    if (giveEffect && giveEffect->ToBoolean())
+    {
+        if (objStats)
+            *modHeadshot = modHeadshot->ToDouble() + 0.8f;
+        *giveEffect = RValue(false);
+    }
+    else if (removeEffect && removeEffect->ToBoolean())
+    {
+        if (objStats)
+            *modHeadshot = modHeadshot->ToDouble() - 0.8f;
+        *removeEffect = RValue(false);
+    }
+    if (effectHoldActive && effectHoldActive->ToBoolean())
+    {
+        if (runHeadshotKills->ToDouble() > prevStat->ToDouble())
+        {
+            *stacks = stacks->ToDouble() + 1.0;
+            *bulletDamageModifier2 = bulletDamageModifier2->ToDouble() + 0.0125f;
+            *spread = *spreadMinimum;
+            if ((static_cast<int>(stacks->ToDouble()) % 10) == 0)
+            {
+                RValue scrResult;
+                RValue strStacks = DoBuiltin(&gml_string, *stacks);
+                RValue popupColor = RValue(Rarities::RarityColor[Rarities::LEGENDARY]);
+                RValue two = RValue(2.0);
+                RValue twoAgain = RValue(2.0);
+                std::vector<RValue*> args = {
+                    &strStacks,
+                    &popupColor,
+                    &two,
+                    &twoAgain };
+                gml_Script_scr_popup(self, self, &scrResult, static_cast<int>(args.size()), args.data());
+            }
+            *prevStat = runHeadshotKills->ToDouble();
+        }
+    }
+}
+
+HOOK_EVENT(obj_enm_workerbot_MOBA, EVENT_ALARM, 11)
+{
+    Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_workerbot_MOBA_Alarm_11 called: %p", self);
+    return;
+}
+HOOK_EVENT(obj_enm_turret_MOBA_Base, EVENT_ALARM, 11)
+{
+    Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_MOBA_Base_Alarm_11 called: %p", self);
+    return;
+}
+
+HOOK_EVENT(obj_weapon_PARENT, EVENT_STEP, 0)
+{
     if (!self)
+    {
+        super(self, other);
         return;
-    RValue dummy;
-    auto rng = Utils::getrng();
-    int chestType = (*rng)() % getNonArenaChests().size();
-    RValue x = parseRValueNumber<double>(*self->InternalGetYYVarRef(VAR_HASH(x)));
-    RValue y = parseRValueNumber<double>(*self->InternalGetYYVarRef(VAR_HASH(y)));
-    RValue newChestType = RValue(static_cast<double>(getNonArenaChests()[chestType]));
-    RValue selfID = self->m_ID;
-    std::vector<RValue*> args = {
-        &x,
-        &y,
-        &newChestType
-    };
+    }
 
-    RValue newChest;
-//     gml_Script_scr_instance_create(GetGlobalInstance(), GetGlobalInstance(), &newChest, static_cast<int>(args.size()), args.data());
-//     gml_instance_destroy(&dummy, self, self, 1, &selfID); */
+    if (!self->InternalGetYYVarRef(VAR_HASH(isLocal))->ToBoolean())
+    {
+        super(self, other);
+        return;
+    }
 
-// }
-// HOOK_EVENT(obj_weapon_DE_61, EVENT_STEP, 0)
-// {
-//     RValue result;
-//     gml_event_inherited(&result, self, other, 0, nullptr);
-//     CInstance *objStats = CInstance::FirstOrDefault([&](CInstance *instance)
-//                                                     { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_stats]; });
-//     CInstance *objStatistics = CInstance::FirstOrDefault([&](CInstance *instance)
-//                                                          { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
-//     RValue *giveEffect = self->InternalGetYYVarRef(VAR_HASH(giveeffect));
-//     RValue *removeEffect = self->InternalGetYYVarRef(VAR_HASH(removeeffect));
-//     RValue *effectHoldActive = self->InternalGetYYVarRef(VAR_HASH(effectholdactive));
-//     RValue *spread = self->InternalGetYYVarRef(VAR_HASH(spread));
-//     RValue *spreadMinimum = self->InternalGetYYVarRef(VAR_HASH(spreadminimum));
-//     RValue *bulletDamageModifier = self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier));
-//     RValue *stacks = self->InternalGetYYVarRef(VAR_HASH(stacks));
-//     RValue *bulletDamageModifier2 = self->InternalGetYYVarRef(VAR_HASH(bulletdamagemodifier2));
-//     RValue *prevStat = self->InternalGetYYVarRef(VAR_HASH(prevstat));
-//     RValue *runHeadshotKills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
-//     RValue *modHeadshot = objStats->InternalGetYYVarRef(VAR_HASH(mod_headshotmultiplier));
-//     if (giveEffect && giveEffect->ToBoolean())
-//     {
-//         if (objStats)
-//             *modHeadshot = modHeadshot->ToDouble() + 0.8f;
-//         *giveEffect = RValue(false);
-//     }
-//     else if (removeEffect && removeEffect->ToBoolean())
-//     {
-//         if (objStats)
-//             *modHeadshot = modHeadshot->ToDouble() - 0.8f;
-//         *removeEffect = RValue(false);
-//     }
-//     if (effectHoldActive && effectHoldActive->ToBoolean())
-//     {
-//         if (runHeadshotKills->ToDouble() > prevStat->ToDouble())
-//         {
-//             *stacks = stacks->ToDouble() + 1.0;
-//             *bulletDamageModifier2 = bulletDamageModifier2->ToDouble() + 0.0125f;
-//             *spread = *spreadMinimum;
-//             if ((static_cast<int>(stacks->ToDouble()) % 10) == 0)
-//             {
-//                 RValue scrResult;
-//                 RValue strStacks = DoBuiltin(&gml_string, *stacks );
-//                 RValue popupColor = RValue(Rarities::RarityColor[Rarities::LEGENDARY]);
-//                 RValue two = RValue(2.0);
-//                 RValue twoAgain = RValue(2.0);
-//                 std::vector<RValue *> args = {
-//                     &strStacks,
-//                     &popupColor,
-//                     &two,
-//                     &twoAgain};
-//                 gml_Script_scr_popup(self, self, &scrResult, static_cast<int>(args.size()), args.data());
-//             }
-//             *prevStat = runHeadshotKills->ToDouble();
-//         }
-//     }
-// }
+    RValue* organikPerfReload = self->InternalReadYYVar(VAR_HASH(Organik_ArtifactPerfReload));
+    RValue* organikOnkillFx = self->InternalReadYYVar(VAR_HASH(Organik_Onkill));
+    if (organikPerfReload)
+    {
+        RValue* perfectActiveReloadBuffShots = self->InternalGetYYVarRef(VAR_HASH(perfectactivereloadbuffshots));
+        if (perfectActiveReloadBuffShots->ToDouble() > 0.0)
+        {
+            double perfectReloadScaling = organikPerfReload->ToDouble();
+            *perfectActiveReloadBuffShots = 0.0;
+            *self->InternalGetYYVarRef(VAR_HASH(Organik_ArtifactNextShot)) = RValue(true);
+        }
+    }
+    CInstance* objStatistics = CInstance::FirstOrDefault([&](CInstance* instance)
+    { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
+    if (organikOnkillFx)
+    {
+        RValue* organikOnkillFxTrigger = DoBuiltin(&gml_ds_map_copy).ToObject()->InternalGetYYVarRef(VAR_HASH(Organik_HeadshotStackingTemp));
+        RValue* runheadshotkills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
+        RValue* prevkills = self->InternalGetYYVarRef(VAR_HASH(prevkills));
+        RValue* damageBuffTemp = self->InternalGetYYVarRef(VAR_HASH(Organik_DamageBuffTemp));
+        // if (!damageBuffTemp->ToPointer())
+        // {
 
-// HOOK_EVENT(obj_enm_workerbot_MOBA, EVENT_ALARM, 11)
-// {
-//     Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_workerbot_MOBA_Alarm_11 called: %p", self);
-//     return;
-// }
-// HOOK_EVENT(obj_enm_turret_MOBA_Base, EVENT_ALARM, 11)
-// {
-//     Organik::GetLogger()->LogFormatted("gml_Object_obj_enm_turret_MOBA_Base_Alarm_11 called: %p", self);
-//     return;
-// }
+        // }
+        // if (headshotStackingTemp->ToDouble() > 0.0)
+        // {
+        //     if (runheadshotkills->ToDouble() > prevkills->ToDouble())
+        //     {
 
-// HOOK_EVENT(obj_weapon_PARENT, EVENT_STEP, 0)
-// {
-//     if (!self)
-//     {
-//         super(self, other);
-//         return;
-//     }
+        //     }
+        // }
+    }
+    super(self, other);
+}
 
-//     if (!self->InternalGetYYVarRef(VAR_HASH(isLocal))->ToBoolean())
-//     {
-//         super(self, other);
-//         return;
-//     }
+HOOK_EVENT(obj_boss_parent, EVENT_DESTROY, 0)
+{
+    super(self, other);
+    CInstance::ForEach([&](CInstance* instance)
+    {
+        if (!instance) return;
+        RValue* isLocal = instance->InternalGetYYVarRef(VAR_HASH(isLocal));
+        if (isLocal && isLocal->ToBoolean())
+        {
+            RValue* timedtime = instance->InternalReadYYVar(VAR_HASH(timedtime));
+            if (!timedtime)
+            {
+                return;
+            }
+            if (timedtime->ToDouble() > 0.0)
+            {
+                RValue* weaponvariantname = instance->InternalGetYYVarRef(VAR_HASH(weaponvariantname));
+                RValue* weaponvariantnameshort = instance->InternalGetYYVarRef(VAR_HASH(weaponvariantnameshort));
 
-//     RValue *organikPerfReload = self->InternalReadYYVar(VAR_HASH(Organik_ArtifactPerfReload));
-//     RValue *organikOnkillFx = self->InternalReadYYVar(VAR_HASH(Organik_Onkill));
-//     if (organikPerfReload)
-//     {
-//         RValue *perfectActiveReloadBuffShots = self->InternalGetYYVarRef(VAR_HASH(perfectactivereloadbuffshots));
-//         if (perfectActiveReloadBuffShots->ToDouble() > 0.0)
-//         {
-//             double perfectReloadScaling = organikPerfReload->ToDouble();
-//             *perfectActiveReloadBuffShots = 0.0;
-//             *self->InternalGetYYVarRef(VAR_HASH(Organik_ArtifactNextShot)) = RValue(true);
-//         }
-//     }
-//     CInstance *objStatistics = CInstance::FirstOrDefault([&](CInstance *instance)
-//                                                          { return instance && instance->m_ObjectIndex == Organik::Objects::ObjIndexes[Organik::Objects::obj_statistics]; });
-//     if (organikOnkillFx)
-//     {
-//         RValue *organikOnkillFxTrigger = DoBuiltin(&gml_ds_map_copy ).ToObject()->InternalGetYYVarRef(VAR_HASH(Organik_HeadshotStackingTemp));
-//         RValue *runheadshotkills = objStatistics->InternalGetYYVarRef(VAR_HASH(runheadshotkills));
-//         RValue *prevkills = self->InternalGetYYVarRef(VAR_HASH(prevkills));
-//         RValue *damageBuffTemp = self->InternalGetYYVarRef(VAR_HASH(Organik_DamageBuffTemp));
-//         // if (!damageBuffTemp->ToPointer())
-//         // {
+                *instance->InternalGetYYVarRef(VAR_HASH(rollvariant)) = RValue(static_cast<double>(Variant::DIVINE));
+                *instance->InternalGetYYVarRef(VAR_HASH(variantcolor)) = RValue(static_cast<double>(Rarities::RarityColor[Rarities::LEGENDARY]));
+                *instance->InternalGetYYVarRef(VAR_HASH(tooltip_rarity)) = RValue(static_cast<double>(Rarities::LEGENDARY));
+                *timedtime = RValue(-1.0);
 
-//         // }
-//         // if (headshotStackingTemp->ToDouble() > 0.0)
-//         // {
-//         //     if (runheadshotkills->ToDouble() > prevkills->ToDouble())
-//         //     {
+                *instance->InternalGetYYVarRef(VAR_HASH(timed)) = RValue(false);
+                *instance->InternalGetYYVarRef(VAR_HASH(timedtimer)) = RValue(false);
+                *instance->InternalGetYYVarRef(VAR_HASH(timedbuffspawned)) = RValue(false);
 
-//         //     }
-//         // }
-//     }
-//     super(self, other);
-// }
+                RValue wepX = RValue(static_cast<double>(instance->m_X));
+                RValue wepY = RValue(static_cast<double>(instance->m_Y));
+                Variant timelessV = (*getUserVariants())[Code_Variable_FindAlloc_Slot_From_Name(nullptr, const_cast<char*>("T I M E L E S S"))];
+                RValue divineDropLightning = RValue(timelessV.spawnID);
+                RValue soundFeedback = RValue(timelessV.soundID);
+                RValue arg1;
+                RValue arg2;
+                RValue unused;
+                std::vector<RValue*> args;
+                doLocalizationScriptAlt(arg1, arg2, args, weaponvariantname, "@1", timelessV.name.c_str());
+                doLocalizationScriptAlt(arg1, arg2, args, weaponvariantnameshort, "@1", timelessV.nameshort.c_str());
+                /* instance->m_DeleteOwnProperty(instance, &unused, Code_Variable_Find_Name(nullptr, 0, VAR_HASH(timedtime)), false); */
 
-// HOOK_GLOBAL(gml_Object_obj_boss_parent_Destroy_0, (CInstance * self, CInstance *other)->void)
-// {
-//     super(self, other);
-//     CInstance::ForEach([&](CInstance *instance)
-//                        {
-//         if (!instance) return;
-//         RValue* isLocal = instance->InternalGetYYVarRef(VAR_HASH(isLocal));
-//         if (isLocal && isLocal->ToBoolean())
-//         {
-//             RValue* timedtime = instance->InternalReadYYVar(VAR_HASH(timedtime));
-//             if (!timedtime)
-//             {
-//                 return;
-//             }
-//             if (timedtime->ToDouble() > 0.0)
-//             {
-//                 RValue *weaponvariantname = instance->InternalGetYYVarRef(VAR_HASH(weaponvariantname));
-//                 RValue *weaponvariantnameshort = instance->InternalGetYYVarRef(VAR_HASH(weaponvariantnameshort));
+                DoBuiltin(&gml_audio_play_sound, soundFeedback, 15.0, false);
 
-//                 *instance->InternalGetYYVarRef(VAR_HASH(rollvariant)) = RValue(static_cast<double>(Variant::DIVINE));
-//                 *instance->InternalGetYYVarRef(VAR_HASH(variantcolor)) = RValue(static_cast<double>(Rarities::RarityColor[Rarities::LEGENDARY]));
-//                 *instance->InternalGetYYVarRef(VAR_HASH(tooltip_rarity)) = RValue(static_cast<double>(Rarities::LEGENDARY));
-//                 *timedtime = RValue(-1.0);
-
-//                 *instance->InternalGetYYVarRef(VAR_HASH(timed)) = RValue(false);
-//                 *instance->InternalGetYYVarRef(VAR_HASH(timedtimer)) = RValue(false);
-//                 *instance->InternalGetYYVarRef(VAR_HASH(timedbuffspawned)) = RValue(false);
-
-//                 RValue wepX = RValue(static_cast<double>(instance->m_X));
-//                 RValue wepY = RValue(static_cast<double>(instance->m_Y));
-//                 Variant timelessV = (*getUserVariants())[Code_Variable_FindAlloc_Slot_From_Name(nullptr, const_cast<char*>("T I M E L E S S"))];
-//                 RValue divineDropLightning = RValue(timelessV.spawnID);
-//                 RValue soundFeedback = RValue(timelessV.soundID);
-//                 RValue arg1;
-//                 RValue arg2;
-//                 RValue unused;
-//                 std::vector<RValue*> args;
-//                 doLocalizationScriptAlt(arg1, arg2, args, weaponvariantname, "@1", timelessV.name.c_str());
-//                 doLocalizationScriptAlt(arg1, arg2, args, weaponvariantnameshort, "@1", timelessV.nameshort.c_str());
-//                 /* instance->m_DeleteOwnProperty(instance, &unused, Code_Variable_Find_Name(nullptr, 0, VAR_HASH(timedtime)), false); */
-
-//                 DoBuiltin(&gml_audio_play_sound, { soundFeedback, RValue(15.0), RValue(false) });
-
-//                 args = { &wepX, &wepY, &divineDropLightning };
-//                 gml_Script_scr_instance_create(instance, instance, &unused, static_cast<int>(args.size()), args.data());
-//             }
-//         } });
-// }
+                args = { &wepX, &wepY, &divineDropLightning };
+                gml_Script_scr_instance_create(instance, instance, &unused, static_cast<int>(args.size()), args.data());
+            }
+        }
+    });
+}
 // HOOK_GLOBAL(gml_Object_obj_MOBA_ctrl_PreCreate_0, (CInstance * self, CInstance *other)->void)
 // {
 //     // *GetLogAllCalls() = true;

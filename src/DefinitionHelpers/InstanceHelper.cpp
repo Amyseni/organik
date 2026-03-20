@@ -1,5 +1,5 @@
 #include "Synthetik.h"
-#include "zhl.h"
+#include "Arkitekt.h"
 #include <unordered_map>
 #include "InstanceHelper.h"
 #include "VariableHelper.h"
@@ -230,5 +230,4 @@ void Organik::DoHelperSetup()
     Organik::GetLogger()->LogFormatted("%s, %d: %s",
         test1->m_DefFilePath.generic_string().c_str(), test1->GetVarDefForID(VAR_HASH(bulletdamagemodifier2)).m_ID, "Variable Definitions Checked"
     );
-    ZHL::Done(true);
 } 

@@ -1,6 +1,6 @@
 #pragma once
 #include "Synthetik.h"
-#include "zhl.h"
+#include "Arkitekt.h"
 #include <vector>
 #include <unordered_map>
 #include "imgui/imgui.h"
